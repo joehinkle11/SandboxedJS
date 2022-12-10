@@ -1,20 +1,48 @@
 import { MaybeSValueMetadata } from "./SValueMetadata";
 import { $$ts, $$typeToString } from "ts-macros";
+import { TranspileContext } from "./TranspileContext";
 
 export interface SValue<M extends MaybeSValueMetadata> {
-  value: any;
   metadata: M;
   toNativeJS(): any;
-  sUnaryNegate(): SValue<M>;
-  sUnaryMakePositive(): SValue<M>;
+  sUnaryNegate(transpileContext: TranspileContext<M>): SValue<M>;
+  sUnaryMakePositive(transpileContext: TranspileContext<M>): SValue<M>;
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
+}
+
+export type SObjectValueInitArgs = {
+
+}
+export type SObjectValueInitEntry = {
+
+}
+
+export class SObjectValue<M extends MaybeSValueMetadata> implements SValue<M> {
+  
+  metadata!: M;
+  constructor(initArgs: SObjectValueInitArgs, transpileContext: TranspileContext<M>) {
+    this.metadata = transpileContext.newMetadataForObjectValue();
+  }
+  toNativeJS(): any { 
+    throw Error("todo")
+  };
+  sUnaryNegate(transpileContext: TranspileContext<M>): SNumberValue<M> {
+    return new SNumberValue(NaN, transpileContext.newMetadataForRuntimeTimeEmergingValue());
+  };
+  sUnaryMakePositive(transpileContext: TranspileContext<M>): SNumberValue<M> {
+    return new SNumberValue(NaN, transpileContext.newMetadataForRuntimeTimeEmergingValue());
+  };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SObjectValue");
+  }
 }
 
 export interface SPrimitiveValue<
   M extends MaybeSValueMetadata,
   P extends SPrimitiveValueType
 > extends SValue<M> {
-  value: P;
-  metadata: M;
+  readonly value: P;
+  readonly metadata: M;
   toNativeJS(): P;
 }
 type SPrimitiveValueType = bigint | boolean | number | string | undefined | null;
@@ -45,6 +73,9 @@ export class SBooleanValue<M extends MaybeSValueMetadata> implements SPrimitiveV
     const boolMadePositive = +this.value;
     return new SNumberValue(boolMadePositive, this.metadata);
   };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SBoolean prototype");
+  }
 }
 
 export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, number> {
@@ -61,4 +92,7 @@ export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   sUnaryMakePositive(): SNumberValue<M> {
     return this;
   };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SNumberValue prototype");
+  }
 }

@@ -14,11 +14,11 @@ export function sBinaryAdd<M extends MaybeSValueMetadata>(
     if (right instanceof SNumberValue) {
       return new SNumberValue(left.value + right.value, resultingMetadata);
     } else if (right instanceof SBooleanValue) {
-      return new SNumberValue(left.value + right.value, resultingMetadata);
+      return new SNumberValue(left.value + Number(right.value), resultingMetadata);
     }
   } else if (left instanceof SBooleanValue) {
     if (right instanceof SNumberValue) {
-      return new SNumberValue(left.value + right.value, resultingMetadata);
+      return new SNumberValue(Number(left.value) + right.value, resultingMetadata);
     }
   }
   throw new Error(`Cannot perform binary operator "+" on ${left.constructor.name} and ${right.constructor.name}`);

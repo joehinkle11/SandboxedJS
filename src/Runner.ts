@@ -31,6 +31,10 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
   evalTranspiledCode(transpiledJsCode: string): SValues.SValue<M> {
     const sandboxedThis = this;
     const transpileContext = this.transpileContext;
-    return eval(transpiledJsCode);
+    try {
+      return eval(transpiledJsCode);
+    } catch (e) {
+      throw [e, new Error("Transpiled code:\n\n" + transpiledJsCode)];
+    }
   }
 }

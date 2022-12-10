@@ -16,6 +16,21 @@ const sandboxedJSRunnerWithMetadataSystem = SandboxedJSRunner.newRunnerWithMetad
       data: "runtime"
     }
   },
+  newMetadataForRuntimeTimeEmergingValue() {
+    return {
+      data: "runtime"
+    }
+  },
+  newMetadataForObjectValue() {
+    return {
+      data: "object"
+    }
+  },
+  newMetadataForFunctionValue() {
+    return {
+      data: "function"
+    }
+  },
 });
 
 describe('no metadata when no metadata system given', () => {

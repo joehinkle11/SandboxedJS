@@ -1,5 +1,4 @@
-import {describe, expect, test} from '@jest/globals';
-import { safeEval } from '../src/SafeEval';
+import {describe} from '@jest/globals';
 import { testSafeEvalAgainstNative } from './helpers';
 
 describe('basic numbers', () => {
