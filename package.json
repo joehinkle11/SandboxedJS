@@ -1,0 +1,28 @@
+{
+  "name": "@joehinkle11/sandboxedjs",
+  "version": "0.0.1",
+  "description": "Sandbox and execute untrusted JavaScript.",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "ttsc",
+    "test": "jest",
+    "benchmark": "npm run build;node --experimental-specifier-resolution=node benchmarks/main.benchmark.mjs"
+  },
+  "author": "Joseph Hinkle",
+  "license": "MIT",
+  "devDependencies": {
+    "@jest/globals": "^29.3.1",
+    "@types/jest": "^29.2.4",
+    "benchmarkify": "^3.0.0",
+    "jest": "^29.3.1",
+    "ts-jest": "^29.0.3",
+    "ts-macros": "^2.0.0",
+    "ts-node": "^10.9.1",
+    "ttypescript": "^1.5.15",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "acorn": "^8.8.1"
+  }
+}
