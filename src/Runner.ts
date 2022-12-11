@@ -1,6 +1,5 @@
 import { transpile } from "./Transpile";
 import * as SValues from "./SValues";SValues;
-import * as SBinaryOps from "./SBinaryOps";SBinaryOps;
 import { TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 
