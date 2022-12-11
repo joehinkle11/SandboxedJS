@@ -1,11 +1,22 @@
-import {describe, expect, test} from '@jest/globals';
-import { safeEval } from '../src/SafeEval';
+import {describe} from '@jest/globals';
+import { testSafeEvalAgainstNative } from './helpers';
 
 describe('basic booleans', () => {
-  test('false is false', () => {
-    expect(safeEval("false")).toBe(false);
-  });
-  test('true is true', () => {
-    expect(safeEval("true")).toBe(true);
-  });
+  testSafeEvalAgainstNative('false');
+  testSafeEvalAgainstNative('true');
+});
+
+describe('boolean ops', () => {
+  testSafeEvalAgainstNative('+false');
+  testSafeEvalAgainstNative('+true');
+  testSafeEvalAgainstNative('-false');
+  testSafeEvalAgainstNative('-true');
+  testSafeEvalAgainstNative('true+false');
+  testSafeEvalAgainstNative('true+true');
+  testSafeEvalAgainstNative('false+true');
+  testSafeEvalAgainstNative('false+false');
+  testSafeEvalAgainstNative('true-true');
+  testSafeEvalAgainstNative('true-false');
+  testSafeEvalAgainstNative('false-true');
+  testSafeEvalAgainstNative('false-false');
 });

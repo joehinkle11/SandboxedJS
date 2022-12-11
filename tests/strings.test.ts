@@ -44,4 +44,16 @@ describe('template strings', () => {
 
 describe('strings concat', () => {
   testSafeEvalAgainstNative('"a" + "b"');
+  testSafeEvalAgainstNative('"a" + 1');
+  testSafeEvalAgainstNative('1 + "b"');
+});
+
+describe('strings subtract math', () => {
+  testSafeEvalAgainstNative('"a" - "b"');
+  testSafeEvalAgainstNative('"a" - 1');
+  testSafeEvalAgainstNative('1 - "b"');
+  testSafeEvalAgainstNative('"1" - "2"');
+  testSafeEvalAgainstNative('"1" - "-2"');
+  testSafeEvalAgainstNative('"-1.2" - "-2"');
+  testSafeEvalAgainstNative('"-1.2" - "-2.5"');
 });
