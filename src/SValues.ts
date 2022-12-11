@@ -47,22 +47,28 @@ export interface SPrimitiveValue<
 }
 type SPrimitiveValueType = bigint | boolean | number | string | undefined | null;
 
-function $sPrimitiveConstructor<P extends SPrimitiveValueType>() {
-  return $$ts!(`
+function $sPrimitiveConstructorNotNullOrUndefined<P extends SPrimitiveValueType>() {
+  $$ts!(`
     if (typeof value !== "${$$typeToString!<P>()}") {
       throw Error(\`Expected "${$$typeToString!<P>()}" value but received "\${typeof value}".\`);
     }
     this.value = value;
+  `)
+}
+
+function $sPrimitiveConstructor() {
+  $$ts!(`
     this.metadata = metadata;
     Object.freeze(this);
-  `);
+  `)
 }
 
 export class SBooleanValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, boolean> {
   readonly value!: boolean;
   readonly metadata!: M;
   constructor(value: boolean, metadata: M) {
-    $sPrimitiveConstructor!<boolean>();
+    $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
+    $sPrimitiveConstructor!();
   }
   toNativeJS(): boolean { return this.value };
   sUnaryNegate(): SNumberValue<M> {
@@ -82,7 +88,8 @@ export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   readonly value!: number;
   readonly metadata!: M;
   constructor(value: number, metadata: M) {
-    $sPrimitiveConstructor!<number>();
+    $sPrimitiveConstructorNotNullOrUndefined!<number>();
+    $sPrimitiveConstructor!();
   }
   toNativeJS(): number { return this.value };
   sUnaryNegate(): SNumberValue<M> {
@@ -100,7 +107,8 @@ export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   readonly value!: string;
   readonly metadata!: M;
   constructor(value: string, metadata: M) {
-    $sPrimitiveConstructor!<string>();
+    $sPrimitiveConstructorNotNullOrUndefined!<string>();
+    $sPrimitiveConstructor!();
   }
   toNativeJS(): string { return this.value };
   sUnaryNegate(): SNumberValue<M> {
@@ -113,5 +121,23 @@ export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SStringValue prototype");
+  }
+}
+
+export class SUndefinedValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, undefined> {
+  readonly value: undefined;
+  readonly metadata!: M;
+  constructor(metadata: M) {
+    $sPrimitiveConstructor!();
+  }
+  toNativeJS(): undefined { return undefined };
+  sUnaryNegate(): SNumberValue<M> {
+    return new SNumberValue(NaN, this.metadata);
+  };
+  sUnaryMakePositive(): SNumberValue<M> {
+    return new SNumberValue(NaN, this.metadata);
+  };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SUndefinedValue prototype");
   }
 }

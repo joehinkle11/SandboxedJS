@@ -50,6 +50,8 @@ function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileCont
   // Check if it is a restricted identifier first
   const name = node.name;
   switch (name) {
+  case "undefined":
+    return `new SValues.SUndefinedValue(${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "NaN":
     return `new SValues.SNumberValue(NaN${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "Infinity":
