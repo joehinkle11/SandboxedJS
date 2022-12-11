@@ -99,7 +99,7 @@ export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
 export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, string> {
   readonly value!: string;
   readonly metadata!: M;
-  constructor(value: number, metadata: M) {
+  constructor(value: string, metadata: M) {
     $sPrimitiveConstructor!<string>();
   }
   toNativeJS(): string { return this.value };

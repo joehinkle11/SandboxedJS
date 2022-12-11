@@ -1,5 +1,5 @@
 import { MaybeSValueMetadata } from "./SValueMetadata";
-import { SBooleanValue, SNumberValue, SValue } from "./SValues";
+import { SBooleanValue, SNumberValue, SStringValue, SValue } from "./SValues";
 import { TranspileContext } from "./TranspileContext";
 
 // +
@@ -19,6 +19,10 @@ export function sBinaryAdd<M extends MaybeSValueMetadata>(
   } else if (left instanceof SBooleanValue) {
     if (right instanceof SNumberValue) {
       return new SNumberValue(Number(left.value) + right.value, resultingMetadata);
+    }
+  } else if (left instanceof SStringValue) {
+    if (right instanceof SStringValue) {
+      return new SStringValue(left.value + right.value, resultingMetadata);
     }
   }
   throw new Error(`Cannot perform binary operator "+" on ${left.constructor.name} and ${right.constructor.name}`);

@@ -41,3 +41,7 @@ describe('template strings', () => {
   testSafeEvalAgainstNative('`\nhello\nworld\n`');
   testSafeEvalAgainstNative('`\n  hello\n  world  \n`');
 });
+
+describe('strings concat', () => {
+  testSafeEvalAgainstNative('"a" + "b"');
+});
