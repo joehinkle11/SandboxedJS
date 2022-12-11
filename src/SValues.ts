@@ -3,7 +3,10 @@ import { $$ts, $$typeToString } from "ts-macros";
 import { TranspileContext } from "./TranspileContext";
 import { SUserError } from "./Models/SUserError";
 
+export type SValueKind = "s-object" | SValuePrimitiveKind;
+export type SValuePrimitiveKind = "s-object" | "s-boolean" | "s-number" | "s-bigint" | "s-string" | "s-undefined" | "s-null";
 export abstract class SValue<M extends MaybeSValueMetadata> {
+  abstract get sValueKind(): SValueKind;
   abstract metadata: M;
   abstract toNativeJS(): any;
   abstract sUnaryNegate(transpileContext: TranspileContext<M>): SValue<M>;
@@ -25,7 +28,7 @@ export type SObjectValueInitEntry = {
 }
 
 export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
-  
+  get sValueKind(): "s-object" { return "s-object" };
   metadata!: M;
   constructor(initArgs: SObjectValueInitArgs, transpileContext: TranspileContext<M>) {
     super();
@@ -57,6 +60,7 @@ export interface SPrimitiveValue<
   M extends MaybeSValueMetadata,
   P extends SPrimitiveValueType
 > extends SValue<M> {
+  get sValueKind(): SValuePrimitiveKind;
   readonly value: P;
   readonly metadata: M;
   toNativeJS(): P;
@@ -80,6 +84,7 @@ function $sPrimitiveConstructor() {
 }
 
 export class SBooleanValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, boolean> {
+  get sValueKind(): "s-boolean" { return "s-boolean" };
   readonly value!: boolean;
   readonly metadata!: M;
   constructor(value: boolean, metadata: M) {
@@ -132,6 +137,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata> extends SValue<M> impl
 }
 
 export class SNumberValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, number> {
+  get sValueKind(): "s-number" { return "s-number" };
   readonly value!: number;
   readonly metadata!: M;
   constructor(value: number, metadata: M) {
@@ -182,6 +188,7 @@ export class SNumberValue<M extends MaybeSValueMetadata> extends SValue<M> imple
   }
 }
 export class SStringValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, string> {
+  get sValueKind(): "s-string" { return "s-string" };
   readonly value!: string;
   readonly metadata!: M;
   constructor(value: string, metadata: M) {
@@ -233,6 +240,7 @@ export class SStringValue<M extends MaybeSValueMetadata> extends SValue<M> imple
   }
 }
 export class SBigIntValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, bigint> {
+  get sValueKind(): "s-bigint" { return "s-bigint" };
   readonly value!: bigint;
   readonly metadata!: M;
   constructor(value: bigint, metadata: M) {
@@ -270,6 +278,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata> extends SValue<M> imple
 }
 
 export class SUndefinedValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, undefined> {
+  get sValueKind(): "s-undefined" { return "s-undefined" };
   readonly value: undefined;
   readonly metadata!: M;
   constructor(metadata: M) {
@@ -311,6 +320,7 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SValue<M> im
   }
 }
 export class SNullValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, null> {
+  get sValueKind(): "s-null" { return "s-null" };
   readonly value: null = null;
   readonly metadata!: M;
   constructor(metadata: M) {
