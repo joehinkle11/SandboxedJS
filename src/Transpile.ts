@@ -34,6 +34,10 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
     return resolveStringLiteral(value, transpileContext)
   case "boolean":
     return `new SValues.SBooleanValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+  case "object":
+    if (value === null) {
+      return `new SValues.SNullValue(${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+    }
   default:
     break
   }

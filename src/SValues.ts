@@ -160,3 +160,20 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> implements SPrimitiv
     throw Error("Todo: lookup on SUndefinedValue prototype");
   }
 }
+export class SNullValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, null> {
+  readonly value: null = null;
+  readonly metadata!: M;
+  constructor(metadata: M) {
+    $sPrimitiveConstructor!();
+  }
+  toNativeJS(): null { return null };
+  sUnaryNegate(): SNumberValue<M> {
+    return new SNumberValue(-0, this.metadata);
+  };
+  sUnaryMakePositive(): SNumberValue<M> {
+    return new SNumberValue(0, this.metadata);
+  };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SNullValue prototype");
+  }
+}
