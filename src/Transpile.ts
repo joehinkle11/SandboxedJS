@@ -27,7 +27,7 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   const value = node.value;
   switch (typeof value) {
   case "bigint":
-    return `new SValues.SBigIntValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+    return `new SValues.SBigIntValue(${value}n${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "number":
     return `new SValues.SNumberValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "string":

@@ -123,6 +123,25 @@ export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
     throw Error("Todo: lookup on SStringValue prototype");
   }
 }
+export class SBigIntValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, bigint> {
+  readonly value!: bigint;
+  readonly metadata!: M;
+  constructor(value: bigint, metadata: M) {
+    $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
+    $sPrimitiveConstructor!();
+  }
+  toNativeJS(): bigint { return this.value };
+  sUnaryNegate(): SBigIntValue<M> {
+    const stringMadeNegative = -this.value;
+    return new SBigIntValue(stringMadeNegative, this.metadata);
+  };
+  sUnaryMakePositive(): SBigIntValue<M> {
+    throw Error("Todo: throw a user error (not an error with the transpiler)");
+  };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SBigIntValue prototype");
+  }
+}
 
 export class SUndefinedValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, undefined> {
   readonly value: undefined;
