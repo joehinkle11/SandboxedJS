@@ -1,13 +1,20 @@
 import { MaybeSValueMetadata } from "./SValueMetadata";
 import { $$ts, $$typeToString } from "ts-macros";
 import { TranspileContext } from "./TranspileContext";
+import { SUserError } from "./Models/SUserError";
 
-export interface SValue<M extends MaybeSValueMetadata> {
-  metadata: M;
-  toNativeJS(): any;
-  sUnaryNegate(transpileContext: TranspileContext<M>): SValue<M>;
-  sUnaryMakePositive(transpileContext: TranspileContext<M>): SValue<M>;
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
+export abstract class SValue<M extends MaybeSValueMetadata> {
+  abstract metadata: M;
+  abstract toNativeJS(): any;
+  abstract sUnaryNegate(transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sUnaryMakePositive(transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
+  combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
+    const valueMetadataSystem = transpileContext.valueMetadataSystem;
+    return valueMetadataSystem === null ? undefined : valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue);
+  }
 }
 
 export type SObjectValueInitArgs = {
@@ -17,10 +24,11 @@ export type SObjectValueInitEntry = {
 
 }
 
-export class SObjectValue<M extends MaybeSValueMetadata> implements SValue<M> {
+export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
   
   metadata!: M;
   constructor(initArgs: SObjectValueInitArgs, transpileContext: TranspileContext<M>) {
+    super();
     this.metadata = transpileContext.newMetadataForObjectValue();
   }
   toNativeJS(): any { 
@@ -34,6 +42,14 @@ export class SObjectValue<M extends MaybeSValueMetadata> implements SValue<M> {
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SObjectValue");
+  }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    throw SUserError.cannotPerformBinaryOp("+", this, right);
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    throw SUserError.cannotPerformBinaryOp("-", this, right);
   }
 }
 
@@ -63,10 +79,11 @@ function $sPrimitiveConstructor() {
   `)
 }
 
-export class SBooleanValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, boolean> {
+export class SBooleanValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, boolean> {
   readonly value!: boolean;
   readonly metadata!: M;
   constructor(value: boolean, metadata: M) {
+    super();
     $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
     $sPrimitiveConstructor!();
   }
@@ -82,12 +99,43 @@ export class SBooleanValue<M extends MaybeSValueMetadata> implements SPrimitiveV
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SBoolean prototype");
   }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SNumberValue) {
+      return new SNumberValue(Number(this.value) + right.value, resultingMetadata);
+    } else if (right instanceof SStringValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(Number(this.value) + Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(Number(this.value), resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("+", this, right);
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SNumberValue) {
+      return new SNumberValue(Number(this.value) - right.value, resultingMetadata);
+    } else if (right instanceof SStringValue) {
+      return new SNumberValue(Number(this.value) - Number(right.value), resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(Number(this.value) - Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(Number(this.value), resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("-", this, right);
+  }
 }
 
-export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, number> {
+export class SNumberValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, number> {
   readonly value!: number;
   readonly metadata!: M;
   constructor(value: number, metadata: M) {
+    super();
     $sPrimitiveConstructorNotNullOrUndefined!<number>();
     $sPrimitiveConstructor!();
   }
@@ -102,11 +150,42 @@ export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SNumberValue prototype");
   }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SNumberValue) {
+      return new SNumberValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(this.value + Number(right.value), resultingMetadata);
+    } else if (right instanceof SStringValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(this.value, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("+", this, right);
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SNumberValue) {
+      return new SNumberValue(this.value - right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(this.value - Number(right.value), resultingMetadata);
+    } else if (right instanceof SStringValue) {
+      return new SNumberValue(this.value - Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(this.value, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("-", this, right);
+  }
 }
-export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, string> {
+export class SStringValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, string> {
   readonly value!: string;
   readonly metadata!: M;
   constructor(value: string, metadata: M) {
+    super();
     $sPrimitiveConstructorNotNullOrUndefined!<string>();
     $sPrimitiveConstructor!();
   }
@@ -122,11 +201,42 @@ export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SStringValue prototype");
   }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SStringValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SNumberValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("+", this, right);
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SStringValue) {
+      return new SNumberValue(Number(this.value) - Number(right.value), resultingMetadata);
+    } else if (right instanceof SNumberValue) {
+      return new SNumberValue(Number(this.value) - right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(Number(this.value) - Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("-", this, right);
+  }
 }
-export class SBigIntValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, bigint> {
+export class SBigIntValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, bigint> {
   readonly value!: bigint;
   readonly metadata!: M;
   constructor(value: bigint, metadata: M) {
+    super();
     $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
     $sPrimitiveConstructor!();
   }
@@ -141,12 +251,29 @@ export class SBigIntValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SBigIntValue prototype");
   }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SBigIntValue) {
+      return new SBigIntValue(this.value + right.value, resultingMetadata);
+    } else {
+      throw SUserError.invalidMixBigInt;
+    }
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SBigIntValue) {
+      return new SBigIntValue(this.value - right.value, resultingMetadata);
+    } else {
+      throw SUserError.invalidMixBigInt
+    }
+  }
 }
 
-export class SUndefinedValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, undefined> {
+export class SUndefinedValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, undefined> {
   readonly value: undefined;
   readonly metadata!: M;
   constructor(metadata: M) {
+    super();
     $sPrimitiveConstructor!();
   }
   toNativeJS(): undefined { return undefined };
@@ -159,11 +286,35 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> implements SPrimitiv
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SUndefinedValue prototype");
   }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SStringValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SNumberValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("+", this, right);
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SBigIntValue) {
+      throw SUserError.invalidMixBigInt;
+    } else {
+      return new SNumberValue(NaN, resultingMetadata);
+    }
+  }
 }
-export class SNullValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, null> {
+export class SNullValue<M extends MaybeSValueMetadata> extends SValue<M> implements SPrimitiveValue<M, null> {
   readonly value: null = null;
   readonly metadata!: M;
   constructor(metadata: M) {
+    super();
     $sPrimitiveConstructor!();
   }
   toNativeJS(): null { return null };
@@ -175,5 +326,37 @@ export class SNullValue<M extends MaybeSValueMetadata> implements SPrimitiveValu
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SNullValue prototype");
+  }
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SStringValue) {
+      return new SStringValue(this.value + right.value, resultingMetadata);
+    } else if (right instanceof SNumberValue) {
+      return new SNumberValue(right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(0, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("+", this, right);
+  }
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    if (right instanceof SStringValue) {
+      return new SNumberValue(-Number(right.value), resultingMetadata);
+    } else if (right instanceof SNumberValue) {
+      return new SNumberValue(-right.value, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(-Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SBigIntValue) {
+      throw SUserError.invalidMixBigInt;
+    } else if (right instanceof SNullValue) {
+      return new SNumberValue(0, resultingMetadata);
+    }
+    throw SUserError.cannotPerformBinaryOp("-", this, right);
   }
 }

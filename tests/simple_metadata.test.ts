@@ -11,7 +11,7 @@ const sandboxedJSRunnerWithMetadataSystem = SandboxedJSRunner.newRunnerWithMetad
       data: "compile-time"
     }
   },
-  newMetadataForBinaryOperation(left, right) {
+  newMetadataForCombiningValues(left, right) {
     return {
       data: "runtime"
     }

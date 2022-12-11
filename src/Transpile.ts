@@ -94,7 +94,7 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
   }
   const leftCode = resolveAnyNode(node.left, transpileContext);
   const rightCode = resolveAnyNode(node.right, transpileContext);
-  return `SBinaryOps.${operatorCode}(${leftCode},${rightCode},transpileContext)`;
+  return `${leftCode}.${operatorCode}(${rightCode},transpileContext)`;
 };
 function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: TranspileContext<any>): string {
   let propertiesCodes: string[] = [];

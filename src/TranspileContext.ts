@@ -47,5 +47,5 @@ export interface ValueMetadataSystem<MetaDataModel extends SValueMetadata> {
   newMetadataForRuntimeTimeEmergingValue(): MetaDataModel;
   newMetadataForObjectValue(): MetaDataModel;
   newMetadataForFunctionValue(): MetaDataModel;
-  newMetadataForBinaryOperation(left: SValue<MetaDataModel>, right: SValue<MetaDataModel>): MetaDataModel;
+  newMetadataForCombiningValues(left: SValue<MetaDataModel>, right: SValue<MetaDataModel>): MetaDataModel;
 }
