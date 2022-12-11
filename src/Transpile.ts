@@ -1,4 +1,5 @@
 import { parse } from "acorn";
+import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
 import { BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, UnaryExpressionNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
@@ -30,7 +31,8 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   case "number":
     return `new SValues.SNumberValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "string":
-    return `new SValues.SStringValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+    const safeJSStringLiteral = encodeUnsafeStringAsJSLiteralString(value);
+    return `new SValues.SStringValue(${safeJSStringLiteral}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "boolean":
     return `new SValues.SBooleanValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   default:
@@ -39,7 +41,6 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   throw new Error(`Unsupported literal "${typeof value}"`);
 };
 function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>): string {
-  
   var regEx = /^[0-9a-zA-Z_]+$/;
   if(identifierName.match(regEx) === null) {
     throw Error("Identifier names must be only alphanumeric characters or underscores.")

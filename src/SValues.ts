@@ -96,3 +96,22 @@ export class SNumberValue<M extends MaybeSValueMetadata> implements SPrimitiveVa
     throw Error("Todo: lookup on SNumberValue prototype");
   }
 }
+export class SStringValue<M extends MaybeSValueMetadata> implements SPrimitiveValue<M, string> {
+  readonly value!: string;
+  readonly metadata!: M;
+  constructor(value: number, metadata: M) {
+    $sPrimitiveConstructor!<string>();
+  }
+  toNativeJS(): string { return this.value };
+  sUnaryNegate(): SNumberValue<M> {
+    const stringMadeNegative = -this.value;
+    return new SNumberValue(stringMadeNegative, this.metadata);
+  };
+  sUnaryMakePositive(): SNumberValue<M> {
+    const stringMadePositive = +this.value;
+    return new SNumberValue(stringMadePositive, this.metadata);
+  };
+  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: lookup on SStringValue prototype");
+  }
+}
