@@ -1,5 +1,5 @@
 import { MaybeSValueMetadata } from "./SValueMetadata";
-import { SBooleanValue, SNumberValue, SStringValue, SUndefinedValue, SValue } from "./SValues";
+import { SBigIntValue, SBooleanValue, SNumberValue, SStringValue, SUndefinedValue, SValue } from "./SValues";
 import { TranspileContext } from "./TranspileContext";
 
 // +
@@ -50,6 +50,10 @@ export function sBinaryAdd<M extends MaybeSValueMetadata>(
     } else if (right instanceof SUndefinedValue) {
       return new SNumberValue(NaN, resultingMetadata);
     }
+  } else if (left instanceof SBigIntValue) {
+    if (right instanceof SBigIntValue) {
+      return new SBigIntValue(left.value + right.value, resultingMetadata);
+    }
   }
   throw new Error(`Cannot perform binary operator "+" on ${left.constructor.name} and ${right.constructor.name}`);
 }
@@ -93,6 +97,10 @@ export function sBinarySubtract<M extends MaybeSValueMetadata>(
     }
   } else if (left instanceof SUndefinedValue) {
     return new SNumberValue(NaN, resultingMetadata);
+  } else if (left instanceof SBigIntValue) {
+    if (right instanceof SBigIntValue) {
+      return new SBigIntValue(left.value - right.value, resultingMetadata);
+    }
   }
   throw new Error(`Cannot perform binary operator "-" on ${left.constructor.name} and ${right.constructor.name}`);
 }
