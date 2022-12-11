@@ -1,5 +1,5 @@
 import { MaybeSValueMetadata } from "./SValueMetadata";
-import { SBooleanValue, SNumberValue, SStringValue, SValue } from "./SValues";
+import { SBooleanValue, SNumberValue, SStringValue, SUndefinedValue, SValue } from "./SValues";
 import { TranspileContext } from "./TranspileContext";
 
 // +
@@ -17,6 +17,8 @@ export function sBinaryAdd<M extends MaybeSValueMetadata>(
       return new SNumberValue(left.value + Number(right.value), resultingMetadata);
     } else if (right instanceof SStringValue) {
       return new SStringValue(left.value + right.value, resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
     }
   } else if (left instanceof SBooleanValue) {
     if (right instanceof SNumberValue) {
@@ -25,6 +27,8 @@ export function sBinaryAdd<M extends MaybeSValueMetadata>(
       return new SStringValue(left.value + right.value, resultingMetadata);
     } else if (right instanceof SBooleanValue) {
       return new SNumberValue(Number(left.value) + Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
     }
   } else if (left instanceof SStringValue) {
     if (right instanceof SStringValue) {
@@ -33,6 +37,18 @@ export function sBinaryAdd<M extends MaybeSValueMetadata>(
       return new SStringValue(left.value + right.value, resultingMetadata);
     } else if (right instanceof SBooleanValue) {
       return new SStringValue(left.value + right.value, resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SStringValue(left.value + right.value, resultingMetadata);
+    }
+  } else if (left instanceof SUndefinedValue) {
+    if (right instanceof SStringValue) {
+      return new SStringValue(left.value + right.value, resultingMetadata);
+    } else if (right instanceof SNumberValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SBooleanValue) {
+      return new SNumberValue(NaN, resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
     }
   }
   throw new Error(`Cannot perform binary operator "+" on ${left.constructor.name} and ${right.constructor.name}`);
@@ -52,6 +68,8 @@ export function sBinarySubtract<M extends MaybeSValueMetadata>(
       return new SNumberValue(left.value - Number(right.value), resultingMetadata);
     } else if (right instanceof SStringValue) {
       return new SNumberValue(left.value - Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
     }
   } else if (left instanceof SBooleanValue) {
     if (right instanceof SNumberValue) {
@@ -60,6 +78,8 @@ export function sBinarySubtract<M extends MaybeSValueMetadata>(
       return new SNumberValue(Number(left.value) - Number(right.value), resultingMetadata);
     } else if (right instanceof SBooleanValue) {
       return new SNumberValue(Number(left.value) - Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
     }
   } else if (left instanceof SStringValue) {
     if (right instanceof SStringValue) {
@@ -68,7 +88,11 @@ export function sBinarySubtract<M extends MaybeSValueMetadata>(
       return new SNumberValue(Number(left.value) - right.value, resultingMetadata);
     } else if (right instanceof SBooleanValue) {
       return new SNumberValue(Number(left.value) - Number(right.value), resultingMetadata);
+    } else if (right instanceof SUndefinedValue) {
+      return new SNumberValue(NaN, resultingMetadata);
     }
+  } else if (left instanceof SUndefinedValue) {
+    return new SNumberValue(NaN, resultingMetadata);
   }
   throw new Error(`Cannot perform binary operator "-" on ${left.constructor.name} and ${right.constructor.name}`);
 }
