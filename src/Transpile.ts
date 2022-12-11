@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, UnaryExpressionNode } from "./Models/ASTNodes";
+import { BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -31,8 +31,7 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   case "number":
     return `new SValues.SNumberValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   case "string":
-    const safeJSStringLiteral = encodeUnsafeStringAsJSLiteralString(value);
-    return `new SValues.SStringValue(${safeJSStringLiteral}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+    return resolveStringLiteral(value, transpileContext)
   case "boolean":
     return `new SValues.SBooleanValue(${value}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   default:
@@ -58,6 +57,20 @@ function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileCont
   default:
     return resolveLookupIdentifierByName(name, transpileContext);
   }
+};
+function resolveStringLiteral(unsafeString: string, transpileContext: TranspileContext<any>): string {
+  const safeJSStringLiteral = encodeUnsafeStringAsJSLiteralString(unsafeString);
+  return `new SValues.SStringValue(${safeJSStringLiteral}${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+}
+function resolveTemplateLiteral(node: TemplateLiteralNode, transpileContext: TranspileContext<any>): string {
+  if (node.expressions.length === 0) {
+    let unsafeString = "";
+    for (const quasi of node.quasis) {
+      unsafeString += quasi.value.raw;
+    }
+    return resolveStringLiteral(unsafeString, transpileContext);
+  }
+  throw Error("Template strings are not yet supported.")
 };
 function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: TranspileContext<any>): string {
   const operator = node.operator;
@@ -140,6 +153,8 @@ function resolveExpressionStatement(node: ExpressionStatementNode, transpileCont
     return resolveMemberExpression(node.expression as MemberExpressionNode, transpileContext);
   } else if (node.expression.type === "Identifier") {
     return resolveIdentifier(node.expression as IdentifierNode, transpileContext);
+  } else if (node.expression.type === "TemplateLiteral") {
+    return resolveTemplateLiteral(node.expression as TemplateLiteralNode, transpileContext);
   } else {
     throw new Error(`Unsupported expression AST node type in ExpressionStatement ${node.expression.type}`);
   }

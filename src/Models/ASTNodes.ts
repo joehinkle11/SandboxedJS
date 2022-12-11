@@ -37,6 +37,19 @@ export interface IdentifierNode extends acorn.Node {
   type: 'Identifier'
   name: string
 }
+export interface TemplateElementNode extends acorn.Node {
+  type: 'TemplateElement'
+  value: {
+    raw: string
+    cooked: string | null
+  }
+  tail: boolean
+}
+export interface TemplateLiteralNode extends acorn.Node {
+  type: 'TemplateLiteral'
+  expressions: acorn.Node[]
+  quasis: TemplateElementNode[]
+}
 export interface ObjectExpressionNode extends acorn.Node {
   type: 'ObjectExpression'
   properties: acorn.Node[]
