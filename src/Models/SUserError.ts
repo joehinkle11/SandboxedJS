@@ -25,6 +25,9 @@ export default class SUserError extends Error {
   static get invalidMixBigInt(): SUserError {
     return new SUserError(new Error("TypeError: Invalid mix of BigInt and other type in addition."));
   }
+  static get cannotConvertBigIntToNumber(): SUserError {
+    return new SUserError(new Error("Conversion from 'BigInt' to 'number' is not allowed."));
+  }
   static cannotPerformBinaryOp(op: string, left: SValue<any>, right: SValue<any>): SUserError {
     return new SUserError(new Error(
       `Cannot perform binary operator "${op}" on ${left.constructor.name} and ${right.constructor.name}`

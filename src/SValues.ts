@@ -12,27 +12,28 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract toNativeJS(): any;
   abstract sUnaryNegate(transpileContext: TranspileContext<M>): SValue<M>;
   abstract sUnaryMakePositive(transpileContext: TranspileContext<M>): SValue<M>;
+  // abstract sUnaryTypeOf(transpileContext: TranspileContext<M>): SStringValue<M>;
   abstract sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
-  abstract sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
-  abstract sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
-  abstract sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M, number> | SBigIntValue<M, bigint>;
+  abstract sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
   abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
     const valueMetadataSystem = transpileContext.valueMetadataSystem;
@@ -62,77 +63,77 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
   toNativeJS(): any { 
     throw Error("todo")
   };
-  sUnaryNegate(transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sUnaryNegate(transpileContext: TranspileContext<M>): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, transpileContext.newMetadataForRuntimeTimeEmergingValue());
   };
-  sUnaryMakePositive(transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sUnaryMakePositive(transpileContext: TranspileContext<M>): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, transpileContext.newMetadataForRuntimeTimeEmergingValue());
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     
     return new SUndefinedValue<M>(this.metadata);
   }
-  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+  sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("+", this, right);
   }
-  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+  sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("-", this, right);
   }
-  sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+  sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("*", this, right);
   }
-  sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+  sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("/", this, right);
   }
-  sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+  sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("**", this, right);
   }
-  sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+  sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("%", this, right);
   }
-  sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("&", this, right);
   }
-  sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("|", this, right);
   }
-  sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("~", this, right);
   }
-  sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("^", this, right);
   }
-  sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("<<", this, right);
   }
-  sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp(">>", this, right);
   }
-  sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+  sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp(">>>", this, right);
   }
-  sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison("==", this, right);
   }
-  sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison("===", this, right);
   }
-  sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison("!=", this, right);
   }
-  sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison("!==", this, right);
   }
-  sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison(">", this, right);
   }
-  sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison("<", this, right);
   }
-  sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison(">=", this, right);
   }
-  sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+  sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformComparison("<=", this, right);
   }
 }
@@ -334,20 +335,20 @@ function $sPrimitiveConstructor() {
   `)
 }
 
-export class SBooleanValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, boolean> {
+export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> extends SPrimitiveValue<M, V> {
   get sValueKind(): "s-boolean" { return "s-boolean" };
-  readonly value!: boolean;
+  readonly value!: V;
   readonly metadata!: M;
-  constructor(value: boolean, metadata: M) {
+  constructor(value: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
     $sPrimitiveConstructor!();
   }
-  sUnaryNegate(): SNumberValue<M> {
+  sUnaryNegate(): SNumberValue<M, number> {
     const negatedBool = -this.value;
     return new SNumberValue(negatedBool, this.metadata);
   };
-  sUnaryMakePositive(): SNumberValue<M> {
+  sUnaryMakePositive(): SNumberValue<M, number> {
     const boolMadePositive = +this.value;
     return new SNumberValue(boolMadePositive, this.metadata);
   };
@@ -356,40 +357,40 @@ export class SBooleanValue<M extends MaybeSValueMetadata> extends SPrimitiveValu
   }
 }
 
-export class SNumberValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, number> {
+export class SNumberValue<M extends MaybeSValueMetadata, V extends number> extends SPrimitiveValue<M, V> {
   get sValueKind(): "s-number" { return "s-number" };
-  readonly value!: number;
+  readonly value!: V;
   readonly metadata!: M;
-  constructor(value: number, metadata: M) {
+  constructor(value: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<number>();
     $sPrimitiveConstructor!();
   }
-  sUnaryNegate(): SNumberValue<M> {
+  sUnaryNegate(): SNumberValue<M, number> {
     const negatedNumber = -this.value;
     return new SNumberValue(negatedNumber, this.metadata);
   };
-  sUnaryMakePositive(): SNumberValue<M> {
+  sUnaryMakePositive(): SNumberValue<M, V> {
     return this;
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SNumberValue prototype");
   }
 }
-export class SStringValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, string> {
+export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
   get sValueKind(): "s-string" { return "s-string" };
-  readonly value!: string;
+  readonly value!: V;
   readonly metadata!: M;
-  constructor(value: string, metadata: M) {
+  constructor(value: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<string>();
     $sPrimitiveConstructor!();
   }
-  sUnaryNegate(): SNumberValue<M> {
+  sUnaryNegate(): SNumberValue<M, number> {
     const stringMadeNegative = -this.value;
     return new SNumberValue(stringMadeNegative, this.metadata);
   };
-  sUnaryMakePositive(): SNumberValue<M> {
+  sUnaryMakePositive(): SNumberValue<M, number> {
     const stringMadePositive = +this.value;
     return new SNumberValue(stringMadePositive, this.metadata);
   };
@@ -397,21 +398,21 @@ export class SStringValue<M extends MaybeSValueMetadata> extends SPrimitiveValue
     throw Error("Todo: lookup on SStringValue prototype");
   }
 }
-export class SBigIntValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, bigint> {
+export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
   get sValueKind(): "s-bigint" { return "s-bigint" };
-  readonly value!: bigint;
+  readonly value!: V;
   readonly metadata!: M;
-  constructor(value: bigint, metadata: M) {
+  constructor(value: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
     $sPrimitiveConstructor!();
   }
-  sUnaryNegate(): SBigIntValue<M> {
-    const stringMadeNegative = -this.value;
+  sUnaryNegate(): SBigIntValue<M, bigint> {
+    const stringMadeNegative: bigint = -(this.value as bigint);
     return new SBigIntValue(stringMadeNegative, this.metadata);
   };
-  sUnaryMakePositive(): SBigIntValue<M> {
-    throw Error("Todo: throw a user error (not an error with the transpiler)");
+  sUnaryMakePositive(): never {
+    throw SUserError.cannotConvertBigIntToNumber
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SBigIntValue prototype");
@@ -426,10 +427,10 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     super();
     $sPrimitiveConstructor!();
   }
-  sUnaryNegate(): SNumberValue<M> {
+  sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
   };
-  sUnaryMakePositive(): SNumberValue<M> {
+  sUnaryMakePositive(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
@@ -444,10 +445,10 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
     super();
     $sPrimitiveConstructor!();
   }
-  sUnaryNegate(): SNumberValue<M> {
+  sUnaryNegate(): SNumberValue<M, -0> {
     return new SNumberValue(-0, this.metadata);
   };
-  sUnaryMakePositive(): SNumberValue<M> {
+  sUnaryMakePositive(): SNumberValue<M, 0> {
     return new SNumberValue(0, this.metadata);
   };
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {

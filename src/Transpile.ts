@@ -208,6 +208,8 @@ function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: Tra
   switch (operator) {
   case "-":
     return argumentCode + ".sUnaryNegate()"
+  case "typeof":
+    return argumentCode + ".sUnaryTypeOf()"
   case "+":
     return argumentCode + ".sUnaryMakePositive()"
   default:
