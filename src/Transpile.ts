@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode } from "./Models/ASTNodes";
+import { BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -189,6 +189,8 @@ function resolveExpressionStatement(node: ExpressionStatementNode, transpileCont
     return resolveBinaryExpression(node.expression as BinaryExpressionNode, transpileContext);
   } else if (node.expression.type === "UnaryExpression") {
     return resolveUnaryExpression(node.expression as UnaryExpressionNode, transpileContext);
+  } else if (node.expression.type === "LogicalExpression") {
+    return resolveLogicalExpression(node.expression as LogicalExpressionNode, transpileContext);
   } else if (node.expression.type === "MemberExpression") {
     return resolveMemberExpression(node.expression as MemberExpressionNode, transpileContext);
   } else if (node.expression.type === "Identifier") {
@@ -198,6 +200,20 @@ function resolveExpressionStatement(node: ExpressionStatementNode, transpileCont
   } else {
     throw new Error(`Unsupported expression AST node type in ExpressionStatement ${node.expression.type}`);
   }
+};
+function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext: TranspileContext<any>): string {
+  const operator = node.operator;
+  let operatorCode: string;
+  if (operator === "TODO other logical expressions") {
+    operatorCode = "";
+  } else if (operator === "??") {
+    operatorCode = "sLogicalNullish";
+  } else {
+    throw new Error(`Unsupported operator in LogicalExpression "${operator}"`);
+  }
+  const leftCode = resolveAnyNode(node.left, transpileContext);
+  const rightCode = resolveAnyNode(node.right, transpileContext);
+  return `${leftCode}.${operatorCode}(${rightCode},transpileContext)`;
 };
 function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: TranspileContext<any>): string {
   if (node.prefix !== true) {
