@@ -6,15 +6,20 @@ export function testSafeEvalAgainstNative(
   testName: string = jsCode
 ) {
   test(testName, () => {
+    let evalResult;
     try {
-      const evalResult = eval(jsCode);
-      expect(safeEval(jsCode)).toBe(evalResult);
+      evalResult = eval(jsCode);
     } catch (e: any) {
+      let safeEvalResult;
       try {
-        expect(safeEval(jsCode)).toBe(`Native eval threw error ${e.toString()}`)
+        safeEvalResult = safeEval(jsCode);
       } catch {
         expect("thew error").toBe("thew error");
+        return
       }
+      expect(safeEvalResult).toBe(`Native eval threw error '${e.message}'`)
+      return
     }
+    expect(safeEval(jsCode)).toBe(evalResult);
   });
 }
