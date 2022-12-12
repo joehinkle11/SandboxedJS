@@ -18,6 +18,13 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
   abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
     const valueMetadataSystem = transpileContext.valueMetadataSystem;
@@ -58,28 +65,43 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
     return new SUndefinedValue<M>(this.metadata);
   }
   sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
-    const resultingMetadata = this.combineMetadata(right, transpileContext);
     throw SUserError.cannotPerformBinaryOp("+", this, right);
   }
   sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
-    const resultingMetadata = this.combineMetadata(right, transpileContext);
     throw SUserError.cannotPerformBinaryOp("-", this, right);
   }
   sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
-    const resultingMetadata = this.combineMetadata(right, transpileContext);
     throw SUserError.cannotPerformBinaryOp("*", this, right);
   }
   sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
-    const resultingMetadata = this.combineMetadata(right, transpileContext);
     throw SUserError.cannotPerformBinaryOp("/", this, right);
   }
   sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
-    const resultingMetadata = this.combineMetadata(right, transpileContext);
     throw SUserError.cannotPerformBinaryOp("**", this, right);
   }
   sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
-    const resultingMetadata = this.combineMetadata(right, transpileContext);
     throw SUserError.cannotPerformBinaryOp("%", this, right);
+  }
+  sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp("&", this, right);
+  }
+  sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp("|", this, right);
+  }
+  sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp("~", this, right);
+  }
+  sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp("^", this, right);
+  }
+  sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp("<<", this, right);
+  }
+  sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp(">>", this, right);
+  }
+  sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    throw SUserError.cannotPerformBinaryOp(">>>", this, right);
   }
 }
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
@@ -87,8 +109,8 @@ function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
     try {
       if (right instanceof SPrimitiveValue) {
         const resultingMetadata = this.combineMetadata(right, transpileContext);
-        const addResult = this.value ${binaryOp} right.value;
-        const newSPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(addResult, resultingMetadata);
+        const opResult = this.value ${binaryOp} right.value;
+        const newSPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(opResult, resultingMetadata);
         if (newSPrimitive !== null) {
           return newSPrimitive;
         }
@@ -97,6 +119,33 @@ function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
     throw SUserError.cannotPerformBinaryOp("${binaryOp}", this, right);
   `);
 }
+function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | ">>>") {
+  $$ts!(`
+    try {
+      if (right instanceof SPrimitiveValue) {
+        const resultingMetadata = this.combineMetadata(right, transpileContext);
+        const bitwiseResult = this.value ${bitwise} right.value;
+        if (typeof bitwiseResult === "number") {
+          const newSNumber = new SNumberValue(bitwiseResult, resultingMetadata);
+          if (newSNumber !== null) {
+            return newSNumber;
+          }
+        } else {
+          // probably is a bigint
+          const newSBigInt = new SBigIntValue(bitwiseResult, resultingMetadata);
+          if (newSBigInt !== null) {
+            return newSBigInt;
+          }
+        }
+      }
+    } catch {}
+    throw SUserError.cannotPerformBitwiseOp("${bitwise}", this, right);
+  `);
+}
+
+
+
+
 export abstract class SPrimitiveValue<
   M extends MaybeSValueMetadata,
   P extends SPrimitiveValueType
@@ -130,6 +179,34 @@ export abstract class SPrimitiveValue<
   // @ts-expect-error
   sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SPrimitiveValue<M> {
     $sBinaryOpOnPrimitives!("%");
+  }
+  // @ts-expect-error
+  sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!("&")
+  }
+  // @ts-expect-error
+  sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!("|")
+  }
+  // @ts-expect-error
+  sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!("~")
+  }
+  // @ts-expect-error
+  sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!("^")
+  }
+  // @ts-expect-error
+  sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!("<<")
+  }
+  // @ts-expect-error
+  sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!(">>")
+  }
+  // @ts-expect-error
+  sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
+    $sBitwiseOpOnPrimitive!(">>>")
   }
   static newPrimitiveFromJSValue<M extends MaybeSValueMetadata>(
     jsValue: any,
