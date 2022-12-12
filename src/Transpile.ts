@@ -204,8 +204,10 @@ function resolveExpressionStatement(node: ExpressionStatementNode, transpileCont
 function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext: TranspileContext<any>): string {
   const operator = node.operator;
   let operatorCode: string;
-  if (operator === "TODO other logical expressions") {
-    operatorCode = "";
+  if (operator === "&&") {
+    operatorCode = "sLogicalAnd";
+  } else if (operator === "||") {
+    operatorCode = "sLogicalOr";
   } else if (operator === "??") {
     operatorCode = "sLogicalNullish";
   } else {
@@ -224,6 +226,8 @@ function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: Tra
   switch (operator) {
   case "-":
     return argumentCode + ".sUnaryNegate()"
+  case "!":
+    return argumentCode + ".sUnaryLogicalNot()"
   case "typeof":
     return argumentCode + ".sUnaryTypeOf()"
   case "+":

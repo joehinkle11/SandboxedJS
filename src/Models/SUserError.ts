@@ -28,6 +28,11 @@ export default class SUserError extends Error {
   static get cannotConvertBigIntToNumber(): SUserError {
     return new SUserError(new Error("Conversion from 'BigInt' to 'number' is not allowed."));
   }
+  static cannotPerformLogicalOp(op: string, value: SValue<any>): SUserError {
+    return new SUserError(new Error(
+      `Cannot perform logical operator "${op}" on ${value.constructor.name}`
+    ));
+  }
   static cannotPerformBinaryOp(op: string, left: SValue<any>, right: SValue<any>): SUserError {
     return new SUserError(new Error(
       `Cannot perform binary operator "${op}" on ${left.constructor.name} and ${right.constructor.name}`
