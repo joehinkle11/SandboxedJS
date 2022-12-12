@@ -6,13 +6,14 @@ const SUserError = SUserErrorImport;
 
 export type SValueKind = "s-object" | SValuePrimitiveKind;
 export type SValuePrimitiveKind = "s-boolean" | "s-number" | "s-bigint" | "s-string" | "s-undefined" | "s-null";
+
 export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract get sValueKind(): SValueKind;
   abstract metadata: M;
   abstract toNativeJS(): any;
-  abstract sUnaryNegate(transpileContext: TranspileContext<M>): SValue<M>;
-  abstract sUnaryMakePositive(transpileContext: TranspileContext<M>): SValue<M>;
-  // abstract sUnaryTypeOf(transpileContext: TranspileContext<M>): SStringValue<M>;
+  abstract sUnaryNegate(): SValue<M>;
+  abstract sUnaryMakePositive(): SValue<M>;
+  abstract sUnaryTypeOf(): SStringValue<M, JSTypeOfString>;
   abstract sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
@@ -41,6 +42,8 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   }
 }
 
+export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
+
 export type SObjectValueInitArgs = {
 
 }
@@ -63,12 +66,16 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
   toNativeJS(): any { 
     throw Error("todo")
   };
-  sUnaryNegate(transpileContext: TranspileContext<M>): SNumberValue<M, typeof NaN> {
-    return new SNumberValue(NaN, transpileContext.newMetadataForRuntimeTimeEmergingValue());
+  sUnaryNegate(): SNumberValue<M, typeof NaN> {
+    return new SNumberValue(NaN, this.metadata);
   };
-  sUnaryMakePositive(transpileContext: TranspileContext<M>): SNumberValue<M, typeof NaN> {
-    return new SNumberValue(NaN, transpileContext.newMetadataForRuntimeTimeEmergingValue());
+  sUnaryMakePositive(): SNumberValue<M, typeof NaN> {
+    return new SNumberValue(NaN, this.metadata);
   };
+  sUnaryTypeOf(): SStringValue<M, "object" | "function"> {
+    // todo: determine if this object is a function
+    return new SStringValue("object", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     
     return new SUndefinedValue<M>(this.metadata);
@@ -352,6 +359,9 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     const boolMadePositive = +this.value;
     return new SNumberValue(boolMadePositive, this.metadata);
   };
+  sUnaryTypeOf(): SStringValue<M, "boolean"> {
+    return new SStringValue("boolean", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SBoolean prototype");
   }
@@ -373,6 +383,9 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sUnaryMakePositive(): SNumberValue<M, V> {
     return this;
   };
+  sUnaryTypeOf(): SStringValue<M, "number"> {
+    return new SStringValue("number", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SNumberValue prototype");
   }
@@ -394,6 +407,9 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     const stringMadePositive = +this.value;
     return new SNumberValue(stringMadePositive, this.metadata);
   };
+  sUnaryTypeOf(): SStringValue<M, "string"> {
+    return new SStringValue("string", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SStringValue prototype");
   }
@@ -414,6 +430,9 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
   sUnaryMakePositive(): never {
     throw SUserError.cannotConvertBigIntToNumber
   };
+  sUnaryTypeOf(): SStringValue<M, "bigint"> {
+    return new SStringValue("bigint", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SBigIntValue prototype");
   }
@@ -433,6 +452,9 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sUnaryMakePositive(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
   };
+  sUnaryTypeOf(): SStringValue<M, "undefined"> {
+    return new SStringValue("undefined", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SUndefinedValue prototype");
   }
@@ -451,6 +473,9 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sUnaryMakePositive(): SNumberValue<M, 0> {
     return new SNumberValue(0, this.metadata);
   };
+  sUnaryTypeOf(): SStringValue<M, "object"> {
+    return new SStringValue("object", this.metadata);
+  }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SNullValue prototype");
   }
