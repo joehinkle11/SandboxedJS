@@ -132,29 +132,29 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
 };
 function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: TranspileContext<any>): string {
   let propertiesCodes: string[] = [];
-  // for (const property of node.properties) {
-  //   if (property.type === "Property") {
-  //     const propertyNode = property as PropertyNode;
-  //     if (propertyNode.kind === "init") {
-  //       if (propertyNode.method) {
-  //         throw new Error(`Method properties in ObjectExpression are not supported.`);
-  //       } else {
-  //         const keyType = propertyNode.key.type;
-  //         if (keyType !== "Identifier") {
-  //           throw new Error(`Method properties in ObjectExpression just have an identifier key type, not ${keyType}.`);
-  //         }
-  //         const keyNode = propertyNode.key as IdentifierNode;
-  //         const valueCode = resolveAnyNode(propertyNode.value, transpileContext);
-  //         propertiesCodes.push(keyNode.name + ":" + valueCode);
-  //       }
-  //     } else {
-  //       throw new Error(`Unsupported property kind in ObjectExpression ${propertyNode.kind}`);
-  //     }
-  //   } else {
-  //     throw new Error(`Unsupported property AST node type in ObjectExpression ${property.type}`);
-  //   }
-  // }
-  let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
+  for (const property of node.properties) {
+    if (property.type === "Property") {
+      const propertyNode = property as PropertyNode;
+      if (propertyNode.kind === "init") {
+        if (propertyNode.method) {
+          throw new Error(`Method properties in ObjectExpression are not supported.`);
+        } else {
+          const keyType = propertyNode.key.type;
+          if (keyType !== "Identifier") {
+            throw new Error(`Method properties in ObjectExpression just have an identifier key type, not ${keyType}.`);
+          }
+          const keyNode = propertyNode.key as IdentifierNode;
+          const valueCode = resolveAnyNode(propertyNode.value, transpileContext);
+          propertiesCodes.push(keyNode.name + ":{value:" + valueCode + "}");
+        }
+      } else {
+        throw new Error(`Unsupported property kind in ObjectExpression ${propertyNode.kind}`);
+      }
+    } else {
+      throw new Error(`Unsupported property AST node type in ObjectExpression ${property.type}`);
+    }
+  }
+  let sObjectValueInitArgsCode = "{kind:'normal',props:{" + propertiesCodes.join(",") + "}}";
   return `new SValues.SObjectValue(${sObjectValueInitArgsCode},transpileContext)`;
 };
 function resolveMemberExpressionObject(node: acorn.Node, transpileContext: TranspileContext<any>): string {

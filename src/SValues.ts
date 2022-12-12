@@ -49,23 +49,50 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
 
-export type SObjectValueInitArgs = {
-
+export type SObjectValueInitArgs<M extends MaybeSValueMetadata> = {
+  kind: SBuiltInObjectKind
+  props: SOwnProperties<M>
 }
-export type SObjectValueInitEntry = {
-
+// modeled after documentation on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperties
+export type SObjectValueInitEntry<M extends MaybeSValueMetadata> = (SObjectValueInitDataEntry<M> | SObjectValueInitAccessorEntry<M>) & {
+  configurable: boolean | undefined // defaults to false
+  enumerable: boolean | undefined // defaults to false
+  isAccessorEntry: true | undefined // defaults to undefined (which is false)
+};
+export type SObjectValueInitDataEntry<M extends MaybeSValueMetadata> = {
+  value: SValue<M>
+  writable: boolean | undefined // defaults to false
+  isAccessorEntry: undefined
 }
+export type SObjectValueInitAccessorEntry<M extends MaybeSValueMetadata> = {
+  get: unknown // todo
+  set: unknown // todo
+  isAccessorEntry: true
+};
 
-export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
+export type SBuiltInObjectKind = "normal";
+export type SBuiltInObjectInfo = null;
+type SOwnProperties<M extends MaybeSValueMetadata> = Record<string, SObjectValueInitEntry<M> | undefined>
+export class SObjectValue<M extends MaybeSValueMetadata, O extends SBuiltInObjectInfo> extends SValue<M> {
   get sValueKind(): "s-object" { return "s-object" };
   metadata!: M;
 
+  readonly sBuiltInObjectInfo: O;
   // sIsExtensible: boolean;
   // sIsSealed: boolean;
   // sIsFrozen: boolean;
+  sOwnProperties: SOwnProperties<M>;
 
-  constructor(initArgs: SObjectValueInitArgs, transpileContext: TranspileContext<M>) {
+  constructor(initArgs: SObjectValueInitArgs<M>, transpileContext: TranspileContext<M>) {
     super();
+    switch (initArgs.kind) {
+    case "normal":
+      this.sBuiltInObjectInfo = null as O;
+      break;
+    default:
+      throw Error(`Unknown builtin object kind "${initArgs.kind}"`)
+    }
+    this.sOwnProperties = initArgs.props;
     this.metadata = transpileContext.newMetadataForObjectValue();
   }
   toNativeJS(): any { 
@@ -85,7 +112,17 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
     return new SBooleanValue(false, this.metadata);
   }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    
+    // lookup own first
+    const ownResult = this.sOwnProperties[name];
+    if (ownResult !== undefined) {
+      // hit on own properties
+      if (ownResult.isAccessorEntry) {
+        throw Error("Todo: handle accessor property entry lookup")
+      } else {
+        return ownResult.value.addingMetadata(this, transpileContext);
+      }
+    }
+    // todo: lookup in protocol chain
     return new SUndefinedValue<M>(this.metadata);
   }
   sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): never {
