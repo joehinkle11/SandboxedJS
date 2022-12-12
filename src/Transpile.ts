@@ -215,7 +215,7 @@ function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext:
   }
   const leftCode = resolveAnyNode(node.left, transpileContext);
   const rightCode = resolveAnyNode(node.right, transpileContext);
-  return `${leftCode}.${operatorCode}(${rightCode},transpileContext)`;
+  return `${leftCode}.${operatorCode}(()=>${rightCode},transpileContext)`;
 };
 function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: TranspileContext<any>): string {
   if (node.prefix !== true) {

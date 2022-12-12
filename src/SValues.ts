@@ -36,9 +36,9 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
   abstract sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
   abstract sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
-  abstract sLogicalNullish<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue;
-  abstract sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue;
-  abstract sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue;
+  abstract sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue;
+  abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue;
+  abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue;
   abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
     const valueMetadataSystem = transpileContext.valueMetadataSystem;
@@ -154,10 +154,10 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): RSValue {
-    return right.addingMetadata(this, transpileContext);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
+    return getRight().addingMetadata(this, transpileContext);
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this {
     return this;
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
@@ -395,18 +395,18 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as boolean) && "right";
     if (r === "right") {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as boolean) || "right";
     if (r === "right") {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
@@ -444,18 +444,18 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as number) && "right";
     if (r === "right") {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as number) || "right";
     if (r === "right") {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
@@ -493,18 +493,18 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as string) && 2;
     if (r === 2) {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as string) || 2;
     if (r === 2) {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
@@ -541,18 +541,18 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as bigint) && "right";
     if (r === "right") {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue {
     const r = (this.value as bigint) || "right";
     if (r === "right") {
-      return right.addingMetadata(this, transpileContext);
+      return getRight().addingMetadata(this, transpileContext);
     } else {
       return this;
     }
@@ -585,14 +585,14 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sUnaryTypeOf(): SStringValue<M, "undefined"> {
     return new SStringValue("undefined", this.metadata);
   }
-  sLogicalNullish<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): RSValue {
-    return right.addingMetadata(this, transpileContext);
+  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
+    return getRight().addingMetadata(this, transpileContext);
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this {
     return this;
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): RSValue {
-    return right.addingMetadata(this, transpileContext);
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
+    return getRight().addingMetadata(this, transpileContext);
   }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SUndefinedValue prototype");
@@ -621,14 +621,14 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sUnaryTypeOf(): SStringValue<M, "object"> {
     return new SStringValue("object", this.metadata);
   }
-  sLogicalNullish<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): RSValue {
-    return right.addingMetadata(this, transpileContext);
+  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
+    return getRight().addingMetadata(this, transpileContext);
   }
-  sLogicalAnd<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): this {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this {
     return this;
   }
-  sLogicalOr<RSValue extends SValue<M>>(right: RSValue, transpileContext: TranspileContext<M>): RSValue {
-    return right.addingMetadata(this, transpileContext);
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
+    return getRight().addingMetadata(this, transpileContext);
   }
   sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
     throw Error("Todo: lookup on SNullValue prototype");
