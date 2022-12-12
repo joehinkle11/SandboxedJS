@@ -6,6 +6,15 @@ export function testSafeEvalAgainstNative(
   testName: string = jsCode
 ) {
   test(testName, () => {
-    expect(safeEval(jsCode)).toBe(eval(jsCode));
+    try {
+      const evalResult = eval(jsCode);
+      expect(safeEval(jsCode)).toBe(evalResult);
+    } catch (e: any) {
+      try {
+        expect(safeEval(jsCode)).toBe(`Native eval threw error ${e.toString()}`)
+      } catch {
+        expect("thew error").toBe("thew error");
+      }
+    }
   });
 }

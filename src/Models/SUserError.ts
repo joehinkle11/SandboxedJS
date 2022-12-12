@@ -1,7 +1,7 @@
 import { SValue } from "../SValues";
 
 // An error in user-space (i.e., not an issue with the transpiler, but user code).
-export class SUserError extends Error {
+export default class SUserError extends Error {
   userError: Error;
 
   get message(): string {
