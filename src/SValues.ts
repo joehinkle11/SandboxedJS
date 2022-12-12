@@ -16,6 +16,8 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sBinarySubtract(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
     const valueMetadataSystem = transpileContext.valueMetadataSystem;
@@ -65,14 +67,22 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
   }
   sBinaryMult(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
     const resultingMetadata = this.combineMetadata(right, transpileContext);
-    throw SUserError.cannotPerformBinaryOp("-", this, right);
+    throw SUserError.cannotPerformBinaryOp("*", this, right);
   }
   sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
     const resultingMetadata = this.combineMetadata(right, transpileContext);
-    throw SUserError.cannotPerformBinaryOp("-", this, right);
+    throw SUserError.cannotPerformBinaryOp("/", this, right);
+  }
+  sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    throw SUserError.cannotPerformBinaryOp("**", this, right);
+  }
+  sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M> {
+    const resultingMetadata = this.combineMetadata(right, transpileContext);
+    throw SUserError.cannotPerformBinaryOp("%", this, right);
   }
 }
-function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/") {
+function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
   $$ts!(`
     try {
       if (right instanceof SPrimitiveValue) {
@@ -112,6 +122,14 @@ export abstract class SPrimitiveValue<
   // @ts-expect-error
   sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SPrimitiveValue<M> {
     $sBinaryOpOnPrimitives!("/");
+  }
+  // @ts-expect-error
+  sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SPrimitiveValue<M> {
+    $sBinaryOpOnPrimitives!("**");
+  }
+  // @ts-expect-error
+  sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SPrimitiveValue<M> {
+    $sBinaryOpOnPrimitives!("%");
   }
   static newPrimitiveFromJSValue<M extends MaybeSValueMetadata>(
     jsValue: any,

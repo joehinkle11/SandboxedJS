@@ -89,6 +89,10 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
     operatorCode = "sBinaryMult";
   } else if (operator === "/") {
     operatorCode = "sBinaryDiv";
+  } else if (operator === "**") {
+    operatorCode = "sBinaryExpo";
+  } else if (operator === "%") {
+    operatorCode = "sBinaryMod";
   } else {
     throw new Error(`Unsupported operator in BinaryExpression "${operator}"`);
   }
