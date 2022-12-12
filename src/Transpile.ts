@@ -107,6 +107,22 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
     operatorCode = "sBitwiseRightShift"
   } else if (operator === ">>>") {
     operatorCode = "sBitwiseUnsignedRight"
+  } else if (operator === "==") {
+    operatorCode = "sCompEqualValue";
+  } else if (operator === "===") {
+    operatorCode = "sCompEqualValueAndEqualType";
+  } else if (operator === "!=") {
+    operatorCode = "sCompNotEqualValue";
+  } else if (operator === "!==") {
+    operatorCode = "sCompNotEqualValueAndEqualType";
+  } else if (operator === ">") {
+    operatorCode = "sCompGreaterThan";
+  } else if (operator === "<") {
+    operatorCode = "sCompLessThan";
+  } else if (operator === ">=") {
+    operatorCode = "sCompGreaterThanOrEqualTo";
+  } else if (operator === "<=") {
+    operatorCode = "sCompLessThanOrEqualTo";
   } else {
     throw new Error(`Unsupported operator in BinaryExpression "${operator}"`);
   }

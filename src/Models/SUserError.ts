@@ -35,4 +35,9 @@ export default class SUserError extends Error {
       `Cannot perform bitwise operator "${op}" on ${left.constructor.name} and ${right.constructor.name}`
     ));
   }
+  static cannotPerformComparison(op: string, left: SValue<any>, right: SValue<any>): SUserError {
+    return new SUserError(new Error(
+      `Cannot perform comparison operator "${op}" on ${left.constructor.name} and ${right.constructor.name}`
+    ));
+  }
 }

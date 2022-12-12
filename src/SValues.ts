@@ -18,13 +18,21 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sBinaryDiv(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryExpo(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
   abstract sBinaryMod(right: SValue<M>, transpileContext: TranspileContext<M>): SValue<M>;
-  abstract sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
-  abstract sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
-  abstract sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
-  abstract sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
-  abstract sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
-  abstract sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
-  abstract sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M>;
+  abstract sBitwiseAND(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sBitwiseOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sBitwiseNOT(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sBitwiseXOR(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sBitwiseLeftShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sBitwiseRightShift(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> | SBigIntValue<M>;
+  abstract sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
+  abstract sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M>;
   abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
     const valueMetadataSystem = transpileContext.valueMetadataSystem;
@@ -103,6 +111,30 @@ export class SObjectValue<M extends MaybeSValueMetadata> extends SValue<M> {
   sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
     throw SUserError.cannotPerformBinaryOp(">>>", this, right);
   }
+  sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison("==", this, right);
+  }
+  sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison("===", this, right);
+  }
+  sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison("!=", this, right);
+  }
+  sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison("!==", this, right);
+  }
+  sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison(">", this, right);
+  }
+  sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison("<", this, right);
+  }
+  sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison(">=", this, right);
+  }
+  sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    throw SUserError.cannotPerformComparison("<=", this, right);
+  }
 }
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
   $$ts!(`
@@ -143,6 +175,21 @@ function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | "
   `);
 }
 
+function $sComparisonOpOnPrimitive(comparison: "==" | "===" | "!=" | "!==" | ">" | "<" | ">=" | "<=") {
+  $$ts!(`
+    try {
+      if (right instanceof SPrimitiveValue) {
+        const resultingMetadata = this.combineMetadata(right, transpileContext);
+        const comparisonResult = this.value ${comparison} right.value;
+        const newSBoolean = new SBooleanValue(comparisonResult, resultingMetadata);
+        if (newSBoolean !== null) {
+          return newSBoolean;
+        }
+      }
+    } catch {}
+    throw SUserError.cannotPerformBitwiseOp("${comparison}", this, right);
+  `);
+}
 
 
 
@@ -207,6 +254,38 @@ export abstract class SPrimitiveValue<
   // @ts-expect-error
   sBitwiseUnsignedRight(right: SValue<M>, transpileContext: TranspileContext<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!(">>>")
+  }
+  // @ts-expect-error
+  sCompEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!("==")
+  }
+  // @ts-expect-error
+  sCompEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!("===")
+  }
+  // @ts-expect-error
+  sCompNotEqualValue(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!("!=")
+  }
+  // @ts-expect-error
+  sCompNotEqualValueAndEqualType(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!("!==")
+  }
+  // @ts-expect-error
+  sCompGreaterThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!(">")
+  }
+  // @ts-expect-error
+  sCompLessThan(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!("<")
+  }
+  // @ts-expect-error
+  sCompGreaterThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!(">=")
+  }
+  // @ts-expect-error
+  sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
+    $sComparisonOpOnPrimitive!("<=")
   }
   static newPrimitiveFromJSValue<M extends MaybeSValueMetadata>(
     jsValue: any,
