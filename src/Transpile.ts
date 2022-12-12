@@ -93,6 +93,20 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
     operatorCode = "sBinaryExpo";
   } else if (operator === "%") {
     operatorCode = "sBinaryMod";
+  } else if (operator === "&") {
+    operatorCode = "sBitwiseAND"
+  } else if (operator === "|") {
+    operatorCode = "sBitwiseOR"
+  } else if (operator === "~") {
+    operatorCode = "sBitwiseNOT"
+  } else if (operator === "^") {
+    operatorCode = "sBitwiseXOR"
+  } else if (operator === "<<") {
+    operatorCode = "sBitwiseLeftShift"
+  } else if (operator === ">>") {
+    operatorCode = "sBitwiseRightShift"
+  } else if (operator === ">>>") {
+    operatorCode = "sBitwiseUnsignedRight"
   } else {
     throw new Error(`Unsupported operator in BinaryExpression "${operator}"`);
   }
