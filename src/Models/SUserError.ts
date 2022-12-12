@@ -3,6 +3,20 @@ import { SValue } from "../SValues";
 // An error in user-space (i.e., not an issue with the transpiler, but user code).
 export class SUserError extends Error {
   userError: Error;
+
+  get message(): string {
+    return this.userError.message;
+  }
+  get name(): string {
+    return this.userError.name;
+  }
+  get cause(): unknown | undefined {
+    return this.userError.cause;
+  }
+  get stack(): string | undefined {
+    return this.userError.stack;
+  }
+
   constructor(userError: Error) {
     super();
     this.userError = userError;
