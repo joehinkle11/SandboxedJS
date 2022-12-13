@@ -26,11 +26,6 @@ const sandboxedJSRunnerWithMetadataSystem = SandboxedJSRunner.newRunnerWithMetad
       data: "object"
     }
   },
-  newMetadataForFunctionValue() {
-    return {
-      data: "function"
-    }
-  },
 });
 
 describe('no metadata when no metadata system given', () => {

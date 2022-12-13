@@ -48,7 +48,7 @@ function resolveLookupIdentifierByName(identifierName: string, transpileContext:
   if(identifierName.match(regEx) === null) {
     throw Error("Identifier names must be only alphanumeric characters or underscores.")
   }
-  return "sLookup('" + identifierName + "',transpileContext)";
+  return "sGet('" + identifierName + "','todo-receiver',transpileContext)";
 };
 function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileContext<any>): string {
   // Check if it is a restricted identifier first
@@ -140,12 +140,15 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
           throw new Error(`Method properties in ObjectExpression are not supported.`);
         } else {
           const keyType = propertyNode.key.type;
-          if (keyType !== "Identifier") {
-            throw new Error(`Method properties in ObjectExpression just have an identifier key type, not ${keyType}.`);
+          let keyCode: string;
+          if (keyType === "Identifier") {
+            const keyNode = propertyNode.key as IdentifierNode;
+            keyCode = keyNode.name;
+          } else {
+            keyCode = `[${resolveAnyNode(propertyNode.key, transpileContext)}.sToPropertyKey()]`;
           }
-          const keyNode = propertyNode.key as IdentifierNode;
-          const valueCode = resolveAnyNode(propertyNode.value, transpileContext);
-          propertiesCodes.push(keyNode.name + ":{value:" + valueCode + "}");
+          let valueCode = resolveAnyNode(propertyNode.value, transpileContext);
+          propertiesCodes.push(keyCode + ":{value:" + valueCode + "}");
         }
       } else {
         throw new Error(`Unsupported property kind in ObjectExpression ${propertyNode.kind}`);
@@ -193,6 +196,8 @@ function resolveExpressionStatement(node: ExpressionStatementNode, transpileCont
     return resolveLogicalExpression(node.expression as LogicalExpressionNode, transpileContext);
   } else if (node.expression.type === "MemberExpression") {
     return resolveMemberExpression(node.expression as MemberExpressionNode, transpileContext);
+  } else if (node.expression.type === "ObjectExpression") {
+    return resolveObjectExpression(node.expression as ObjectExpressionNode, transpileContext);
   } else if (node.expression.type === "Identifier") {
     return resolveIdentifier(node.expression as IdentifierNode, transpileContext);
   } else if (node.expression.type === "TemplateLiteral") {
@@ -247,8 +252,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveBinaryExpression(node as BinaryExpressionNode, transpileContext);
   } else if (node.type === "Identifier") {
     return resolveIdentifier(node as IdentifierNode, transpileContext);
-  // } else if (node.type === "ObjectExpression") {
-  //   return resolveObjectExpression(node as ObjectExpressionNode);
+  } else if (node.type === "ObjectExpression") {
+    return resolveObjectExpression(node as ObjectExpressionNode, transpileContext);
   // } else if (node.type === "MemberExpression") {
   //   return resolveMemberExpression(node as MemberExpressionNode);
   // } else if (node.type === "ArrowFunctionExpression") {

@@ -11,3 +11,5 @@ import { runPrimitivesBenchmark } from "./primitives.benchmark.mjs";
 await runPrimitivesBenchmark(benchmark);
 import { runBinaryOpsBenchmark } from "./binary_ops.benchmark.mjs";
 await runBinaryOpsBenchmark(benchmark);
+import { runObjectLookupsBenchmark } from "./object_lookups.benchmark.mjs";
+await runObjectLookupsBenchmark(benchmark);

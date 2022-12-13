@@ -4,7 +4,7 @@ import { TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 
 export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
-  private transpileContext: TranspileContext<M>;
+  transpileContext: TranspileContext<M>;
 
   private constructor(transpileContextSetup: TranspileContextSetup<M>) {
     this.transpileContext = new TranspileContext(transpileContextSetup);

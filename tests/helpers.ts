@@ -20,6 +20,10 @@ export function testSafeEvalAgainstNative(
       expect(safeEvalResult).toBe(`Native eval threw error '${e.message}'`)
       return
     }
-    expect(safeEval(jsCode)).toBe(evalResult);
+    if (typeof evalResult === "object") {
+      expect(JSON.stringify(safeEval(jsCode))).toBe(JSON.stringify(evalResult));
+    } else {
+      expect(safeEval(jsCode)).toBe(evalResult);
+    }
   });
 }

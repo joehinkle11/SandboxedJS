@@ -10,7 +10,8 @@ export type SValuePrimitiveKind = "s-boolean" | "s-number" | "s-bigint" | "s-str
 export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract get sValueKind(): SValueKind;
   abstract metadata: M;
-  abstract toNativeJS(): any;
+  abstract toNativeJS(transpileContext: TranspileContext<M>): any;
+  abstract sToPropertyKey(): string;
   abstract sUnaryNegate(): SValue<M>;
   abstract sUnaryMakePositive(): SValue<M>;
   abstract sUnaryTypeOf(): SStringValue<M, JSTypeOfString>;
@@ -39,7 +40,9 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue;
   abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue;
   abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): this | RSValue;
-  abstract sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M>;
+  abstract sHas(p: string | symbol, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean>;
+  abstract sGetOwnPropertyDescriptor(p: string | symbol, transpileContext: TranspileContext<M>): SObjectValue<M, "normal"> | SUndefinedValue<M>;
   combineMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): M {
     const valueMetadataSystem = transpileContext.valueMetadataSystem;
     return valueMetadataSystem === null ? undefined : valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue);
@@ -51,13 +54,13 @@ export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbo
 
 export type SObjectValueInitArgs<M extends MaybeSValueMetadata> = {
   kind: SBuiltInObjectKind
-  props: SOwnProperties<M>
+  props: Record<string, SObjectValueInitEntry<M> | undefined>
 }
 // modeled after documentation on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperties
 export type SObjectValueInitEntry<M extends MaybeSValueMetadata> = (SObjectValueInitDataEntry<M> | SObjectValueInitAccessorEntry<M>) & {
-  configurable: boolean | undefined // defaults to false
-  enumerable: boolean | undefined // defaults to false
-  isAccessorEntry: true | undefined // defaults to undefined (which is false)
+  configurable: boolean | undefined // defaults to true
+  enumerable: boolean | undefined // defaults to true
+  isAccessorEntry: boolean | undefined // defaults to true
 };
 export type SObjectValueInitDataEntry<M extends MaybeSValueMetadata> = {
   value: SValue<M>
@@ -69,11 +72,61 @@ export type SObjectValueInitAccessorEntry<M extends MaybeSValueMetadata> = {
   set: unknown // todo
   isAccessorEntry: true
 };
+export type SObjectValuePropEntry<M extends MaybeSValueMetadata> = (SObjectValuePropDataEntry<M> | SObjectValuePropAccessorEntry<M>) & {
+  configurable: boolean
+  enumerable: boolean
+  isAccessorEntry: boolean
+};
+export type SObjectValuePropDataEntry<M extends MaybeSValueMetadata> = {
+  value: SValue<M>
+  writable: boolean
+  isAccessorEntry: false
+}
+export type SObjectValuePropAccessorEntry<M extends MaybeSValueMetadata> = {
+  get: unknown // todo
+  set: unknown // todo
+  isAccessorEntry: true
+};
+
+function createSObjectValueInitDataEntryFromJSPrimitive<M extends MaybeSValueMetadata, P extends SPrimitiveValueType>(
+  jsValue: P,
+  meta: M,
+  configurable: boolean | undefined = true,
+  enumerable: boolean | undefined = true,
+  writable: boolean | undefined = true
+): SObjectValueInitEntry<M> & SObjectValueInitDataEntry<M> {
+  const value = SPrimitiveValue.newPrimitiveFromJSValue<M, P>(jsValue, meta);
+  if (value === null) {
+    throw Error("Failed to convert js value into sandboxed js value.")
+  }
+  return {
+    configurable: configurable,
+    enumerable: enumerable,
+    writable: writable,
+    value: value,
+    isAccessorEntry: undefined
+  };
+}
+function createSObjectValueInitDataEntry<M extends MaybeSValueMetadata>(
+  value: SValue<M>,
+  configurable: boolean | undefined = true,
+  enumerable: boolean | undefined = true,
+  writable: boolean | undefined = true
+): SObjectValueInitEntry<M> & SObjectValueInitDataEntry<M> {
+  return {
+    configurable: configurable,
+    enumerable: enumerable,
+    writable: writable,
+    value: value,
+    isAccessorEntry: undefined
+  };
+}
 
 export type SBuiltInObjectKind = "normal";
 export type SBuiltInObjectInfo = null;
-type SOwnProperties<M extends MaybeSValueMetadata> = Record<string, SObjectValueInitEntry<M> | undefined>
-export class SObjectValue<M extends MaybeSValueMetadata, O extends SBuiltInObjectInfo> extends SValue<M> {
+type MapSBuiltInObjectKindToSBuiltInObjectInfo<K extends SBuiltInObjectKind> = K extends "normal" ? null : never;
+type SOwnProperties<M extends MaybeSValueMetadata> = Record<string, SObjectValuePropEntry<M> | undefined>
+export class SObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, O = MapSBuiltInObjectKindToSBuiltInObjectInfo<K>> extends SValue<M> {
   get sValueKind(): "s-object" { return "s-object" };
   metadata!: M;
 
@@ -82,6 +135,13 @@ export class SObjectValue<M extends MaybeSValueMetadata, O extends SBuiltInObjec
   // sIsSealed: boolean;
   // sIsFrozen: boolean;
   sOwnProperties: SOwnProperties<M>;
+
+
+
+  sToPropertyKey(): string {
+    // todo: return function code if it is a function
+    return "[object Object]";
+  }
 
   constructor(initArgs: SObjectValueInitArgs<M>, transpileContext: TranspileContext<M>) {
     super();
@@ -92,11 +152,165 @@ export class SObjectValue<M extends MaybeSValueMetadata, O extends SBuiltInObjec
     default:
       throw Error(`Unknown builtin object kind "${initArgs.kind}"`)
     }
-    this.sOwnProperties = initArgs.props;
+    this.sOwnProperties = {};
+    const keys = Object.getOwnPropertyNames(initArgs.props);
+    for (const key of keys) {
+      const initEntry = initArgs.props[key]!;
+      if (initEntry.isAccessorEntry) {
+        this.sOwnProperties[key] = {
+          isAccessorEntry: true,
+          set: initEntry.set,
+          get: initEntry.get,
+          enumerable: initEntry.enumerable ?? true,
+          configurable: initEntry.configurable ?? true
+        }
+      } else {
+        this.sOwnProperties[key] = {
+          isAccessorEntry: false,
+          value: initEntry.value,
+          writable: initEntry.writable ?? true,
+          enumerable: initEntry.enumerable ?? true,
+          configurable: initEntry.configurable ?? true
+        }
+      }
+    }
     this.metadata = transpileContext.newMetadataForObjectValue();
   }
-  toNativeJS(): any { 
-    throw Error("todo")
+  sOwnKeys(): string[] {
+    // todo: this must be done properly
+    const keys: string[] = []
+    const sOwnPropertyKeys = Object.getOwnPropertyNames(this.sOwnProperties);
+    for (const sOwnPropertyKey of sOwnPropertyKeys) {
+      // todo: check if enumerable (i think?)
+      keys.push(sOwnPropertyKey);
+    }
+    return keys;
+  }
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    // lookup own first
+    if (typeof p === "symbol") {
+      throw Error("todo: handle symbol lookups on s-objects")
+    } else {
+      const ownResult = this.sOwnProperties[p];
+      if (ownResult !== undefined) {
+        // hit on own properties
+        if (ownResult.isAccessorEntry) {
+          throw Error("Todo: handle accessor property entry lookup")
+        } else {
+          return ownResult.value.addingMetadata(this, transpileContext);
+        }
+      }
+    }
+    // todo: lookup in protocol chain
+    return new SUndefinedValue<M>(this.metadata);
+  }
+  sHas(p: string | symbol, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean> {
+    // lookup own first
+    if (typeof p === "symbol") {
+      throw Error("todo: handle symbol lookups on s-objects")
+    } else {
+      const ownResult = this.sOwnProperties[p];
+      if (ownResult !== undefined) {
+        return new SBooleanValue<M, true>(true, this.metadata);
+      }
+    }
+    // todo: lookup in protocol chain
+    return new SBooleanValue<M, false>(false, this.metadata);
+  }
+  sGetOwnPropertyDescriptor(p: string | symbol, transpileContext: TranspileContext<M>): SObjectValue<M, "normal"> | SUndefinedValue<M> {
+    if (typeof p === "symbol") {
+      throw Error("todo: handle symbol lookups on s-objects")
+    } else {
+      const ownResult = this.sOwnProperties[p];
+      if (ownResult !== undefined) {
+        // hit on own properties
+        if (ownResult.isAccessorEntry) {
+          throw Error("Todo: handle accessor property entry sGetOwnPropertyDescriptor")
+          // return new SObjectValue<M, "normal">(
+          //   {
+          //     kind: "normal",
+          //     props: {
+          //       configurable?: boolean;
+          //       enumerable?: boolean;
+          //       get?(): any;
+          //       set?(v: any): void;
+          //     }
+          //   },
+          //   transpileContext
+          // );
+        } else {
+          return new SObjectValue<M, "normal">(
+            {
+              kind: "normal",
+              props: {
+                configurable: createSObjectValueInitDataEntryFromJSPrimitive<M, boolean>(ownResult.configurable, this.metadata),
+                enumerable: createSObjectValueInitDataEntryFromJSPrimitive<M, boolean>(ownResult.enumerable, this.metadata),
+                value: createSObjectValueInitDataEntry(ownResult.value),
+                writable: createSObjectValueInitDataEntryFromJSPrimitive<M, boolean>(ownResult.writable, this.metadata),
+              }
+            },
+            transpileContext
+          );
+        }
+      }
+    }
+    return new SUndefinedValue<M>(this.metadata);
+  }
+  toNativeJS(transpileContext: TranspileContext<M>): object { 
+    const weakTranspileContext = new WeakRef(transpileContext);
+    return new Proxy(new WeakRef(this), {
+      apply(target, thisArg, argArray) {
+        throw Error("SandboxedJS todo proxy s-object apply");
+      },
+      construct(target, argArray, newTarget) {
+        throw Error("SandboxedJS todo proxy s-object construct");
+      },
+      defineProperty(target, property, attributes) {
+        throw Error("SandboxedJS todo proxy s-object defineProperty");
+      },
+      deleteProperty(target, p) {
+        throw Error("SandboxedJS todo proxy s-object deleteProperty");
+      },
+      get(target, p, receiver) {
+        const tContext = weakTranspileContext.deref();
+        if (tContext === undefined) {
+          return undefined;
+        }
+        return target.deref()?.sGet(p, receiver, tContext).toNativeJS(tContext) ?? undefined;
+      },
+      getOwnPropertyDescriptor(target, p) {
+        const tContext = weakTranspileContext.deref();
+        if (tContext === undefined) {
+          return undefined;
+        }
+        return target.deref()?.sGetOwnPropertyDescriptor(p, tContext).toNativeJS(tContext) ?? undefined;
+      },
+      getPrototypeOf(target) {
+        throw Error("SandboxedJS todo proxy s-object getPrototypeOf");
+      },
+      has(target, p) {
+        const tContext = weakTranspileContext.deref();
+        if (tContext === undefined) {
+          return false;
+        }
+        return target.deref()?.sHas(p, tContext).toNativeJS() ?? false;
+      },
+      isExtensible(target) {
+        throw Error("SandboxedJS todo proxy s-object isExtensible");
+      },
+      ownKeys(target) {
+        return target.deref()?.sOwnKeys() ?? [];
+      },
+      preventExtensions(target) {
+        throw Error("SandboxedJS todo proxy s-object preventExtensions");
+      },
+      set(target, p, newValue, receiver) {
+        throw Error("SandboxedJS todo proxy s-object set");
+      },
+      setPrototypeOf(target, v) {
+        throw Error("SandboxedJS todo proxy s-object setPrototypeOf");
+      },
+    });
   };
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
@@ -110,20 +324,6 @@ export class SObjectValue<M extends MaybeSValueMetadata, O extends SBuiltInObjec
   }
   sUnaryLogicalNot(): SBooleanValue<M, false> {
     return new SBooleanValue(false, this.metadata);
-  }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    // lookup own first
-    const ownResult = this.sOwnProperties[name];
-    if (ownResult !== undefined) {
-      // hit on own properties
-      if (ownResult.isAccessorEntry) {
-        throw Error("Todo: handle accessor property entry lookup")
-      } else {
-        return ownResult.value.addingMetadata(this, transpileContext);
-      }
-    }
-    // todo: lookup in protocol chain
-    return new SUndefinedValue<M>(this.metadata);
   }
   sBinaryAdd(right: SValue<M>, transpileContext: TranspileContext<M>): never {
     throw SUserError.cannotPerformBinaryOp("+", this, right);
@@ -362,10 +562,16 @@ export abstract class SPrimitiveValue<
   sCompLessThanOrEqualTo(right: SValue<M>, transpileContext: TranspileContext<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("<=")
   }
-  static newPrimitiveFromJSValue<M extends MaybeSValueMetadata>(
-    jsValue: any,
+  sGetOwnPropertyDescriptor(p: string | symbol, transpileContext: TranspileContext<M>): SUndefinedValue<M> {
+    return new SUndefinedValue<M>(this.metadata);
+  }
+  sHas(p: string | symbol, transpileContext: TranspileContext<M>): SBooleanValue<M, boolean> {
+    throw Error("Todo sHas for s primitive value")
+  }
+  static newPrimitiveFromJSValue<M extends MaybeSValueMetadata, P extends SPrimitiveValueType>(
+    jsValue: P,
     metaData: M
-  ): SPrimitiveValue<M, any> | null {
+  ): SPrimitiveValue<M, P | undefined> | null {
     switch (typeof jsValue) {
     case "number":
       return new SNumberValue(jsValue, metaData);
@@ -418,6 +624,9 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
     $sPrimitiveConstructor!();
   }
+  sToPropertyKey(): string {
+    return this.value.toString();
+  }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedBool = -this.value;
     return new SNumberValue(negatedBool, this.metadata);
@@ -448,8 +657,8 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
       return this;
     }
   }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    throw Error("Todo: lookup on SBoolean prototype");
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: sGet on SBoolean prototype");
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
     if (transpileContext.valueMetadataSystem === null) {
@@ -467,6 +676,9 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<number>();
     $sPrimitiveConstructor!();
+  }
+  sToPropertyKey(): string {
+    return this.value.toString();
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedNumber = -this.value;
@@ -497,8 +709,8 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
       return this;
     }
   }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    throw Error("Todo: lookup on SNumberValue prototype");
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: sGet on SNumberValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
     if (transpileContext.valueMetadataSystem === null) {
@@ -515,6 +727,9 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<string>();
     $sPrimitiveConstructor!();
+  }
+  sToPropertyKey(): string {
+    return this.value;
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const stringMadeNegative = -this.value;
@@ -546,8 +761,8 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
       return this;
     }
   }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    throw Error("Todo: lookup on SStringValue prototype");
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: sGet on SStringValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
     if (transpileContext.valueMetadataSystem === null) {
@@ -564,6 +779,9 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
     $sPrimitiveConstructor!();
+  }
+  sToPropertyKey(): string {
+    return this.value.toString();
   }
   sUnaryNegate(): SBigIntValue<M, bigint> {
     const stringMadeNegative: bigint = -(this.value as bigint);
@@ -594,8 +812,8 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
       return this;
     }
   }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    throw Error("Todo: lookup on SBigIntValue prototype");
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: sGet on SBigIntValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
     if (transpileContext.valueMetadataSystem === null) {
@@ -612,6 +830,9 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   constructor(metadata: M) {
     super();
     $sPrimitiveConstructor!();
+  }
+  sToPropertyKey(): string {
+    return "undefined";
   }
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
@@ -631,8 +852,8 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
     return getRight().addingMetadata(this, transpileContext);
   }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    throw Error("Todo: lookup on SUndefinedValue prototype");
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: sGet on SUndefinedValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
     if (transpileContext.valueMetadataSystem === null) {
@@ -648,6 +869,9 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   constructor(metadata: M) {
     super();
     $sPrimitiveConstructor!();
+  }
+  sToPropertyKey(): string {
+    return "null";
   }
   sUnaryNegate(): SNumberValue<M, -0> {
     return new SNumberValue(-0, this.metadata);
@@ -667,8 +891,8 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, transpileContext: TranspileContext<M>): RSValue {
     return getRight().addingMetadata(this, transpileContext);
   }
-  sLookup(name: string, transpileContext: TranspileContext<M>): SValue<M> {
-    throw Error("Todo: lookup on SNullValue prototype");
+  sGet(p: string | symbol, receiver: any, transpileContext: TranspileContext<M>): SValue<M> {
+    throw Error("Todo: sGet on SNullValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, transpileContext: TranspileContext<M>): this {
     if (transpileContext.valueMetadataSystem === null) {
