@@ -212,7 +212,7 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   metadata: M;
 
   // Where primitives store their primitive value in `value`, objects cannot do so, as this would expose SValue types to the user code. We use an empty object when we wish to use SObjects as a primitive value in other work (when the contents of the object is unimportant).
-  get value(): {} { return {} }
+  abstract get value(): object;
 
   constructor(metadata: M) {
     super();
@@ -308,6 +308,7 @@ export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K e
 }
 
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
+  get value(): {} { return {} }
   sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
@@ -326,13 +327,14 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
   }
 }
 export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "array", SValue<any>[]> {
+  get value(): [] { return [] }
   sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   readonly storage: SValue<any>[] & {length: SNumberValue<M, number>};
 
   sToPropertyKey(): string {
-    throw Error("todo sToPropertyKey array obj")
+    return Array.prototype.map(v=>v.sToPropertyKey(), this.storage).join(",");
   }
 
   constructor(array: SValue<any>[], sTable: SLocalSymbolTable<M>) {

@@ -178,11 +178,15 @@ function resolveMemberExpression(node: MemberExpressionNode, transpileContext: T
   return res.objectCode + "." + res.propertyCode;
 };
 function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: TranspileContext<any>): string {
-  let elementsCodes: string[] = [];
+  let allElementsCode = "";
   for (const el of node.elements) {
-    elementsCodes.push(resolveAnyNode(el, transpileContext));
+    if (el === null) {
+      allElementsCode += ",";
+    } else {
+      allElementsCode += resolveAnyNode(el, transpileContext) + ",";
+    }
   }
-  let sArrayValueInitArgsCode = "[" + elementsCodes.join(",") + "]";
+  let sArrayValueInitArgsCode = "[" + allElementsCode + "]";
   return `new SValues.SArrayObject(${sArrayValueInitArgsCode},sTable)`
 };
 function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'newConstant' | 'newVariable' | 'set', transpileContext: TranspileContext<any>): string {
