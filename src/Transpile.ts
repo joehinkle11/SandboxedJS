@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -43,12 +43,15 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   }
   throw new Error(`Unsupported literal "${typeof value}"`);
 };
+function resolveLookup(lookupCode: string): string {
+  return "sGet(" + lookupCode + ",'todo-receiver',transpileContext)";
+};
 function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>): string {
   var regEx = /^[0-9a-zA-Z_]+$/;
   if(identifierName.match(regEx) === null) {
     throw Error("Identifier names must be only alphanumeric characters or underscores.")
   }
-  return "sGet('" + identifierName + "','todo-receiver',transpileContext)";
+  return resolveLookup("'" + identifierName + "'");
 };
 function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileContext<any>): string {
   // Check if it is a restricted identifier first
@@ -148,7 +151,8 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
             keyCode = `[${resolveAnyNode(propertyNode.key, transpileContext)}.sToPropertyKey()]`;
           }
           let valueCode = resolveAnyNode(propertyNode.value, transpileContext);
-          propertiesCodes.push(keyCode + ":{value:" + valueCode + "}");
+          // propertiesCodes.push(keyCode + ":{value:" + valueCode + "}");
+          propertiesCodes.push(keyCode + ":" + valueCode);
         }
       } else {
         throw new Error(`Unsupported property kind in ObjectExpression ${propertyNode.kind}`);
@@ -157,54 +161,33 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
       throw new Error(`Unsupported property AST node type in ObjectExpression ${property.type}`);
     }
   }
-  let sObjectValueInitArgsCode = "{kind:'normal',props:{" + propertiesCodes.join(",") + "}}";
-  return `new SValues.SObjectValue(${sObjectValueInitArgsCode},transpileContext)`;
+  let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
+  return `new SValues.SNormalObject(${sObjectValueInitArgsCode},transpileContext)`;
 };
-function resolveMemberExpressionObject(node: acorn.Node, transpileContext: TranspileContext<any>): string {
-  if (node.type === "Identifier") {
-    return resolveIdentifier(node as IdentifierNode, transpileContext);
-  } else if (node.type === "MemberExpression") {
-    return resolveMemberExpression(node as MemberExpressionNode, transpileContext);
-  } else if (node.type === "ObjectExpression") {
-    return resolveObjectExpression(node as ObjectExpressionNode, transpileContext);
-  } else {
-    throw new Error(`Unsupported object AST node type in MemberExpressionObject object ${node.type}`);
-  }
-}
 function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>): {objectCode: string, propertyCode: string} {
   let propertyCode: string;
   if (node.property.type === "Identifier") {
     propertyCode = resolveLookupIdentifierByName((node.property as IdentifierNode).name, transpileContext);
   } else {
-    throw new Error(`Unsupported property AST node type in MemberExpressionReturningPieces property ${node.property.type}`);
+    propertyCode = resolveLookup(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey()`)
   }
-  const objectCode: string = resolveMemberExpressionObject(node.object, transpileContext);
+  const objectCode: string = resolveAnyNode(node.object, transpileContext);
   return {objectCode, propertyCode};
 };
 function resolveMemberExpression(node: MemberExpressionNode, transpileContext: TranspileContext<any>): string {
   const res = resolveMemberExpressionReturningPieces(node, transpileContext);
   return res.objectCode + "." + res.propertyCode;
 };
-function resolveExpressionStatement(node: ExpressionStatementNode, transpileContext: TranspileContext<any>): string {
-  if (node.expression.type === "Literal") {
-    return resolveLiteral(node.expression as LiteralNode, transpileContext);
-  } else if (node.expression.type === "BinaryExpression") {
-    return resolveBinaryExpression(node.expression as BinaryExpressionNode, transpileContext);
-  } else if (node.expression.type === "UnaryExpression") {
-    return resolveUnaryExpression(node.expression as UnaryExpressionNode, transpileContext);
-  } else if (node.expression.type === "LogicalExpression") {
-    return resolveLogicalExpression(node.expression as LogicalExpressionNode, transpileContext);
-  } else if (node.expression.type === "MemberExpression") {
-    return resolveMemberExpression(node.expression as MemberExpressionNode, transpileContext);
-  } else if (node.expression.type === "ObjectExpression") {
-    return resolveObjectExpression(node.expression as ObjectExpressionNode, transpileContext);
-  } else if (node.expression.type === "Identifier") {
-    return resolveIdentifier(node.expression as IdentifierNode, transpileContext);
-  } else if (node.expression.type === "TemplateLiteral") {
-    return resolveTemplateLiteral(node.expression as TemplateLiteralNode, transpileContext);
-  } else {
-    throw new Error(`Unsupported expression AST node type in ExpressionStatement ${node.expression.type}`);
+function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: TranspileContext<any>): string {
+  let elementsCodes: string[] = [];
+  for (const el of node.elements) {
+    elementsCodes.push(resolveAnyNode(el, transpileContext));
   }
+  let sArrayValueInitArgsCode = "[" + elementsCodes.join(",") + "]";
+  return `new SValues.SArrayObject(${sArrayValueInitArgsCode},transpileContext)`
+};
+function resolveExpressionStatement(node: ExpressionStatementNode, transpileContext: TranspileContext<any>): string {
+  return resolveAnyNode(node.expression, transpileContext);
 };
 function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext: TranspileContext<any>): string {
   const operator = node.operator;
@@ -242,26 +225,30 @@ function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: Tra
   }
 };
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
-  if (node.type === "ExpressionStatement") {
-    return resolveExpressionStatement(node as ExpressionStatementNode, transpileContext);
-  } else if (node.type === "Literal") {
+  if (node.type === "Literal") {
     return resolveLiteral(node as LiteralNode, transpileContext);
-  // } else if (node.type === "LogicalExpression") {
-  //   return resolveLogicalExpression(node as LogicalExpressionNode);
   } else if (node.type === "BinaryExpression") {
     return resolveBinaryExpression(node as BinaryExpressionNode, transpileContext);
-  } else if (node.type === "Identifier") {
-    return resolveIdentifier(node as IdentifierNode, transpileContext);
+  } else if (node.type === "UnaryExpression") {
+    return resolveUnaryExpression(node as UnaryExpressionNode, transpileContext);
+  } else if (node.type === "LogicalExpression") {
+    return resolveLogicalExpression(node as LogicalExpressionNode, transpileContext);
+  } else if (node.type === "MemberExpression") {
+    return resolveMemberExpression(node as MemberExpressionNode, transpileContext);
   } else if (node.type === "ObjectExpression") {
     return resolveObjectExpression(node as ObjectExpressionNode, transpileContext);
-  // } else if (node.type === "MemberExpression") {
-  //   return resolveMemberExpression(node as MemberExpressionNode);
+  } else if (node.type === "Identifier") {
+    return resolveIdentifier(node as IdentifierNode, transpileContext);
+  } else if (node.type === "ExpressionStatement") {
+    return resolveExpressionStatement(node as ExpressionStatementNode, transpileContext);
   // } else if (node.type === "ArrowFunctionExpression") {
   //   return resolveArrowFunctionExpression(node as ArrowFunctionExpressionNode);
   // } else if (node.type === "CallExpression") {
   //   return resolveCallExpression(node as CallExpressionNode);
-  } else if (node.type === "UnaryExpression") {
-    return resolveUnaryExpression(node as UnaryExpressionNode, transpileContext);
+  } else if (node.type === "TemplateLiteral") {
+    return resolveTemplateLiteral(node as TemplateLiteralNode, transpileContext);
+  } else if (node.type === "ArrayExpression") {
+    return resolveArrayExpression(node as ArrayExpressionNode, transpileContext);
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

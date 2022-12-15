@@ -45,6 +45,10 @@ export interface TemplateElementNode extends acorn.Node {
   }
   tail: boolean
 }
+export interface ArrayExpressionNode extends acorn.Node {
+  type: 'ArrayExpression'
+  elements: acorn.Node[]
+}
 export interface TemplateLiteralNode extends acorn.Node {
   type: 'TemplateLiteral'
   expressions: acorn.Node[]
