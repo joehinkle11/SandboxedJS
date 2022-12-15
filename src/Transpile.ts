@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, BinaryExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -44,7 +44,7 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   throw new Error(`Unsupported literal "${typeof value}"`);
 };
 function resolveLookup(lookupCode: string): string {
-  return "sGet(" + lookupCode + ",'todo-receiver',transpileContext)";
+  return "sGet(" + lookupCode + ",'todo-receiver',sTable)";
 };
 function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>): string {
   var regEx = /^[0-9a-zA-Z_]+$/;
@@ -131,7 +131,7 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
   }
   const leftCode = resolveAnyNode(node.left, transpileContext);
   const rightCode = resolveAnyNode(node.right, transpileContext);
-  return `${leftCode}.${operatorCode}(${rightCode},transpileContext)`;
+  return `${leftCode}.${operatorCode}(${rightCode},sTable)`;
 };
 function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: TranspileContext<any>): string {
   let propertiesCodes: string[] = [];
@@ -151,7 +151,6 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
             keyCode = `[${resolveAnyNode(propertyNode.key, transpileContext)}.sToPropertyKey()]`;
           }
           let valueCode = resolveAnyNode(propertyNode.value, transpileContext);
-          // propertiesCodes.push(keyCode + ":{value:" + valueCode + "}");
           propertiesCodes.push(keyCode + ":" + valueCode);
         }
       } else {
@@ -162,7 +161,7 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
     }
   }
   let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
-  return `new SValues.SNormalObject(${sObjectValueInitArgsCode},transpileContext)`;
+  return `new SValues.SNormalObject(${sObjectValueInitArgsCode},sTable)`;
 };
 function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>): {objectCode: string, propertyCode: string} {
   let propertyCode: string;
@@ -184,7 +183,43 @@ function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: Tra
     elementsCodes.push(resolveAnyNode(el, transpileContext));
   }
   let sArrayValueInitArgsCode = "[" + elementsCodes.join(",") + "]";
-  return `new SValues.SArrayObject(${sArrayValueInitArgsCode},transpileContext)`
+  return `new SValues.SArrayObject(${sArrayValueInitArgsCode},sTable)`
+};
+function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'newConstant' | 'newVariable' | 'set', transpileContext: TranspileContext<any>): string {
+  const initCode = resolveAnyNode(node.init, transpileContext);
+  const idType = node.id.type;
+  if (idType === "Identifier") {
+    const idNode = node.id as IdentifierNode;
+    return `nsContext.setNSVar("${idNode.name}", ${initCode}, "${kind}", nsStackFrameInfo)`;
+  } else {
+    throw new Error(`Unsupported id AST node type in VariableDeclarator ${idType}`);
+  }
+}
+function resolveVariableDeclaration(node: VariableDeclarationNode, transpileContext: TranspileContext<any>): string {
+  let varKind: 'const' | 'let' | "var";
+  switch (node.kind) {
+  case "const":
+    varKind = "const";
+    break
+  case "let":
+    varKind = "let";
+    break
+  case "var":
+    varKind = "var";
+    break
+  default:
+    throw new Error(`Unsupported variable declaration kind in VariableDeclaration "${node.kind}"`);
+  }
+  // let declCode = "";
+  // for (const decl of node.declarations) {
+  //   if (decl.type === "VariableDeclarator") {
+  //     declCode += resolveVariableDeclarator(decl as VariableDeclaratorNode, varKind === "constant" ? "newConstant" : "newVariable");
+  //   } else {
+  //     throw new Error(`Unsupported AST decl node type in VariableDeclaration ${decl.type}`);
+  //   }
+  // }
+  // return declCode;
+  throw new Error("todoo");
 };
 function resolveExpressionStatement(node: ExpressionStatementNode, transpileContext: TranspileContext<any>): string {
   return resolveAnyNode(node.expression, transpileContext);
@@ -203,7 +238,42 @@ function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext:
   }
   const leftCode = resolveAnyNode(node.left, transpileContext);
   const rightCode = resolveAnyNode(node.right, transpileContext);
-  return `${leftCode}.${operatorCode}(()=>${rightCode},transpileContext)`;
+  return `${leftCode}.${operatorCode}(()=>${rightCode},sTable)`;
+};
+function resolveCallExpression(node: CallExpressionNode, transpileContext: TranspileContext<any>): string {
+  // function makeCall(getCallerCode: string | undefined, getFuncCode: string): string {
+  //   let setupCode: string;
+  //   let cleanupCode: string;
+  //   let lookupCode: string;
+  //   let callerThisRef: string;
+  //   if (getCallerCode === undefined) {
+  //     callerThisRef = "NSValues.NSUndefinedValue.runtime";
+  //     setupCode = "";
+  //     cleanupCode = "";
+  //     lookupCode = getFuncCode;
+  //   } else {
+  //     setupCode = "(()=>{const nsFuncCaller = " + getCallerCode + ";return ";
+  //     cleanupCode = "})()";
+  //     lookupCode = "nsFuncCaller." + getFuncCode;
+  //     callerThisRef = "nsFuncCaller";
+  //   }
+  //   let argumentsCode: string[] = [callerThisRef,"nsStackFrameInfo"];
+  //   argumentsCode.push(...node.arguments.map((arg: acorn.Node) => {
+  //     return resolveAnyNode(arg, transpileContext);
+  //   }));
+  //   return setupCode + lookupCode + ".sApply(" + argumentsCode.join(",") + ")" + cleanupCode;
+  // }
+  // if (node.callee.type === "Identifier") {
+  //   return makeCall(undefined, resolveIdentifier(node.callee as IdentifierNode));
+  // } else if (node.callee.type === "MemberExpression") {
+  //   const res = resolveMemberExpressionReturningPieces(node.callee as MemberExpressionNode);
+  //   const objectCode = res.objectCode
+  //   const propertyCode = res.propertyCode;
+  //   return makeCall(objectCode, propertyCode);
+  // } else {
+  //   throw new Error(`Unsupported callee AST node type in CallExpression ${node.callee.type}`);
+  // }
+  throw Error("todo call expr")
 };
 function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: TranspileContext<any>): string {
   if (node.prefix !== true) {
@@ -243,8 +313,14 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveExpressionStatement(node as ExpressionStatementNode, transpileContext);
   // } else if (node.type === "ArrowFunctionExpression") {
   //   return resolveArrowFunctionExpression(node as ArrowFunctionExpressionNode);
-  // } else if (node.type === "CallExpression") {
-  //   return resolveCallExpression(node as CallExpressionNode);
+  } else if (node.type === "VariableDeclaration") {
+    return resolveVariableDeclaration(node as VariableDeclarationNode, transpileContext);
+  // } else if (node.expression === "VariableDeclarator") {
+  //   return resolveVariableDeclarator(node as VariableDeclaratorNode, "set");
+  // } else if (node.expression === "IfStatement") {
+  //   return resolveIfStatement(node as IfStatementNode);
+  } else if (node.type === "CallExpression") {
+    return resolveCallExpression(node as CallExpressionNode, transpileContext);
   } else if (node.type === "TemplateLiteral") {
     return resolveTemplateLiteral(node as TemplateLiteralNode, transpileContext);
   } else if (node.type === "ArrayExpression") {

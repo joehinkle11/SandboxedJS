@@ -17,28 +17,20 @@ export class TranspileContext<M extends MaybeSValueMetadata> {
     if (this.valueMetadataSystem === null) {
       return "";
     }
-    return ",transpileContext.newMetadataForCompileTimeLiteral()";
+    return ",sTable.newMetadataForCompileTimeLiteral()";
   }
-  newMetadataForRuntimeTimeEmergingValue(): M {
+  newMetadataGlobalSymbolTable(): M {
     if (this.valueMetadataSystem === null) {
       return undefined as M;
     }
-    return this.valueMetadataSystem.newMetadataForRuntimeTimeEmergingValue();
-  }
-  newMetadataForCompileTimeLiteral(): M {
-    return this.valueMetadataSystem!.newMetadataForCompileTimeLiteral();
-  }
-  newMetadataForObjectValue(): M {
-    if (this.valueMetadataSystem === null) {
-      return undefined as M;
-    }
-    return this.valueMetadataSystem.newMetadataForObjectValue();
+    return this.valueMetadataSystem.newMetadataGlobalSymbolTable();
   }
 }
 
 export interface ValueMetadataSystem<MetaDataModel extends SValueMetadata> {
-  newMetadataForCompileTimeLiteral(): MetaDataModel;
+  newMetadataForCompileTimeLiteral(currentScopeMetadata: MetaDataModel): MetaDataModel;
   newMetadataForRuntimeTimeEmergingValue(): MetaDataModel;
   newMetadataForObjectValue(): MetaDataModel;
+  newMetadataGlobalSymbolTable(): MetaDataModel;
   newMetadataForCombiningValues(left: SValue<MetaDataModel>, right: SValue<MetaDataModel>): MetaDataModel;
 }

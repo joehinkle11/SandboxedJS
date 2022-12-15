@@ -5,5 +5,6 @@ export function safeEval(
   unsafeJs: string
 ): any {
   const sandboxedJSRunner = SandboxedJSRunner.newRunnerWithoutMetadata();
-  return sandboxedJSRunner.evalJs(unsafeJs).toNativeJS(sandboxedJSRunner.transpileContext);
+  const result = sandboxedJSRunner.evalJs(unsafeJs, {returnNativeJSValue: true});
+  return result;
 }

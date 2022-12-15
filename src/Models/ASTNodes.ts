@@ -100,7 +100,7 @@ export interface ReturnStatementNode extends acorn.Node {
 export interface VariableDeclarationNode extends acorn.Node {
   type: 'VariableDeclaration'
   declarations: acorn.Node[]
-  kind: 'const' | 'let' | 'var' | string
+  kind: 'const' | 'let' | 'var' | unknown
 }
 export interface VariableDeclaratorNode extends acorn.Node {
   type: 'VariableDeclarator'
