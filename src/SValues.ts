@@ -283,6 +283,46 @@ export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K e
     throw SUserError.cannotCall(this.sToPropertyKey().toString());
   }
 }
+export function convertAllPropertiesToSValues(
+  record: Record<PropertyKey, any>,
+  sTable: SLocalSymbolTable<any>
+): SObjectProperties {
+  const converted: SObjectProperties = {};
+  const propDescriptors = Object.getOwnPropertyDescriptors(record);
+  const propDescriptorsKeys = [...Object.getOwnPropertyNames(propDescriptors), ...Object.getOwnPropertySymbols(propDescriptors)];
+  for (const key of propDescriptorsKeys) {
+    const propDescriptor = propDescriptors[key];
+    if (propDescriptor.writable !== undefined) {
+      // data descriptor
+      const value = propDescriptor.value;
+      let sValue: SValue<any>;
+      if (value instanceof SValue) {
+        sValue = value;
+      } else {
+        const primitiveValue = SPrimitiveValue.newPrimitiveFromJSValue(
+          value,
+          sTable.newMetadataForRuntimeTimeEmergingValue()
+        );
+        if (primitiveValue !== null) {
+          sValue = primitiveValue;
+        } else {
+          // todo: convert to s-objects
+          continue;
+        }
+      }
+      Object.defineProperty(converted, key, {
+        configurable: propDescriptor.configurable,
+        enumerable: propDescriptor.enumerable,
+        writable: propDescriptor.writable,
+        value: sValue
+      });
+    } else {
+      // access descriptor...todo
+      continue;
+    }
+  }
+  return converted;
+}
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
   
   readonly nativeJsValue: any;

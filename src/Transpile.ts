@@ -371,7 +371,7 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
 function resolveFunctionExpression(node: FunctionExpressionNode, transpileContext: TranspileContext<any>): string {
   const functionAsString = encodeUnsafeStringAsJSLiteralString(transpileContext.lastParsedJs.slice(node.start, node.end));
   const functionBodySetup = "return ((sContext)=>{"
-  const functionBodyCleanup = "})(sContext.spawnChild(sThisArg));"
+  const functionBodyCleanup = "})(sContext.spawnChild(sThisArg,new SValues.SNormalObject(SValues.convertAllPropertiesToSValues(sArgArray,sContext),sContext)));"
   const functionBody = functionBodySetup + resolveCodeBody(node.body.body, false, transpileContext) + functionBodyCleanup;
   const actualFunction = `function(sThisArg,sArgArray){${functionBody}}`
   return `new SValues.SFunction(${actualFunction},${functionAsString},sContext)`;

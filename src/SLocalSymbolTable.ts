@@ -1,6 +1,6 @@
 import SUserError from "./Models/SUserError";
 import { MaybeSValueMetadata } from "./SValueMetadata";
-import { SUndefinedValue, SValue } from "./SValues";
+import { SNormalObject, SNumberValue, SObjectValue, SUndefinedValue, SValue } from "./SValues";
 import { TranspileContext } from "./TranspileContext";
 
 type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
@@ -96,8 +96,23 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     this.sThis = sThis;
   }
 
-  spawnChild(sThis: SValue<M>): SLocalSymbolTable<M> {
-    return new SLocalSymbolTable<M>(sThis, {}, this, this.transpileContext);
+  spawnChild(
+    sThis: SValue<M>,
+    sArguments: SNormalObject<M> | undefined
+  ): SLocalSymbolTable<M> {
+    const symbolsInChild: SymbolsRecord<M> = {};
+    if (sArguments !== undefined) {
+      symbolsInChild.arguments = {
+        kind: "const",
+        value: sArguments
+      };
+    }
+    return new SLocalSymbolTable<M>(
+      sThis,
+      symbolsInChild,
+      this,
+      this.transpileContext
+    );
   }
 
   // original and copy share same symbol table

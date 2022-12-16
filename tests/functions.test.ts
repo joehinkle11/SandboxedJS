@@ -15,6 +15,13 @@ describe('anonymous functions assignment tests', () => {
   testSafeEvalAgainstNative("const x = (function(){return 5+5});const y = x;y()");
 });
 
+describe('function args tests', () => {
+  testSafeEvalAgainstNative("(function(){return arguments})(1)");
+  testSafeEvalAgainstNative("(function(){return arguments})(1,2)");
+  testSafeEvalAgainstNative("(function(){return arguments})(1,2,3)");
+  testSafeEvalAgainstNative("(function(){return arguments.length})(1,2,3)");
+});
+
 describe('basic "this" binding tests', () => {
   testSafeEvalAgainstNative(`
     const x = function() { return this.y }
@@ -24,9 +31,7 @@ describe('basic "this" binding tests', () => {
   testSafeEvalAgainstNative(`
     const x = function() { return this?.y }
     const o = { y: true, x: x }
-    // const o_x = o.x;
-    // o_x();
-    const y = o.x
-    y()
+    const o_x = o.x;
+    o_x();
   `);
 });
