@@ -46,13 +46,14 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
           kind: kind,
           value: newValue
         };
+        return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
       case "update":
         this.symbols[key] = {
           kind: "var",
           value: newValue
         };
+        return newValue;
       }
-      return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
     case undefined:
       switch (kind) {
       case "const":
@@ -62,7 +63,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
           kind: kind,
           value: newValue
         };
-        return newValue;
+        return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
       case "update":
         this.symbols[key] = {
           kind: "var",

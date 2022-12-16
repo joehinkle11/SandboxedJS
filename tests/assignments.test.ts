@@ -17,6 +17,7 @@ describe('compound assignment operators', () => {
     for (const value2 of valuePool) {
       for (const op of opsPool) {
         testSafeEvalAgainstNative(`let x = ${value1};x ${op} ${value2};x`);
+        testSafeEvalAgainstNative(`let x = ${value1};x ${op} ${value2}`);
       }
     }
   }
