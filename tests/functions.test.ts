@@ -20,6 +20,9 @@ describe('function args tests', () => {
   testSafeEvalAgainstNative("(function(){return arguments})(1,2)");
   testSafeEvalAgainstNative("(function(){return arguments})(1,2,3)");
   testSafeEvalAgainstNative("(function(){return arguments.length})(1,2,3)");
+  testSafeEvalAgainstNative("(function(){return a})(1,2,3)");
+  testSafeEvalAgainstNative("(function(a){return a})(1,2,3)");
+  testSafeEvalAgainstNative("(function(a, b, c){return [a, b, c]})(1,2,3)");
 });
 
 describe('basic "this" binding tests', () => {

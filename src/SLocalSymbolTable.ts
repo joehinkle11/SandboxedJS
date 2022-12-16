@@ -1,6 +1,6 @@
 import SUserError from "./Models/SUserError";
 import { MaybeSValueMetadata } from "./SValueMetadata";
-import { SNormalObject, SNumberValue, SObjectValue, SUndefinedValue, SValue } from "./SValues";
+import { convertAllPropertiesToSValues, SNormalObject, SNumberValue, SObjectValue, SUndefinedValue, SValue } from "./SValues";
 import { TranspileContext } from "./TranspileContext";
 
 type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
@@ -82,7 +82,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     } else if (this.parent !== null) {
       return this.parent.sGet(p, receiver, sTable);
     } else {
-      return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
+      throw SUserError.symbolNotDefined(p);
     }
   }
   
@@ -98,14 +98,29 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
 
   spawnChild(
     sThis: SValue<M>,
-    sArguments: SNormalObject<M> | undefined
+    sArguments: any[] | undefined,
+    argNames: string[] | undefined
   ): SLocalSymbolTable<M> {
     const symbolsInChild: SymbolsRecord<M> = {};
     if (sArguments !== undefined) {
+      const arrayOfSValues = convertAllPropertiesToSValues(sArguments, this);
+      const args: SNormalObject<M> = new SNormalObject(arrayOfSValues, this);
       symbolsInChild.arguments = {
         kind: "const",
-        value: sArguments
+        value: args
       };
+      if (argNames !== undefined) {
+        for (let index = 0; index < argNames.length; index++) {
+          const sValue = arrayOfSValues[index];
+          if (sValue !== undefined) {
+            const argName = argNames[index];
+            symbolsInChild[argName] = {
+              kind: "const",
+              value: sValue
+            };
+          }
+        }
+      }
     }
     return new SLocalSymbolTable<M>(
       sThis,

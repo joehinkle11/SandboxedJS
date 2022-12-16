@@ -371,7 +371,22 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
 function resolveFunctionExpression(node: FunctionExpressionNode, transpileContext: TranspileContext<any>): string {
   const functionAsString = encodeUnsafeStringAsJSLiteralString(transpileContext.lastParsedJs.slice(node.start, node.end));
   const functionBodySetup = "return ((sContext)=>{"
-  const functionBodyCleanup = "})(sContext.spawnChild(sThisArg,new SValues.SNormalObject(SValues.convertAllPropertiesToSValues(sArgArray,sContext),sContext)));"
+  let argNames: string;
+  if (node.params.length === 0) {
+    argNames = "";
+  } else {
+    let names: string[] = [];
+    for (const param of node.params) {
+      if (param.type === "Identifier") {
+        const identifierParam = param as IdentifierNode;
+        names.push("'" + identifierParam.name + "'");
+      } else {
+        throw new Error("Todo: function argument parameter node type " + param.type);
+      }
+    }
+    argNames = `,[${names.join(",")}]`
+  }
+  const functionBodyCleanup = `})(sContext.spawnChild(sThisArg,sArgArray${argNames}));`
   const functionBody = functionBodySetup + resolveCodeBody(node.body.body, false, transpileContext) + functionBodyCleanup;
   const actualFunction = `function(sThisArg,sArgArray){${functionBody}}`
   return `new SValues.SFunction(${actualFunction},${functionAsString},sContext)`;
