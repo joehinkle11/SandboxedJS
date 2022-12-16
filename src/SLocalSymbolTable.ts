@@ -32,9 +32,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     return this.transpileContext.valueMetadataSystem.newMetadataForObjectValue();
   }
 
-  get sThis(): SValue<M> {
-    return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
-  }
+  readonly sThis: SValue<M>;
 
   assign<V extends SValue<M>>(key: string, newValue: V, kind: 'const' | 'let' | "var" | "update", receiver: SValue<M> | undefined = undefined): V | SUndefinedValue<M> {
     const entry = this.symbols[key];
@@ -77,10 +75,12 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
       }
     }
   }
-  sGet(p: string, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     const entry = this.symbols[p];
     if (entry !== undefined) {
       return entry.value;
+    } else if (this.parent !== null) {
+      return this.parent.sGet(p, receiver, sTable);
     } else {
       return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
     }
@@ -88,22 +88,23 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
   
 
   // creates the global symbol table
-  private constructor(symbols: SymbolsRecord<M>, parent: SLocalSymbolTable<M> | null, transpileContext: TranspileContext<M>) {
+  private constructor(sThis: SValue<M>, symbols: SymbolsRecord<M>, parent: SLocalSymbolTable<M> | null, transpileContext: TranspileContext<M>) {
     this.transpileContext = transpileContext;
     this.parent = parent;
     this.metadata = transpileContext.newMetadataGlobalSymbolTable();
     this.symbols = symbols;
+    this.sThis = sThis;
   }
 
-  spawnChild(): SLocalSymbolTable<M> {
-    return new SLocalSymbolTable<M>({}, this, this.transpileContext);
+  spawnChild(sThis: SValue<M>): SLocalSymbolTable<M> {
+    return new SLocalSymbolTable<M>(sThis, {}, this, this.transpileContext);
   }
 
   // original and copy share same symbol table
   duplicateAndEraseMetadata(): SLocalSymbolTable<M> {
-    return new SLocalSymbolTable<M>(this.symbols, this, this.transpileContext);
+    return new SLocalSymbolTable<M>(this.sThis, this.symbols, this, this.transpileContext);
   }
   static createGlobal<M extends MaybeSValueMetadata>(transpileContext: TranspileContext<M>): SLocalSymbolTable<M> {
-    return new SLocalSymbolTable<M>({}, null, transpileContext);
+    return new SLocalSymbolTable<M>(new SUndefinedValue(transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue()), {}, null, transpileContext);
   }
 }

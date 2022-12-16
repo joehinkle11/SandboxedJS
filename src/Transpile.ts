@@ -245,11 +245,18 @@ function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext:
   return `${leftCode}.${operatorCode}(()=>${rightCode},sContext)`;
 };
 function resolveCallExpression(node: CallExpressionNode, transpileContext: TranspileContext<any>): string {
-  const lookupCode: string = resolveAnyNode(node.callee, transpileContext);
   const argumentsCode: string[] = node.arguments.map((arg: acorn.Node) => {
     return resolveAnyNode(arg, transpileContext);
   });
-  return `${lookupCode}.sApply("thisArg-todo",[${argumentsCode.join(",")}],sContext)`
+  if (node.callee.type === "MemberExpression") {
+    const memberPieces = resolveMemberExpressionReturningPieces(node.callee as MemberExpressionNode, transpileContext);
+    // bind this for the caller
+    return `(()=>{const receiver=${memberPieces.objectCode};return receiver.${memberPieces.propertyCode}.sApply(receiver,[${argumentsCode.join(",")}],sContext)})()`
+  } else {
+    // no this to bind, so bind to current context
+    const lookupCode: string = resolveAnyNode(node.callee, transpileContext);
+    return `${lookupCode}.sApply(sContext.sThis,[${argumentsCode.join(",")}],sContext)`
+  }
 };
 function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: TranspileContext<any>): string {
   if (node.prefix !== true) {
@@ -363,8 +370,10 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
 }
 function resolveFunctionExpression(node: FunctionExpressionNode, transpileContext: TranspileContext<any>): string {
   const functionAsString = encodeUnsafeStringAsJSLiteralString(transpileContext.lastParsedJs.slice(node.start, node.end));
-  const functionBody = resolveCodeBody(node.body.body, false, transpileContext);
-  const actualFunction = `function(sThisArg, sArgArray){${functionBody}}`
+  const functionBodySetup = "return ((sContext)=>{"
+  const functionBodyCleanup = "})(sContext.spawnChild(sThisArg));"
+  const functionBody = functionBodySetup + resolveCodeBody(node.body.body, false, transpileContext) + functionBodyCleanup;
+  const actualFunction = `function(sThisArg,sArgArray){${functionBody}}`
   return `new SValues.SFunction(${actualFunction},${functionAsString},sContext)`;
 }
 function resolveReturnStatement(node: ReturnStatementNode, transpileContext: TranspileContext<any>): string {
