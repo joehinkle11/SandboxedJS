@@ -106,6 +106,9 @@ export interface ReturnStatementNode extends acorn.Node {
   type: "ReturnStatement"
   argument: acorn.Node
 }
+export interface ThisExpressionNode extends acorn.Node {
+  type: "ThisExpression"
+}
 export interface VariableDeclarationNode extends acorn.Node {
   type: 'VariableDeclaration'
   declarations: acorn.Node[]

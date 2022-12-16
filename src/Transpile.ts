@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -408,6 +408,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveAssignmentExpression(node as AssignmentExpressionNode, transpileContext);
   } else if (node.type === "ReturnStatement") {
     return resolveReturnStatement(node as ReturnStatementNode, transpileContext);
+  } else if (node.type === "ThisExpression") {
+    return "sContext.sThis"
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

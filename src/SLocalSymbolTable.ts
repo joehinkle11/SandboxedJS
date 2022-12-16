@@ -32,6 +32,10 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     return this.transpileContext.valueMetadataSystem.newMetadataForObjectValue();
   }
 
+  get sThis(): SValue<M> {
+    return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
+  }
+
   assign<V extends SValue<M>>(key: string, newValue: V, kind: 'const' | 'let' | "var" | "update", receiver: SValue<M> | undefined = undefined): V | SUndefinedValue<M> {
     const entry = this.symbols[key];
     switch (entry?.kind) {
