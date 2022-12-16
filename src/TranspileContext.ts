@@ -13,7 +13,7 @@ export interface TranspileContextSetup<M extends MaybeSValueMetadata> {
 
 export class TranspileContext<M extends MaybeSValueMetadata> {
   valueMetadataSystem: ValueMetadataSystem<any> | null
-
+  lastParsedJs: string = "";
 
   constructor(params: TranspileContextSetup<M>) {
     this.valueMetadataSystem = params.valueMetadataSystem;

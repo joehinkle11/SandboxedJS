@@ -68,7 +68,7 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
   abstract sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M>;
   abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean>;
-  // abstract sApply(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M>;
+  abstract sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): M {
     const valueMetadataSystem = sTable.transpileContext.valueMetadataSystem;
     return valueMetadataSystem === null ? undefined : valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue);
@@ -162,11 +162,17 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
 }
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
-export type SBuiltInObjectKind = "normal" | "array" | "function";
+export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
+export type SBuiltInNonFunctionObjectKind = "normal" | "array";
+export type SBuiltInObjectKind = SBuiltInFunctionObjectKind | SBuiltInNonFunctionObjectKind;
 export type SObjectProperties = Record<PropertyKey, SValue<any> | undefined>;
 export type BaseSObjectStorage = SObjectProperties & object;
-type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> = K extends "normal" ? BaseSObjectStorage : Array<any>;
-
+type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> =
+  K extends "normal" ? BaseSObjectStorage
+    : K extends "array" ? Array<any>
+    : K extends "function" ? AnySFunction
+    : K extends "arrow-function" ? AnySFunction
+    : BaseSObjectStorage;
 function buildNativeJsValueForSObject<M extends MaybeSValueMetadata, S extends object, O extends SObjectValue<M, any, S>>(
   sObject: O,
   startingElement: S
@@ -224,6 +230,9 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     super();
     this.metadata = metadata;
   }
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+    throw new Error("Method not implemented.");
+  }
   sGet(p: string | symbol, receiver: SValue<M>): SValue<M> {
     const result = Reflect.get(this.sStorage, p, receiver);
     if (result instanceof SValue) {
@@ -263,9 +272,12 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     return this;
   }
 }
-export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SObjectValue<M, K, S> {
+export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInNonFunctionObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SObjectValue<M, K, S> {
   sUnaryTypeOf(): SStringValue<M, "object"> {
     return new SStringValue("object", this.metadata);
+  }
+  sApply(): never {
+    throw SUserError.cannotCall(this.sToPropertyKey().toString());
   }
 }
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
@@ -273,9 +285,6 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
   readonly nativeJsValue: any;
   readonly sStorage: BaseSObjectStorage;
 
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
-    throw new Error("Method not implemented.");
-  }
   sToPropertyKey(): string {
     return "[object Object]";
   }
@@ -291,10 +300,7 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
 }
 export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "array", SValue<any>[]> {
   readonly nativeJsValue: any[];
-  readonly sStorage: SValue<any>[] & {length: SNumberValue<M, number>};;
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
-    throw new Error("Method not implemented.");
-  }
+  readonly sStorage: SValue<any>[] & {length: SNumberValue<M, number>};
 
   sToPropertyKey(): string {
     return Array.prototype.map(v=>v.sToPropertyKey(), this.sStorage).join(",");
@@ -311,6 +317,36 @@ export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObj
         }
         return r;
       },
+    }) as any;
+    this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
+  }
+}
+export type AnySFunction = (sThisArg: SValue<any>, sArgArray: SValue<any>[]) => SValue<any>;
+export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SObjectValue<M, K, AnySFunction> {
+  sUnaryTypeOf(): SStringValue<M, "function"> {
+    return new SStringValue("function", this.metadata);
+  }
+  sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M> {
+    return this.sStorage(thisArg, args);
+  }
+}
+export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectValue<M, "function"> {
+  readonly nativeJsValue: () => {};
+  readonly sStorage: AnySFunction;
+  readonly functionAsString: string;
+
+  sToPropertyKey(): string {
+    return this.functionAsString;
+  }
+
+  constructor(anySFunction: AnySFunction, functionAsString: string, sTable: SLocalSymbolTable<M>) {
+    super(sTable.newMetadataForObjectValue());
+    this.functionAsString = functionAsString;
+    Object.setPrototypeOf(anySFunction, null);
+    this.sStorage = new Proxy(anySFunction, {
+      // apply(target, thisArg, argArray) {
+        
+      // },
     }) as any;
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
@@ -350,6 +386,9 @@ export abstract class SPrimitiveValue<
   abstract get sValueKind(): SValuePrimitiveKind;
   abstract readonly nativeJsValue: P;
   abstract readonly metadata: M;
+  sApply(): never {
+    throw Error("todo sApply on primitive")
+  }
   sUnaryLogicalNot(): SBooleanValue<M, boolean> {
     try {
       return new SBooleanValue(!this.nativeJsValue, this.metadata);
@@ -756,7 +795,9 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
 // to a reference to an object without effecting the metadata on other references to
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
-  
+  sApply(): never {
+    throw Error("todo sApply on SReferencedObjectValue")
+  }
   wrappedObject: SObjectValue<M, K, S>
 
   addedMetadata: M;

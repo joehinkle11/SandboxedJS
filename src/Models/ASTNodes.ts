@@ -73,7 +73,16 @@ export interface ArrowFunctionExpressionNode extends acorn.Node {
   generator: boolean
   async: boolean
   params: acorn.Node[]
-  body: acorn.Node
+  body: BlockStatementNode
+}
+export interface FunctionExpressionNode extends acorn.Node {
+  type: 'FunctionExpression'
+  id: any | null
+  expression: boolean
+  generator: boolean
+  async: boolean
+  params: acorn.Node[]
+  body: BlockStatementNode
 }
 export interface LiteralNode extends acorn.Node {
   type: 'Literal'

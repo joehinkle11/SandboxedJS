@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -12,6 +12,7 @@ export function transpile(
     ecmaVersion: "latest",
     sourceType: "module"
   });
+  transpileContext.lastParsedJs = unsafeJs;
   if (ast.type !== "Program") {
     throw new Error(`Unsupported root AST node type ${ast.type}`)
   }
@@ -244,39 +245,11 @@ function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext:
   return `${leftCode}.${operatorCode}(()=>${rightCode},sContext)`;
 };
 function resolveCallExpression(node: CallExpressionNode, transpileContext: TranspileContext<any>): string {
-  // function makeCall(getCallerCode: string | undefined, getFuncCode: string): string {
-  //   let setupCode: string;
-  //   let cleanupCode: string;
-  //   let lookupCode: string;
-  //   let callerThisRef: string;
-  //   if (getCallerCode === undefined) {
-  //     callerThisRef = "NSValues.NSUndefinedValue.runtime";
-  //     setupCode = "";
-  //     cleanupCode = "";
-  //     lookupCode = getFuncCode;
-  //   } else {
-  //     setupCode = "(()=>{const nsFuncCaller = " + getCallerCode + ";return ";
-  //     cleanupCode = "})()";
-  //     lookupCode = "nsFuncCaller." + getFuncCode;
-  //     callerThisRef = "nsFuncCaller";
-  //   }
-  //   let argumentsCode: string[] = [callerThisRef,"nsStackFrameInfo"];
-  //   argumentsCode.push(...node.arguments.map((arg: acorn.Node) => {
-  //     return resolveAnyNode(arg, transpileContext);
-  //   }));
-  //   return setupCode + lookupCode + ".sApply(" + argumentsCode.join(",") + ")" + cleanupCode;
-  // }
-  // if (node.callee.type === "Identifier") {
-  //   return makeCall(undefined, resolveIdentifier(node.callee as IdentifierNode));
-  // } else if (node.callee.type === "MemberExpression") {
-  //   const res = resolveMemberExpressionReturningPieces(node.callee as MemberExpressionNode);
-  //   const objectCode = res.objectCode
-  //   const propertyCode = res.propertyCode;
-  //   return makeCall(objectCode, propertyCode);
-  // } else {
-  //   throw new Error(`Unsupported callee AST node type in CallExpression ${node.callee.type}`);
-  // }
-  throw Error("todo call expr")
+  const lookupCode: string = resolveAnyNode(node.callee, transpileContext);
+  const argumentsCode: string[] = node.arguments.map((arg: acorn.Node) => {
+    return resolveAnyNode(arg, transpileContext);
+  });
+  return `${lookupCode}.sApply("thisArg-todo",[${argumentsCode.join(",")}],sContext)`
 };
 function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: TranspileContext<any>): string {
   if (node.prefix !== true) {
@@ -388,6 +361,16 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
   }
   return `${contextLookup}.assign("${keyToLookup}",${rightCode},"update")`;
 }
+function resolveFunctionExpression(node: FunctionExpressionNode, transpileContext: TranspileContext<any>): string {
+  const functionAsString = encodeUnsafeStringAsJSLiteralString(transpileContext.lastParsedJs.slice(node.start, node.end));
+  const functionBody = resolveCodeBody(node.body.body, false, transpileContext);
+  const actualFunction = `function(sThisArg, sArgArray){${functionBody}}`
+  return `new SValues.SFunction(${actualFunction},${functionAsString},sContext)`;
+}
+function resolveReturnStatement(node: ReturnStatementNode, transpileContext: TranspileContext<any>): string {
+  const returnValue = resolveAnyNode(node.argument, transpileContext);
+  return `return ${returnValue};`;
+}
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
   if (node.type === "Literal") {
     return resolveLiteral(node as LiteralNode, transpileContext);
@@ -413,6 +396,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
   //   return resolveVariableDeclarator(node as VariableDeclaratorNode, "set");
   // } else if (node.expression === "IfStatement") {
   //   return resolveIfStatement(node as IfStatementNode);
+  } else if (node.type === "FunctionExpression") {
+    return resolveFunctionExpression(node as FunctionExpressionNode, transpileContext);
   } else if (node.type === "CallExpression") {
     return resolveCallExpression(node as CallExpressionNode, transpileContext);
   } else if (node.type === "TemplateLiteral") {
@@ -421,6 +406,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveArrayExpression(node as ArrayExpressionNode, transpileContext);
   } else if (node.type === "AssignmentExpression") {
     return resolveAssignmentExpression(node as AssignmentExpressionNode, transpileContext);
+  } else if (node.type === "ReturnStatement") {
+    return resolveReturnStatement(node as ReturnStatementNode, transpileContext);
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }
