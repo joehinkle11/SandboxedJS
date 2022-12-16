@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -47,12 +47,12 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
 function resolveLookup(lookupCode: string): string {
   return "sContext.sGet(" + lookupCode + ",'todo-receiver',sContext)";
 };
-function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>): string {
+function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string) => string): string {
   var regEx = /^[0-9a-zA-Z_]+$/;
   if(identifierName.match(regEx) === null) {
     throw Error("Identifier names must be only alphanumeric characters or underscores.")
   }
-  return resolveLookup("'" + identifierName + "'");
+  return resolveLookupWork("'" + identifierName + "'");
 };
 function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileContext<any>): string {
   // Check if it is a restricted identifier first
@@ -65,7 +65,7 @@ function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileCont
   case "Infinity":
     return `new SValues.SNumberValue(Infinity${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   default:
-    return resolveLookupIdentifierByName(name, transpileContext);
+    return resolveLookupIdentifierByName(name, transpileContext, resolveLookup);
   }
 };
 function resolveStringLiteral(unsafeString: string, transpileContext: TranspileContext<any>): string {
@@ -164,18 +164,18 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
   let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
   return `new SValues.SNormalObject(${sObjectValueInitArgsCode},sContext)`;
 };
-function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>): {objectCode: string, propertyCode: string} {
+function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string) => string): {objectCode: string, propertyCode: string} {
   let propertyCode: string;
   if (node.property.type === "Identifier") {
-    propertyCode = resolveLookupIdentifierByName((node.property as IdentifierNode).name, transpileContext);
+    propertyCode = resolveLookupIdentifierByName((node.property as IdentifierNode).name, transpileContext, resolveLookupWork);
   } else {
-    propertyCode = resolveLookup(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey()`)
+    propertyCode = resolveLookupWork(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey()`)
   }
   const objectCode: string = resolveAnyNode(node.object, transpileContext);
   return {objectCode, propertyCode};
 };
 function resolveMemberExpression(node: MemberExpressionNode, transpileContext: TranspileContext<any>): string {
-  const res = resolveMemberExpressionReturningPieces(node, transpileContext);
+  const res = resolveMemberExpressionReturningPieces(node, transpileContext, resolveLookup);
   return res.objectCode + "." + res.propertyCode;
 };
 function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: TranspileContext<any>): string {
@@ -249,7 +249,7 @@ function resolveCallExpression(node: CallExpressionNode, transpileContext: Trans
     return resolveAnyNode(arg, transpileContext);
   });
   if (node.callee.type === "MemberExpression") {
-    const memberPieces = resolveMemberExpressionReturningPieces(node.callee as MemberExpressionNode, transpileContext);
+    const memberPieces = resolveMemberExpressionReturningPieces(node.callee as MemberExpressionNode, transpileContext, resolveLookup);
     // bind this for the caller
     return `(()=>{const receiver=${memberPieces.objectCode};return receiver.${memberPieces.propertyCode}.sApply(receiver,[${argumentsCode.join(",")}],sContext)})()`
   } else {
@@ -380,6 +380,12 @@ function resolveReturnStatement(node: ReturnStatementNode, transpileContext: Tra
   const returnValue = resolveAnyNode(node.argument, transpileContext);
   return `return ${returnValue};`;
 }
+function resolveChainExpression(node: ChainExpressionNode, transpileContext: TranspileContext<any>): string {
+  const memberPieces = resolveMemberExpressionReturningPieces(node.expression, transpileContext, (key) => {
+    return "sChainExpression(" + key + ",sContext)";
+  });
+  return `${memberPieces.objectCode}.${memberPieces.propertyCode}`;
+}
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
   if (node.type === "Literal") {
     return resolveLiteral(node as LiteralNode, transpileContext);
@@ -419,6 +425,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveReturnStatement(node as ReturnStatementNode, transpileContext);
   } else if (node.type === "ThisExpression") {
     return "sContext.sThis"
+  } else if (node.type === "ChainExpression") {
+    return resolveChainExpression(node as ChainExpressionNode, transpileContext);
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

@@ -1,6 +1,5 @@
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { $$ts, $$typeToString } from "ts-macros";
-import { TranspileContext } from "./TranspileContext";
 import SUserErrorImport from "./Models/SUserError";
 import { SLocalSymbolTable } from "./SLocalSymbolTable";
 const SUserError = SUserErrorImport;
@@ -66,8 +65,9 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
   abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
   abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
-  abstract sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M>;
-  abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean>;
+  abstract sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M>;
+  abstract sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
+  abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean>;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M>;
   combineMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): M {
     const valueMetadataSystem = sTable.transpileContext.valueMetadataSystem;
@@ -230,7 +230,7 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     super();
     this.metadata = metadata;
   }
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   sGet(p: string | symbol, receiver: SValue<M>): SValue<M> {
@@ -244,6 +244,9 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     } else {
       throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
     }
+  }
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
+    return this.sGet(p, this);
   }
   abstract sUnaryTypeOf(): SStringValue<M, "object" | "function">;
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
@@ -443,7 +446,7 @@ function $sPrimitiveConstructor() {
 }
 
 export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-boolean" { return "s-boolean" };
@@ -468,6 +471,9 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
   sUnaryTypeOf(): SStringValue<M, "boolean"> {
     return new SStringValue("boolean", this.metadata);
   }
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+    throw new Error("todo sChainExpression on boolean")
+  }
   sLogicalNullish(): this {
     return this;
   }
@@ -487,7 +493,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SBoolean prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -499,7 +505,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
 }
 
 export class SNumberValue<M extends MaybeSValueMetadata, V extends number> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-number" { return "s-number" };
@@ -523,6 +529,9 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sUnaryTypeOf(): SStringValue<M, "number"> {
     return new SStringValue("number", this.metadata);
   }
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+    throw new Error("todo sChainExpression on number")
+  }
   sLogicalNullish(): this {
     return this;
   }
@@ -542,7 +551,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SNumberValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -553,7 +562,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   }
 }
 export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-string" { return "s-string" };
@@ -578,6 +587,9 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   sUnaryTypeOf(): SStringValue<M, "string"> {
     return new SStringValue("string", this.metadata);
   }
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+    throw new Error("todo sChainExpression on string")
+  }
   sLogicalNullish(): this {
     return this;
   }
@@ -597,7 +609,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SStringValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -608,7 +620,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   }
 }
 export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-bigint" { return "s-bigint" };
@@ -632,6 +644,9 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
   sUnaryTypeOf(): SStringValue<M, "bigint"> {
     return new SStringValue("bigint", this.metadata);
   }
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+    throw new Error("todo sChainExpression on bigint")
+  }
   sLogicalNullish(): this {
     return this;
   }
@@ -651,7 +666,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SBigIntValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -663,7 +678,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
 }
 
 export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, undefined> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-undefined" { return "s-undefined" };
@@ -694,7 +709,10 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
     return getRight().addingMetadata(this, sTable);
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sChainExpression(): SUndefinedValue<M> {
+    return this;
+  }
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SUndefinedValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -705,7 +723,7 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   }
 }
 export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-null" { return "s-null" };
@@ -727,6 +745,9 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sUnaryTypeOf(): SStringValue<M, "object"> {
     return new SStringValue("object", this.metadata);
   }
+  sChainExpression(): SUndefinedValue<M> {
+    return new SUndefinedValue<M>(this.metadata);
+  }
   sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
     return getRight().addingMetadata(this, sTable);
   }
@@ -736,7 +757,7 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
     return getRight().addingMetadata(this, sTable);
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SNullValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -747,7 +768,7 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   }
 }
 export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-symbol" { return "s-symbol" };
@@ -770,6 +791,9 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   sUnaryTypeOf(): SStringValue<M, "symbol"> {
     return new SStringValue("symbol", this.metadata);
   }
+  sChainExpression(): SUndefinedValue<M> {
+    return new SUndefinedValue<M>(this.metadata);
+  }
   sLogicalNullish(): this {
     return this;
   }
@@ -779,7 +803,7 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
     return this;
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SSymbolValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
@@ -842,11 +866,17 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
     return this;
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
-    throw new Error("Method not implemented.");
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
+    // todo: add proper metadata
+    return this.wrappedObject.sChainExpression(p, sTable);
   }
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
-    throw new Error("Method not implemented.");
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+    // todo: add proper metadata
+    return this.wrappedObject.sGet(p, receiver);
+  }
+  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
+    // todo: add proper metadata
+    return this.wrappedObject.sSet(p, newValue, receiver);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     throw new Error("Method not implemented.");

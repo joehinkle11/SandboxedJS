@@ -19,6 +19,14 @@ describe('basic "this" binding tests', () => {
   testSafeEvalAgainstNative(`
     const x = function() { return this.y }
     const o = { y: true, x: x }
-    o.x()
+    o.x();
+  `);
+  testSafeEvalAgainstNative(`
+    const x = function() { return this?.y }
+    const o = { y: true, x: x }
+    // const o_x = o.x;
+    // o_x();
+    const y = o.x
+    y()
   `);
 });
