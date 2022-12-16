@@ -191,14 +191,21 @@ function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: Tra
   return `new SValues.SArrayObject(${sArrayValueInitArgsCode},sContext)`
 };
 function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'const' | 'let' | "var", transpileContext: TranspileContext<any>): string {
-  const initCode = resolveAnyNode(node.init, transpileContext);
   const idType = node.id.type;
+  let variableName: string;
   if (idType === "Identifier") {
     const idNode = node.id as IdentifierNode;
-    return `sContext.assign("${idNode.name}",${initCode},"${kind}")`;
+    variableName = idNode.name;
   } else {
     throw new Error(`Unsupported id AST node type in VariableDeclarator ${idType}`);
   }
+  let initCode: string;
+  if (node.init.type === "FunctionExpression") {
+    initCode = resolveFunctionExpression(node.init as FunctionExpressionNode, variableName, transpileContext);
+  } else {
+    initCode = resolveAnyNode(node.init, transpileContext);
+  }
+  return `sContext.assign("${variableName}",${initCode},"${kind}")`;
 }
 function resolveVariableDeclaration(node: VariableDeclarationNode, transpileContext: TranspileContext<any>): string {
   let varKind: 'const' | 'let' | "var";
@@ -368,7 +375,16 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
   }
   return `${contextLookup}.assign("${keyToLookup}",${rightCode},"update")`;
 }
-function resolveFunctionExpression(node: FunctionExpressionNode, transpileContext: TranspileContext<any>): string {
+function resolveFunctionExpression(node: FunctionExpressionNode, willBeSetToVariableIdentifier: string | undefined, transpileContext: TranspileContext<any>): string {
+  let functionName: string;
+  if (node.id !== null) {
+    functionName = node.id.name;
+  } else if (willBeSetToVariableIdentifier !== undefined) {
+    functionName = willBeSetToVariableIdentifier;
+  } else {
+    functionName = "";
+  }
+  
   const functionAsString = encodeUnsafeStringAsJSLiteralString(transpileContext.lastParsedJs.slice(node.start, node.end));
   const functionBodySetup = "return ((sContext)=>{"
   let argNames: string;
@@ -388,7 +404,7 @@ function resolveFunctionExpression(node: FunctionExpressionNode, transpileContex
   }
   const functionBodyCleanup = `})(sContext.spawnChild(sThisArg,sArgArray${argNames}));`
   const functionBody = functionBodySetup + resolveCodeBody(node.body.body, false, transpileContext) + functionBodyCleanup;
-  const actualFunction = `function(sThisArg,sArgArray){${functionBody}}`
+  const actualFunction = `function ${functionName}(sThisArg,sArgArray){${functionBody}}`
   return `new SValues.SFunction(${actualFunction},${functionAsString},sContext)`;
 }
 function resolveReturnStatement(node: ReturnStatementNode, transpileContext: TranspileContext<any>): string {
@@ -427,7 +443,7 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
   // } else if (node.expression === "IfStatement") {
   //   return resolveIfStatement(node as IfStatementNode);
   } else if (node.type === "FunctionExpression") {
-    return resolveFunctionExpression(node as FunctionExpressionNode, transpileContext);
+    return resolveFunctionExpression(node as FunctionExpressionNode, undefined, transpileContext);
   } else if (node.type === "CallExpression") {
     return resolveCallExpression(node as CallExpressionNode, transpileContext);
   } else if (node.type === "TemplateLiteral") {

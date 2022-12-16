@@ -10,6 +10,19 @@ describe('anonymous functions tests', () => {
   testSafeEvalAgainstNative("let x = 5;(function(){return x+=5})()");
 });
 
+describe('function names tests', () => {
+  testSafeEvalAgainstNative(`(function () {}).name`);
+  testSafeEvalAgainstNative(`(function y() {}).name`);
+  testSafeEvalAgainstNative(`
+    const x = function() {}
+    x.name;
+  `);
+  testSafeEvalAgainstNative(`
+    const x = function y() {}
+    x.name;
+  `);
+});
+
 describe('anonymous functions assignment tests', () => {
   testSafeEvalAgainstNative("const x = (function(){return 5+5});x()");
   testSafeEvalAgainstNative("const x = (function(){return 5+5});const y = x;y()");

@@ -77,7 +77,7 @@ export interface ArrowFunctionExpressionNode extends acorn.Node {
 }
 export interface FunctionExpressionNode extends acorn.Node {
   type: 'FunctionExpression'
-  id: any | null
+  id: IdentifierNode | null
   expression: boolean
   generator: boolean
   async: boolean

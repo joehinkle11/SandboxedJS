@@ -196,9 +196,10 @@ function buildNativeJsValueForSObject<M extends MaybeSValueMetadata, S extends o
     // getOwnPropertyDescriptor(target, p) {
     //   return Reflect.getOwnPropertyDescriptor(target, p);
     // },
-    // getPrototypeOf(target) {
-    //   throw Error("SandboxedJS todo proxy s-object getPrototypeOf");
-    // },
+    getPrototypeOf(target) {
+      // throw Error("SandboxedJS todo proxy s-object getPrototypeOf");
+      return Object.prototype;
+    },
     // has(target, p) {
     //   return Reflect.has(target, p);
     // },
@@ -284,10 +285,10 @@ export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K e
   }
 }
 export function convertAllPropertiesToSValues(
+  newObject: any,
   record: Record<PropertyKey, any>,
   sTable: SLocalSymbolTable<any>
 ): SObjectProperties {
-  const converted: SObjectProperties = {};
   const propDescriptors = Object.getOwnPropertyDescriptors(record);
   const propDescriptorsKeys = [...Object.getOwnPropertyNames(propDescriptors), ...Object.getOwnPropertySymbols(propDescriptors)];
   for (const key of propDescriptorsKeys) {
@@ -310,7 +311,7 @@ export function convertAllPropertiesToSValues(
           continue;
         }
       }
-      Object.defineProperty(converted, key, {
+      Object.defineProperty(newObject, key, {
         configurable: propDescriptor.configurable,
         enumerable: propDescriptor.enumerable,
         writable: propDescriptor.writable,
@@ -321,7 +322,7 @@ export function convertAllPropertiesToSValues(
       continue;
     }
   }
-  return converted;
+  return newObject;
 }
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
   
@@ -385,8 +386,9 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
   constructor(anySFunction: AnySFunction, functionAsString: string, sTable: SLocalSymbolTable<M>) {
     super(sTable.newMetadataForObjectValue());
     this.functionAsString = functionAsString;
-    Object.setPrototypeOf(anySFunction, null);
-    this.sStorage = new Proxy(anySFunction, {
+    const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, sTable);
+    Object.setPrototypeOf(fixedAnySFunction, null);
+    this.sStorage = new Proxy(fixedAnySFunction, {
       // apply(target, thisArg, argArray) {
         
       // },

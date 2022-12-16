@@ -103,7 +103,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
   ): SLocalSymbolTable<M> {
     const symbolsInChild: SymbolsRecord<M> = {};
     if (sArguments !== undefined) {
-      const arrayOfSValues = convertAllPropertiesToSValues(sArguments, this);
+      const arrayOfSValues = convertAllPropertiesToSValues({}, sArguments, this);
       const args: SNormalObject<M> = new SNormalObject(arrayOfSValues, this);
       symbolsInChild.arguments = {
         kind: "const",
