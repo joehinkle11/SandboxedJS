@@ -1,7 +1,13 @@
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SValue } from "./SValues";
 
+export interface RunnerBuiltIns {
+  /** Default true */
+  ecmaScript?: boolean,
+  // custom: Record<string, CustomBuiltIn>
+}
 export interface TranspileContextSetup<M extends MaybeSValueMetadata> {
+  builtIns: RunnerBuiltIns,
   valueMetadataSystem: M extends SValueMetadata ? ValueMetadataSystem<M> : null
 }
 

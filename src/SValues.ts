@@ -8,7 +8,7 @@ const SUserError = SUserErrorImport;
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
   $$ts!(`
     const resultingMetadata = this.combineMetadata(right, sTable);
-    const opResult = this.value ${binaryOp} right.value;
+    const opResult = this.nativeJsValue ${binaryOp} right.nativeJsValue;
     const newSPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(opResult, resultingMetadata);
     if (newSPrimitive !== null) {
       return newSPrimitive;
@@ -19,7 +19,7 @@ function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
 function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | ">>>") {
   $$ts!(`
     const resultingMetadata = this.combineMetadata(right, sTable);
-    const bitwiseResult = this.value ${bitwise} right.value;
+    const bitwiseResult = this.nativeJsValue ${bitwise} right.nativeJsValue;
     if (typeof bitwiseResult === "number") {
       const newSNumber = new SNumberValue(bitwiseResult, resultingMetadata);
       if (newSNumber !== null) {
@@ -39,7 +39,7 @@ function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | "
 function $sComparisonOpOnPrimitive(comparison: "==" | "===" | "!=" | "!==" | ">" | "<" | ">=" | "<=") {
   $$ts!(`
     const resultingMetadata = this.combineMetadata(right, sTable);
-    const comparisonResult = this.value ${comparison} right.value;
+    const comparisonResult = this.nativeJsValue ${comparison} right.nativeJsValue;
     const newSBoolean = new SBooleanValue(comparisonResult, resultingMetadata);
     if (newSBoolean !== null) {
       return newSBoolean;
@@ -54,9 +54,10 @@ export type SValueKind = "s-object" | SValuePrimitiveKind;
 export type SValuePrimitiveKind = "s-boolean" | "s-number" | "s-bigint" | "s-string" | "s-undefined" | "s-null" | "s-symbol";
 
 export abstract class SValue<M extends MaybeSValueMetadata> {
+  get sContext(): this { return this }
   abstract get sValueKind(): SValueKind;
   abstract metadata: M;
-  abstract toNativeJS(sTable: SLocalSymbolTable<M>): any;
+  abstract nativeJsValue: any;
   abstract sToPropertyKey(): string | symbol;
   abstract sUnaryNegate(): SValue<M>;
   abstract sUnaryMakePositive(): SValue<M>;
@@ -161,65 +162,70 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
 }
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
-
-export type SObjectValueInitArgs<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind> = {
-  kind: K
-} & K extends "normal" ? {
-  props: Record<string, SObjectValueInitEntry<M> | undefined>
-} : {
-
-}
-// modeled after documentation on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperties
-export type SObjectValueInitEntry<M extends MaybeSValueMetadata> = (SObjectValueInitDataEntry<M> | SObjectValueInitAccessorEntry<M>) & {
-  configurable: boolean | undefined // defaults to true
-  enumerable: boolean | undefined // defaults to true
-  isAccessorEntry: boolean | undefined // defaults to true
-};
-export type SObjectValueInitDataEntry<M extends MaybeSValueMetadata> = {
-  value: SValue<M>
-  writable: boolean | undefined // defaults to false
-  isAccessorEntry: undefined
-}
-export type SObjectValueInitAccessorEntry<M extends MaybeSValueMetadata> = {
-  get: unknown // todo
-  set: unknown // todo
-  isAccessorEntry: true
-};
-export type SObjectValuePropEntry<M extends MaybeSValueMetadata> = (SObjectValuePropDataEntry<M> | SObjectValuePropAccessorEntry<M>) & {
-  configurable: boolean
-  enumerable: boolean
-  isAccessorEntry: boolean
-};
-export type SObjectValuePropDataEntry<M extends MaybeSValueMetadata> = {
-  value: SValue<M>
-  writable: boolean
-  isAccessorEntry: false
-}
-export type SObjectValuePropAccessorEntry<M extends MaybeSValueMetadata> = {
-  get: unknown // todo
-  set: unknown // todo
-  isAccessorEntry: true
-};
-
 export type SBuiltInObjectKind = "normal" | "array" | "function";
 export type SObjectProperties = Record<PropertyKey, SValue<any> | undefined>;
 export type BaseSObjectStorage = SObjectProperties & object;
 type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> = K extends "normal" ? BaseSObjectStorage : Array<any>;
 
+function buildNativeJsValueForSObject<M extends MaybeSValueMetadata, S extends object, O extends SObjectValue<M, any, S>>(
+  sObject: O,
+  startingElement: S
+): any { 
+  return new Proxy(startingElement, {
+    // apply(target, thisArg, argArray) {
+    //   throw Error("SandboxedJS todo proxy s-object apply");
+    // },
+    // construct(target, argArray, newTarget) {
+    //   throw Error("SandboxedJS todo proxy s-object construct");
+    // },
+    // defineProperty(target, property, attributes) {
+    //   throw Error("SandboxedJS todo proxy s-object defineProperty");
+    // },
+    // deleteProperty(target, p) {
+    //   throw Error("SandboxedJS todo proxy s-object deleteProperty");
+    // },
+    get(target, p, receiver) {
+      return sObject.sGet(p, receiver).nativeJsValue;
+    },
+    // getOwnPropertyDescriptor(target, p) {
+    //   return Reflect.getOwnPropertyDescriptor(target, p);
+    // },
+    // getPrototypeOf(target) {
+    //   throw Error("SandboxedJS todo proxy s-object getPrototypeOf");
+    // },
+    // has(target, p) {
+    //   return Reflect.has(target, p);
+    // },
+    // isExtensible(target) {
+    //   throw Error("SandboxedJS todo proxy s-object isExtensible");
+    // },
+    // ownKeys(target) {
+    //   return Reflect.ownKeys(target);
+    // },
+    // preventExtensions(target) {
+    //   throw Error("SandboxedJS todo proxy s-object preventExtensions");
+    // },
+    // set(target, p, newValue, receiver) {
+    //   throw Error("SandboxedJS todo proxy s-object set");
+    // },
+    // setPrototypeOf(target, v) {
+    //   throw Error("SandboxedJS todo proxy s-object setPrototypeOf");
+    // },
+  });
+};
 export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
   get sValueKind(): "s-object" { return "s-object" };
-  abstract readonly storage: S & object;
+  abstract readonly sStorage: S & object;
   metadata: M;
 
-  // Where primitives store their primitive value in `value`, objects cannot do so, as this would expose SValue types to the user code. We use an empty object when we wish to use SObjects as a primitive value in other work (when the contents of the object is unimportant).
-  abstract get value(): object;
+  abstract readonly nativeJsValue: object;
 
   constructor(metadata: M) {
     super();
     this.metadata = metadata;
   }
-  sGet(p: string | symbol, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
-    const result = Reflect.get(this.storage, p, receiver);
+  sGet(p: string | symbol, receiver: SValue<M>): SValue<M> {
+    const result = Reflect.get(this.sStorage, p, receiver);
     if (result instanceof SValue) {
       return result;
     } else if (result === undefined) {
@@ -230,50 +236,6 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
       throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
     }
   }
-  toNativeJS(sTable: SLocalSymbolTable<M>): object { 
-    const sObject = this;
-    return new Proxy(this.storage, {
-      apply(target, thisArg, argArray) {
-        throw Error("SandboxedJS todo proxy s-object apply");
-      },
-      construct(target, argArray, newTarget) {
-        throw Error("SandboxedJS todo proxy s-object construct");
-      },
-      defineProperty(target, property, attributes) {
-        throw Error("SandboxedJS todo proxy s-object defineProperty");
-      },
-      deleteProperty(target, p) {
-        throw Error("SandboxedJS todo proxy s-object deleteProperty");
-      },
-      get(target, p, receiver) {
-        return sObject.sGet(p, receiver, sTable).toNativeJS(sTable);
-      },
-      getOwnPropertyDescriptor(target, p) {
-        return Reflect.getOwnPropertyDescriptor(target, p);
-      },
-      getPrototypeOf(target) {
-        throw Error("SandboxedJS todo proxy s-object getPrototypeOf");
-      },
-      has(target, p) {
-        return Reflect.has(target, p);
-      },
-      isExtensible(target) {
-        throw Error("SandboxedJS todo proxy s-object isExtensible");
-      },
-      ownKeys(target) {
-        return Reflect.ownKeys(target);
-      },
-      preventExtensions(target) {
-        throw Error("SandboxedJS todo proxy s-object preventExtensions");
-      },
-      set(target, p, newValue, receiver) {
-        throw Error("SandboxedJS todo proxy s-object set");
-      },
-      setPrototypeOf(target, v) {
-        throw Error("SandboxedJS todo proxy s-object setPrototypeOf");
-      },
-    });
-  };
   abstract sUnaryTypeOf(): SStringValue<M, "object" | "function">;
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
@@ -306,14 +268,14 @@ export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K e
     return new SStringValue("object", this.metadata);
   }
 }
-
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
-  get value(): {} { return {} }
+  
+  readonly nativeJsValue: any;
+  readonly sStorage: BaseSObjectStorage;
+
   sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
-  readonly storage: BaseSObjectStorage;
-
   sToPropertyKey(): string {
     return "[object Object]";
   }
@@ -323,24 +285,25 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
     const obj = {};
     Object.setPrototypeOf(obj, null);
     Object.defineProperties(obj, Object.getOwnPropertyDescriptors(properties));
-    this.storage = obj;
+    this.sStorage = obj;
+    this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 }
 export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "array", SValue<any>[]> {
-  get value(): [] { return [] }
+  readonly nativeJsValue: any[];
+  readonly sStorage: SValue<any>[] & {length: SNumberValue<M, number>};;
   sSet(p: string | symbol, newValue: SValue<M>, receiver: any): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
-  readonly storage: SValue<any>[] & {length: SNumberValue<M, number>};
 
   sToPropertyKey(): string {
-    return Array.prototype.map(v=>v.sToPropertyKey(), this.storage).join(",");
+    return Array.prototype.map(v=>v.sToPropertyKey(), this.sStorage).join(",");
   }
 
   constructor(array: SValue<any>[], sTable: SLocalSymbolTable<M>) {
     super(sTable.newMetadataForObjectValue());
     Object.setPrototypeOf(array, null);
-    this.storage = new Proxy(array, {
+    this.sStorage = new Proxy(array, {
       get(target, p, receiver) {
         const r = Reflect.get(target, p, receiver);
         if (p === "length") {
@@ -349,6 +312,7 @@ export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObj
         return r;
       },
     }) as any;
+    this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 }
 
@@ -384,14 +348,11 @@ export abstract class SPrimitiveValue<
   P extends SPrimitiveValueType
 > extends SValue<M> {
   abstract get sValueKind(): SValuePrimitiveKind;
-  abstract readonly value: P;
+  abstract readonly nativeJsValue: P;
   abstract readonly metadata: M;
-  toNativeJS(): P {
-    return this.value
-  }
   sUnaryLogicalNot(): SBooleanValue<M, boolean> {
     try {
-      return new SBooleanValue(!this.value, this.metadata);
+      return new SBooleanValue(!this.nativeJsValue, this.metadata);
     } catch {
       throw SUserError.cannotPerformLogicalOp("!", this);
     }
@@ -428,10 +389,10 @@ type SPrimitiveValueType = bigint | boolean | number | string | undefined | null
 
 function $sPrimitiveConstructorNotNullOrUndefined<P extends SPrimitiveValueType>() {
   $$ts!(`
-    if (typeof value !== "${$$typeToString!<P>()}") {
-      throw Error(\`Expected "${$$typeToString!<P>()}" value but received "\${typeof value}".\`);
+    if (typeof nativeJsValue !== "${$$typeToString!<P>()}") {
+      throw Error(\`Expected "${$$typeToString!<P>()}" value but received "\${typeof nativeJsValue}".\`);
     }
-    this.value = value;
+    this.nativeJsValue = nativeJsValue;
   `)
 }
 
@@ -447,22 +408,22 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-boolean" { return "s-boolean" };
-  readonly value!: V;
+  readonly nativeJsValue!: V;
   readonly metadata!: M;
-  constructor(value: V, metadata: M) {
+  constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
     $sPrimitiveConstructor!();
   }
   sToPropertyKey(): string {
-    return this.value.toString();
+    return this.nativeJsValue.toString();
   }
   sUnaryNegate(): SNumberValue<M, number> {
-    const negatedBool = -this.value;
+    const negatedBool = -this.nativeJsValue;
     return new SNumberValue(negatedBool, this.metadata);
   };
   sUnaryMakePositive(): SNumberValue<M, number> {
-    const boolMadePositive = +this.value;
+    const boolMadePositive = +this.nativeJsValue;
     return new SNumberValue(boolMadePositive, this.metadata);
   };
   sUnaryTypeOf(): SStringValue<M, "boolean"> {
@@ -472,7 +433,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     return this;
   }
   sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as boolean) && "right";
+    const r = (this.nativeJsValue as boolean) && "right";
     if (r === "right") {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -480,7 +441,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     }
   }
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as boolean) || "right";
+    const r = (this.nativeJsValue as boolean) || "right";
     if (r === "right") {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -494,7 +455,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     if (sTable.transpileContext.valueMetadataSystem === null) {
       return this;
     }
-    return new SBooleanValue(this.value, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SBooleanValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
 
@@ -503,18 +464,18 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-number" { return "s-number" };
-  readonly value!: V;
+  readonly nativeJsValue!: V;
   readonly metadata!: M;
-  constructor(value: V, metadata: M) {
+  constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<number>();
     $sPrimitiveConstructor!();
   }
   sToPropertyKey(): string {
-    return this.value.toString();
+    return this.nativeJsValue.toString();
   }
   sUnaryNegate(): SNumberValue<M, number> {
-    const negatedNumber = -this.value;
+    const negatedNumber = -this.nativeJsValue;
     return new SNumberValue(negatedNumber, this.metadata);
   };
   sUnaryMakePositive(): SNumberValue<M, V> {
@@ -527,7 +488,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     return this;
   }
   sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as number) && "right";
+    const r = (this.nativeJsValue as number) && "right";
     if (r === "right") {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -535,7 +496,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     }
   }
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as number) || "right";
+    const r = (this.nativeJsValue as number) || "right";
     if (r === "right") {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -549,7 +510,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     if (sTable.transpileContext.valueMetadataSystem === null) {
       return this;
     }
-    return new SNumberValue(this.value, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SNumberValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
 export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
@@ -557,22 +518,22 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-string" { return "s-string" };
-  readonly value!: V;
+  readonly nativeJsValue!: V;
   readonly metadata!: M;
-  constructor(value: V, metadata: M) {
+  constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<string>();
     $sPrimitiveConstructor!();
   }
   sToPropertyKey(): string {
-    return this.value;
+    return this.nativeJsValue;
   }
   sUnaryNegate(): SNumberValue<M, number> {
-    const stringMadeNegative = -this.value;
+    const stringMadeNegative = -this.nativeJsValue;
     return new SNumberValue(stringMadeNegative, this.metadata);
   };
   sUnaryMakePositive(): SNumberValue<M, number> {
-    const stringMadePositive = +this.value;
+    const stringMadePositive = +this.nativeJsValue;
     return new SNumberValue(stringMadePositive, this.metadata);
   };
   sUnaryTypeOf(): SStringValue<M, "string"> {
@@ -582,7 +543,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     return this;
   }
   sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as string) && 2;
+    const r = (this.nativeJsValue as string) && 2;
     if (r === 2) {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -590,7 +551,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     }
   }
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as string) || 2;
+    const r = (this.nativeJsValue as string) || 2;
     if (r === 2) {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -604,7 +565,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     if (sTable.transpileContext.valueMetadataSystem === null) {
       return this;
     }
-    return new SStringValue(this.value, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SStringValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
 export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
@@ -612,18 +573,18 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-bigint" { return "s-bigint" };
-  readonly value!: V;
+  readonly nativeJsValue!: V;
   readonly metadata!: M;
-  constructor(value: V, metadata: M) {
+  constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
     $sPrimitiveConstructor!();
   }
   sToPropertyKey(): string {
-    return this.value.toString();
+    return this.nativeJsValue.toString();
   }
   sUnaryNegate(): SBigIntValue<M, bigint> {
-    const stringMadeNegative: bigint = -(this.value as bigint);
+    const stringMadeNegative: bigint = -(this.nativeJsValue as bigint);
     return new SBigIntValue(stringMadeNegative, this.metadata);
   };
   sUnaryMakePositive(): never {
@@ -636,7 +597,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     return this;
   }
   sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as bigint) && "right";
+    const r = (this.nativeJsValue as bigint) && "right";
     if (r === "right") {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -644,7 +605,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     }
   }
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    const r = (this.value as bigint) || "right";
+    const r = (this.nativeJsValue as bigint) || "right";
     if (r === "right") {
       return getRight().addingMetadata(this, sTable);
     } else {
@@ -658,7 +619,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     if (sTable.transpileContext.valueMetadataSystem === null) {
       return this;
     }
-    return new SBigIntValue(this.value, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SBigIntValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
 
@@ -667,7 +628,7 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-undefined" { return "s-undefined" };
-  readonly value: undefined;
+  readonly nativeJsValue: undefined;
   readonly metadata!: M;
   constructor(metadata: M) {
     super();
@@ -709,7 +670,7 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-null" { return "s-null" };
-  readonly value: null = null;
+  readonly nativeJsValue: null = null;
   readonly metadata!: M;
   constructor(metadata: M) {
     super();
@@ -751,15 +712,15 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-symbol" { return "s-symbol" };
-  readonly value!: V;
+  readonly nativeJsValue!: V;
   readonly metadata!: M;
-  constructor(value: V, metadata: M) {
+  constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<symbol>();
     $sPrimitiveConstructor!();
   }
   sToPropertyKey(): symbol {
-    return this.value;
+    return this.nativeJsValue;
   }
   sUnaryNegate(): never {
     throw SUserError.cannotPerformUnaryOp("-", this);
@@ -786,7 +747,7 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
     if (sTable.transpileContext.valueMetadataSystem === null) {
       return this;
     }
-    return new SSymbolValue(this.value, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SSymbolValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
 
@@ -799,6 +760,9 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   wrappedObject: SObjectValue<M, K, S>
 
   addedMetadata: M;
+  get nativeJsValue(): object {
+    return this.wrappedObject.nativeJsValue;
+  }
   get metadata(): M {
     return this.wrappedObject.metadata.mixWithReferencedMetadata(this.addedMetadata) as M;
   }
@@ -812,9 +776,6 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   get sValueKind(): SValueKind {
     throw new Error("Method not implemented.");
   }
-  toNativeJS(sTable: SLocalSymbolTable<M>) {
-    return this.wrappedObject.toNativeJS(sTable);
-  }
   sToPropertyKey(): string | symbol {
     return this.wrappedObject.sToPropertyKey();
   }
@@ -825,7 +786,7 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
     return new SNumberValue(NaN, this.metadata);
   }
   sUnaryTypeOf(): SStringValue<M, JSTypeOfString> {
-    const unaryTypeOf = this.wrappedObject.sUnaryTypeOf().value;
+    const unaryTypeOf = this.wrappedObject.sUnaryTypeOf().nativeJsValue;
     return new SStringValue<M, JSTypeOfString>(unaryTypeOf, this.metadata);
   }
   sUnaryLogicalNot(): SBooleanValue<M, boolean> {

@@ -1,6 +1,12 @@
+import SUserError from "./Models/SUserError";
 import { MaybeSValueMetadata } from "./SValueMetadata";
-import { SValue } from "./SValues";
+import { SUndefinedValue, SValue } from "./SValues";
 import { TranspileContext } from "./TranspileContext";
+
+type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
+  kind: 'const' | 'let' | "var",
+  value: SValue<M>
+} | undefined>;
 
 export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
   
@@ -8,7 +14,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
   metadata: M;
 
   readonly parent: SLocalSymbolTable<M> | null;
-  readonly symbols: Record<string, SValue<M>>;
+  readonly symbols: SymbolsRecord<M>;
 
   newMetadataForRuntimeTimeEmergingValue(): M {
     if (this.transpileContext.valueMetadataSystem === null) {
@@ -26,12 +32,58 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     return this.transpileContext.valueMetadataSystem.newMetadataForObjectValue();
   }
 
-  assign(key: string, newValue: SValue<M>, receiver: SValue<M>) {
-
+  assign<V extends SValue<M>>(key: string, newValue: V, kind: 'const' | 'let' | "var" | "update", receiver: SValue<M> | undefined = undefined): V | SUndefinedValue<M> {
+    const entry = this.symbols[key];
+    switch (entry?.kind) {
+    case "const":
+    case "let":
+    case "var":
+      switch (kind) {
+      case "const":
+      case "let":
+      case "var":
+        this.symbols[key] = {
+          kind: kind,
+          value: newValue
+        };
+      case "update":
+        this.symbols[key] = {
+          kind: "var",
+          value: newValue
+        };
+      }
+      return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
+    case undefined:
+      switch (kind) {
+      case "const":
+      case "let":
+      case "var":
+        this.symbols[key] = {
+          kind: kind,
+          value: newValue
+        };
+        return newValue;
+      case "update":
+        this.symbols[key] = {
+          kind: "var",
+          value: newValue
+        };
+        return newValue;
+      }
+    }
   }
+  sGet(p: string, receiver: any, sTable: SLocalSymbolTable<M>): SValue<M> {
+    const entry = this.symbols[p];
+    if (entry !== undefined) {
+      return entry.value;
+    } else {
+      return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
+    }
+  }
+  
 
   // creates the global symbol table
-  private constructor(symbols: Record<string, SValue<M>>, parent: SLocalSymbolTable<M> | null, transpileContext: TranspileContext<M>) {
+  private constructor(symbols: SymbolsRecord<M>, parent: SLocalSymbolTable<M> | null, transpileContext: TranspileContext<M>) {
     this.transpileContext = transpileContext;
     this.parent = parent;
     this.metadata = transpileContext.newMetadataGlobalSymbolTable();

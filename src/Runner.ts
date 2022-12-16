@@ -1,24 +1,39 @@
 import { transpile } from "./Transpile";
 import * as SValues from "./SValues";SValues;
-import { TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
+import { RunnerBuiltIns, TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SLocalSymbolTable } from "./SLocalSymbolTable";
+import { installEcmaScript } from "./BuiltIns/BuiltInECMAScript";
 
 export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
-  transpileContext: TranspileContext<M>;
+  private readonly sTable: SLocalSymbolTable<M>;
+  private readonly transpileContext: TranspileContext<M>;
 
   private constructor(transpileContextSetup: TranspileContextSetup<M>) {
     this.transpileContext = new TranspileContext(transpileContextSetup);
+    this.sTable = SLocalSymbolTable.createGlobal<M>(this.transpileContext);
+    if (transpileContextSetup.builtIns.ecmaScript !== false) {
+      installEcmaScript(this.sTable);
+    }
   }
   static newRunnerWithMetadata<M extends SValueMetadata>(
-    valueMetadataSystem: ValueMetadataSystem<M>
+    valueMetadataSystem: ValueMetadataSystem<M>,
+    builtIns: RunnerBuiltIns = {},
   ): SandboxedJSRunner<M> {
     return new SandboxedJSRunner<M>(
-      {valueMetadataSystem: valueMetadataSystem} as TranspileContextSetup<M>
+      {
+        builtIns: builtIns,
+        valueMetadataSystem: valueMetadataSystem as any
+      }
     );
   }
-  static newRunnerWithoutMetadata(): SandboxedJSRunner<undefined> {
-    return new SandboxedJSRunner<undefined>({valueMetadataSystem: null});
+  static newRunnerWithoutMetadata(builtIns: RunnerBuiltIns = {}): SandboxedJSRunner<undefined> {
+    return new SandboxedJSRunner<undefined>(
+      {
+        builtIns: builtIns,
+        valueMetadataSystem: null
+      }
+    );
   }
   
   evalJs<AsNativeJs extends boolean>(jsCode: string, options: {returnNativeJSValue: AsNativeJs}): AsNativeJs extends true ? any : SValues.SValue<M> {
@@ -29,20 +44,20 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
     return transpile(jsCode, this.transpileContext);
   }
   evalTranspiledCode<AsNativeJs extends boolean>(transpiledJsCode: string, asNativeJs: AsNativeJs): AsNativeJs extends true ? any : SValues.SValue<M> {
-    const sTable = SLocalSymbolTable.createGlobal<M>(this.transpileContext);
     let sResult: SValues.SValue<M>;
+    const sContext = this.sTable.duplicateAndEraseMetadata();
     try {
       const result = eval(transpiledJsCode);
       if (result instanceof SValues.SValue) {
         sResult = result;
       } else {
-        sResult = new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
+        sResult = new SValues.SUndefinedValue(sContext.newMetadataForRuntimeTimeEmergingValue());
       }
     } catch (e) {
       throw [e, new Error("Transpiled code:\n\n" + transpiledJsCode)];
     }
     if (asNativeJs) {
-      return sResult.toNativeJS(sTable);
+      return sResult.nativeJsValue;
     } else {
       return sResult;
     }

@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ExpressionStatementNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, TemplateLiteralNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -44,7 +44,7 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   throw new Error(`Unsupported literal "${typeof value}"`);
 };
 function resolveLookup(lookupCode: string): string {
-  return "sGet(" + lookupCode + ",'todo-receiver',sTable)";
+  return "sContext.sGet(" + lookupCode + ",'todo-receiver',sContext)";
 };
 function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>): string {
   var regEx = /^[0-9a-zA-Z_]+$/;
@@ -131,7 +131,7 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
   }
   const leftCode = resolveAnyNode(node.left, transpileContext);
   const rightCode = resolveAnyNode(node.right, transpileContext);
-  return `${leftCode}.${operatorCode}(${rightCode},sTable)`;
+  return `${leftCode}.${operatorCode}(${rightCode},sContext)`;
 };
 function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: TranspileContext<any>): string {
   let propertiesCodes: string[] = [];
@@ -161,7 +161,7 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
     }
   }
   let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
-  return `new SValues.SNormalObject(${sObjectValueInitArgsCode},sTable)`;
+  return `new SValues.SNormalObject(${sObjectValueInitArgsCode},sContext)`;
 };
 function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>): {objectCode: string, propertyCode: string} {
   let propertyCode: string;
@@ -187,14 +187,14 @@ function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: Tra
     }
   }
   let sArrayValueInitArgsCode = "[" + allElementsCode + "]";
-  return `new SValues.SArrayObject(${sArrayValueInitArgsCode},sTable)`
+  return `new SValues.SArrayObject(${sArrayValueInitArgsCode},sContext)`
 };
-function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'newConstant' | 'newVariable' | 'set', transpileContext: TranspileContext<any>): string {
+function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'const' | 'let' | "var", transpileContext: TranspileContext<any>): string {
   const initCode = resolveAnyNode(node.init, transpileContext);
   const idType = node.id.type;
   if (idType === "Identifier") {
     const idNode = node.id as IdentifierNode;
-    return `nsContext.setNSVar("${idNode.name}", ${initCode}, "${kind}", nsStackFrameInfo)`;
+    return `sContext.assign("${idNode.name}",${initCode},"${kind}")`;
   } else {
     throw new Error(`Unsupported id AST node type in VariableDeclarator ${idType}`);
   }
@@ -214,16 +214,15 @@ function resolveVariableDeclaration(node: VariableDeclarationNode, transpileCont
   default:
     throw new Error(`Unsupported variable declaration kind in VariableDeclaration "${node.kind}"`);
   }
-  // let declCode = "";
-  // for (const decl of node.declarations) {
-  //   if (decl.type === "VariableDeclarator") {
-  //     declCode += resolveVariableDeclarator(decl as VariableDeclaratorNode, varKind === "constant" ? "newConstant" : "newVariable");
-  //   } else {
-  //     throw new Error(`Unsupported AST decl node type in VariableDeclaration ${decl.type}`);
-  //   }
-  // }
-  // return declCode;
-  throw new Error("todoo");
+  let declCode = "";
+  for (const decl of node.declarations) {
+    if (decl.type === "VariableDeclarator") {
+      declCode += resolveVariableDeclarator(decl as VariableDeclaratorNode, varKind, transpileContext);
+    } else {
+      throw new Error(`Unsupported AST decl node type in VariableDeclaration ${decl.type}`);
+    }
+  }
+  return declCode;
 };
 function resolveExpressionStatement(node: ExpressionStatementNode, transpileContext: TranspileContext<any>): string {
   return resolveAnyNode(node.expression, transpileContext);
@@ -242,7 +241,7 @@ function resolveLogicalExpression(node: LogicalExpressionNode, transpileContext:
   }
   const leftCode = resolveAnyNode(node.left, transpileContext);
   const rightCode = resolveAnyNode(node.right, transpileContext);
-  return `${leftCode}.${operatorCode}(()=>${rightCode},sTable)`;
+  return `${leftCode}.${operatorCode}(()=>${rightCode},sContext)`;
 };
 function resolveCallExpression(node: CallExpressionNode, transpileContext: TranspileContext<any>): string {
   // function makeCall(getCallerCode: string | undefined, getFuncCode: string): string {
@@ -298,6 +297,97 @@ function resolveUnaryExpression(node: UnaryExpressionNode, transpileContext: Tra
     throw new Error(`Unsupported UnaryExpressionNode operator '${operator}'.`);
   }
 };
+function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileContext: TranspileContext<any>): string {
+  let baseRightCode = resolveAnyNode(node.right, transpileContext);
+  let isLogicalOp = false;
+  const operator = node.operator;
+  let compoundAssignmentOperatorsWork: string | null;
+  switch (operator) {
+  case "=":
+    compoundAssignmentOperatorsWork = null;
+    break
+  case "+=":
+    compoundAssignmentOperatorsWork = "sBinaryAdd";
+    break
+  case "-=":
+    compoundAssignmentOperatorsWork = "sBinarySubtract";
+    break
+  case "*=":
+    compoundAssignmentOperatorsWork = "sBinaryMult";
+    break
+  case "/=":
+    compoundAssignmentOperatorsWork = "sBinaryDiv";
+    break
+  case "%=":
+    compoundAssignmentOperatorsWork = "sBinaryMod";
+    break
+  case "**=":
+    compoundAssignmentOperatorsWork = "sBinaryExpo";
+    break
+  case "<<=":
+    compoundAssignmentOperatorsWork = "sBitwiseLeftShift";
+    break
+  case ">>=":
+    compoundAssignmentOperatorsWork = "sBitwiseRightShift";
+    break
+  case ">>>=":
+    compoundAssignmentOperatorsWork = "sBitwiseUnsignedRight";
+    break
+  case "&=":
+    compoundAssignmentOperatorsWork = "sBitwiseAND";
+    break
+  case "^=":
+    compoundAssignmentOperatorsWork = "sBitwiseXOR";
+    break
+  case "|=":
+    compoundAssignmentOperatorsWork = "sBitwiseOR";
+    break
+  case "&&":
+    isLogicalOp = true;
+    compoundAssignmentOperatorsWork = "sLogicalAnd";
+    break
+  case "||":
+    isLogicalOp = true;
+    compoundAssignmentOperatorsWork = "sLogicalOr";
+    break
+  case "??=":
+    isLogicalOp = true;
+    compoundAssignmentOperatorsWork = "sLogicalNullish";
+    break
+  default:
+    throw new Error(`Unsupported operator in AssignmentExpression ${operator}`);
+  }
+  if (isLogicalOp) {
+    baseRightCode = `()=>${baseRightCode}`;
+  }
+  let contextLookup: string;
+  let keyToLookup: string;
+  const leftType = node.left.type;
+  if (leftType === "Identifier") {
+    contextLookup = "sContext";
+    const leftIdentifier = node.left as IdentifierNode;
+    keyToLookup = leftIdentifier.name;
+  // } else if (leftType === "MemberExpression") {
+  //   const leftMemberExpression = node.left as MemberExpressionNode;
+  //   const objectCode: string = resolveMemberExpressionObject(leftMemberExpression.object);
+  //   if (leftMemberExpression.property.type === "Identifier") {
+  //     const propertyNode = leftMemberExpression.property as IdentifierNode;
+  //     return `${objectCode}.nsContext.setNSVar("${propertyNode.name}", ${rightCode}, "set", nsStackFrameInfo)`;
+  //   } else {
+  //     throw new NSError(`Unsupported property AST node type in AssignmentExpression left MemberExpression ${leftMemberExpression.property.type}`);
+  //   }
+  } else {
+    throw new Error(`Unsupported AST node on left of AssignmentExpression ${leftType}`);  
+  }
+  let rightCode: string;
+  if (compoundAssignmentOperatorsWork === null) {
+    rightCode = baseRightCode;
+  } else {
+    let getterCode = `${contextLookup}.sGet("${keyToLookup}",'todo-receiver',sContext)`
+    rightCode = `${getterCode}.${compoundAssignmentOperatorsWork}(${baseRightCode},sContext)`
+  }
+  return `${contextLookup}.assign("${keyToLookup}",${rightCode},"update")`;
+}
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
   if (node.type === "Literal") {
     return resolveLiteral(node as LiteralNode, transpileContext);
@@ -329,6 +419,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveTemplateLiteral(node as TemplateLiteralNode, transpileContext);
   } else if (node.type === "ArrayExpression") {
     return resolveArrayExpression(node as ArrayExpressionNode, transpileContext);
+  } else if (node.type === "AssignmentExpression") {
+    return resolveAssignmentExpression(node as AssignmentExpressionNode, transpileContext);
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

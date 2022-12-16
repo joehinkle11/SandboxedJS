@@ -8,7 +8,7 @@ export function testSafeEvalAgainstNative(
   test(testName, () => {
     let evalResult;
     try {
-      evalResult = eval(jsCode);
+      evalResult = globalThis.eval(jsCode);
     } catch (e: any) {
       let safeEvalResult;
       try {
