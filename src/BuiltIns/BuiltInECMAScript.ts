@@ -1,5 +1,5 @@
 import { SLocalSymbolTable } from "../SLocalSymbolTable";
-import { sBuiltInObject } from "./ECMAScript/BuiltInObject";
+import { sBuiltInObject } from "./ECMAScript/BuiltInObjectConstructor";
 import { InstallBuiltIn } from "./InstallBuiltIn";
 
 

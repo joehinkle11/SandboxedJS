@@ -1,14 +1,15 @@
 import SUserError from "./Models/SUserError";
-import { MaybeSValueMetadata } from "./SValueMetadata";
+import { SMetadataProvider } from "./SMetadataProvider";
+import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { convertAllPropertiesToSValues, SNormalObject, SNumberValue, SObjectValue, SUndefinedValue, SValue } from "./SValues";
-import { TranspileContext } from "./TranspileContext";
+import { TranspileContext, ValueMetadataSystem } from "./TranspileContext";
 
 type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
   kind: 'const' | 'let' | "var",
   value: SValue<M>
 } | undefined>;
 
-export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
+export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetadataProvider<M> {
   
   readonly transpileContext: TranspileContext<M>;
   metadata: M;
@@ -23,7 +24,10 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     return this.transpileContext.valueMetadataSystem.newMetadataForRuntimeTimeEmergingValue();
   }
   newMetadataForCompileTimeLiteral(): M {
-    return this.transpileContext.valueMetadataSystem!.newMetadataForCompileTimeLiteral(this.metadata);
+    if (this.transpileContext.valueMetadataSystem === null) {
+      return undefined as M;
+    }
+    return this.transpileContext.valueMetadataSystem.newMetadataForCompileTimeLiteral(this.metadata);
   }
   newMetadataForObjectValue(): M {
     if (this.transpileContext.valueMetadataSystem === null) {
@@ -31,10 +35,13 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
     }
     return this.transpileContext.valueMetadataSystem.newMetadataForObjectValue();
   }
+  get valueMetadataSystem(): M extends SValueMetadata ? ValueMetadataSystem<M> : null {
+    return this.transpileContext.valueMetadataSystem;
+  }
 
   readonly sThis: SValue<M>;
 
-  assign<V extends SValue<M>>(key: string, newValue: V, kind: 'const' | 'let' | "var" | "update", receiver: SValue<M> | undefined = undefined): V | SUndefinedValue<M> {
+  assign<V extends SValue<M>>(key: string, newValue: V, kind: 'const' | 'let' | "var" | "update"): V | SUndefinedValue<M> {
     const entry = this.symbols[key];
     switch (entry?.kind) {
     case "const":
@@ -112,13 +119,11 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> {
       if (argNames !== undefined) {
         for (let index = 0; index < argNames.length; index++) {
           const sValue = arrayOfSValues[index];
-          if (sValue !== undefined) {
-            const argName = argNames[index];
-            symbolsInChild[argName] = {
-              kind: "const",
-              value: sValue
-            };
-          }
+          const argName = argNames[index];
+          symbolsInChild[argName] = {
+            kind: "const",
+            value: sValue
+          };
         }
       }
     }

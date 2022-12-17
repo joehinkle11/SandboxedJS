@@ -405,7 +405,7 @@ function resolveFunctionExpression(node: FunctionExpressionNode, willBeSetToVari
   const functionBodyCleanup = `})(sContext.spawnChild(sThisArg,sArgArray${argNames}));`
   const functionBody = functionBodySetup + resolveCodeBody(node.body.body, false, transpileContext) + functionBodyCleanup;
   const actualFunction = `function ${functionName}(sThisArg,sArgArray){${functionBody}}`
-  return `new SValues.SFunction(${actualFunction},${functionAsString},sContext)`;
+  return `SValues.SFunction.create(${actualFunction},${functionAsString},sContext)`;
 }
 function resolveReturnStatement(node: ReturnStatementNode, transpileContext: TranspileContext<any>): string {
   const returnValue = resolveAnyNode(node.argument, transpileContext);

@@ -12,7 +12,7 @@ export interface TranspileContextSetup<M extends MaybeSValueMetadata> {
 }
 
 export class TranspileContext<M extends MaybeSValueMetadata> {
-  valueMetadataSystem: ValueMetadataSystem<any> | null
+  valueMetadataSystem: M extends SValueMetadata ? ValueMetadataSystem<any> : null
   lastParsedJs: string = "";
 
   constructor(params: TranspileContextSetup<M>) {
@@ -29,7 +29,7 @@ export class TranspileContext<M extends MaybeSValueMetadata> {
     if (this.valueMetadataSystem === null) {
       return undefined as M;
     }
-    return this.valueMetadataSystem.newMetadataGlobalSymbolTable();
+    return this.valueMetadataSystem.newMetadataGlobalSymbolTable() as M;
   }
 }
 

@@ -1,12 +1,12 @@
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { $$ts, $$typeToString } from "ts-macros";
 import SUserErrorImport from "./Models/SUserError";
-import { SLocalSymbolTable } from "./SLocalSymbolTable";
+import { emptySMetadataProvider, SMetadataProvider } from "./SMetadataProvider";
 const SUserError = SUserErrorImport;
 
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
   $$ts!(`
-    const resultingMetadata = this.combineMetadata(right, sTable);
+    const resultingMetadata = this.combineMetadata(right, mProvider);
     const opResult = this.nativeJsValue ${binaryOp} right.nativeJsValue;
     const newSPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(opResult, resultingMetadata);
     if (newSPrimitive !== null) {
@@ -17,7 +17,7 @@ function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
 }
 function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | ">>>") {
   $$ts!(`
-    const resultingMetadata = this.combineMetadata(right, sTable);
+    const resultingMetadata = this.combineMetadata(right, mProvider);
     const bitwiseResult = this.nativeJsValue ${bitwise} right.nativeJsValue;
     if (typeof bitwiseResult === "number") {
       const newSNumber = new SNumberValue(bitwiseResult, resultingMetadata);
@@ -37,7 +37,7 @@ function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | "
 
 function $sComparisonOpOnPrimitive(comparison: "==" | "===" | "!=" | "!==" | ">" | "<" | ">=" | "<=") {
   $$ts!(`
-    const resultingMetadata = this.combineMetadata(right, sTable);
+    const resultingMetadata = this.combineMetadata(right, mProvider);
     const comparisonResult = this.nativeJsValue ${comparison} right.nativeJsValue;
     const newSBoolean = new SBooleanValue(comparisonResult, resultingMetadata);
     if (newSBoolean !== null) {
@@ -62,104 +62,110 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sUnaryMakePositive(): SValue<M>;
   abstract sUnaryTypeOf(): SStringValue<M, JSTypeOfString>;
   abstract sUnaryLogicalNot(): SBooleanValue<M, boolean>;
-  abstract sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
-  abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
-  abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue;
-  abstract sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M>;
-  abstract sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
+  abstract sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
+  abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
+  abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
+  abstract sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M>;
+  abstract sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M>;
   abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean>;
-  abstract sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M>;
-  combineMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): M {
-    const valueMetadataSystem = sTable.transpileContext.valueMetadataSystem;
+  abstract sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): SValue<M>;
+  combineMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): M {
+    const valueMetadataSystem = mProvider.valueMetadataSystem;
     return valueMetadataSystem === null ? undefined : valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue);
   }
-  abstract addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this;
+  abstract addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this;
 
   // @ts-expect-error
-  sBinaryAdd(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
+  sBinaryAdd(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
     $sBinaryOpOnPrimitives!("+");
   }
   // @ts-expect-error
-  sBinarySubtract(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M> {
+  sBinarySubtract(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M> {
     $sBinaryOpOnPrimitives!("-");
   }
   // @ts-expect-error
-  sBinaryMult(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
+  sBinaryMult(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
     $sBinaryOpOnPrimitives!("*");
   }
   // @ts-expect-error
-  sBinaryDiv(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M> {
+  sBinaryDiv(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M> {
     $sBinaryOpOnPrimitives!("/");
   }
   // @ts-expect-error
-  sBinaryExpo(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M> {
+  sBinaryExpo(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M> {
     $sBinaryOpOnPrimitives!("**");
   }
   // @ts-expect-error
-  sBinaryMod(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M> {
+  sBinaryMod(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M> {
     $sBinaryOpOnPrimitives!("%");
   }
   // @ts-expect-error
-  sBitwiseAND(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseAND(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!("&")
   }
   // @ts-expect-error
-  sBitwiseOR(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseOR(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!("|")
   }
   // @ts-expect-error
-  sBitwiseNOT(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseNOT(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!("~")
   }
   // @ts-expect-error
-  sBitwiseXOR(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseXOR(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!("^")
   }
   // @ts-expect-error
-  sBitwiseLeftShift(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseLeftShift(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!("<<")
   }
   // @ts-expect-error
-  sBitwiseRightShift(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseRightShift(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!(">>")
   }
   // @ts-expect-error
-  sBitwiseUnsignedRight(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M> {
+  sBitwiseUnsignedRight(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M> {
     $sBitwiseOpOnPrimitive!(">>>")
   }
   // @ts-expect-error
-  sCompEqualValue(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompEqualValue(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("==")
   }
   // @ts-expect-error
-  sCompEqualValueAndEqualType(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompEqualValueAndEqualType(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("===")
   }
   // @ts-expect-error
-  sCompNotEqualValue(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompNotEqualValue(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("!=")
   }
   // @ts-expect-error
-  sCompNotEqualValueAndEqualType(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompNotEqualValueAndEqualType(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("!==")
   }
   // @ts-expect-error
-  sCompGreaterThan(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompGreaterThan(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!(">")
   }
   // @ts-expect-error
-  sCompLessThan(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompLessThan(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("<")
   }
   // @ts-expect-error
-  sCompGreaterThanOrEqualTo(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompGreaterThanOrEqualTo(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!(">=")
   }
   // @ts-expect-error
-  sCompLessThanOrEqualTo(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M> {
+  sCompLessThanOrEqualTo(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M> {
     $sComparisonOpOnPrimitive!("<=")
   }
 }
+
+export type SWhiteListEntry = true;
+export type SSwizzleEntry = SValue<any>;
+export type SSwizzleOrWhiteListEntry = SSwizzleEntry | SWhiteListEntry;
+export type SObjectSwizzleAndWhiteList<K extends PropertyKey> = Partial<Record<K, SSwizzleOrWhiteListEntry>>;
+export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<PropertyKey>;
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
@@ -191,7 +197,7 @@ function buildNativeJsValueForSObject<M extends MaybeSValueMetadata, S extends o
     //   throw Error("SandboxedJS todo proxy s-object deleteProperty");
     // },
     get(target, p, receiver) {
-      return sObject.sGet(p, receiver).nativeJsValue;
+      return sObject.sGet(p, receiver, emptySMetadataProvider).nativeJsValue;
     },
     // getOwnPropertyDescriptor(target, p) {
     //   return Reflect.getOwnPropertyDescriptor(target, p);
@@ -224,17 +230,35 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   get sValueKind(): "s-object" { return "s-object" };
   abstract readonly sStorage: S & object;
   metadata: M;
+  sSwizzleAndWhiteList: AnySObjectSwizzleAndWhiteList | undefined;
 
   abstract readonly nativeJsValue: object;
 
-  constructor(metadata: M) {
+  constructor(sSwizzleAndWhiteList: AnySObjectSwizzleAndWhiteList | undefined, metadata: M) {
     super();
+    this.sSwizzleAndWhiteList = sSwizzleAndWhiteList;
     this.metadata = metadata;
   }
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
-  sGet(p: string | symbol, receiver: SValue<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
+    if (this.sSwizzleAndWhiteList !== undefined) {
+      const swizzleOrWhiteListEntry = this.sSwizzleAndWhiteList[p];
+      if (swizzleOrWhiteListEntry === undefined) {
+        return new SUndefinedValue<M>(this.metadata);
+      } else if (swizzleOrWhiteListEntry === true) {
+        // must be a primitive
+        const primitiveValue: SPrimitiveValueType = Reflect.get(this.sStorage, p, receiver) as any;
+        const sPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(primitiveValue, mProvider.newMetadataForRuntimeTimeEmergingValue());
+        if (sPrimitive === null) {
+          throw new Error(`Failed to convert expected primitive value ${primitiveValue?.toString()} to s-primitive.`)
+        }
+        return sPrimitive;
+      } else {
+        throw new Error("swizz")
+      }
+    }
     const result = Reflect.get(this.sStorage, p, receiver);
     if (result instanceof SValue) {
       return result;
@@ -246,8 +270,8 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
       throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
     }
   }
-  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
-    return this.sGet(p, this);
+  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SValue<M> {
+    return this.sGet(p, this, mProvider);
   }
   abstract sUnaryTypeOf(): SStringValue<M, "object" | "function">;
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
@@ -262,17 +286,17 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
     return this;
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    this.metadata = sTable.transpileContext.valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue)
+    this.metadata = mProvider.valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue)
     return this;
   }
 }
@@ -284,11 +308,11 @@ export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K e
     throw SUserError.cannotCall(this.sToPropertyKey().toString());
   }
 }
-export function convertAllPropertiesToSValues(
-  newObject: any,
-  record: Record<PropertyKey, any>,
-  sTable: SLocalSymbolTable<any>
-): SObjectProperties {
+export function convertAllPropertiesToSValues<O extends SObjectProperties, R extends Record<PropertyKey, any>>(
+  newObject: O,
+  record: R,
+  mProvider: SMetadataProvider<any>
+): O & Record<keyof R, SValue<any>> {
   const propDescriptors = Object.getOwnPropertyDescriptors(record);
   const propDescriptorsKeys = [...Object.getOwnPropertyNames(propDescriptors), ...Object.getOwnPropertySymbols(propDescriptors)];
   for (const key of propDescriptorsKeys) {
@@ -302,7 +326,7 @@ export function convertAllPropertiesToSValues(
       } else {
         const primitiveValue = SPrimitiveValue.newPrimitiveFromJSValue(
           value,
-          sTable.newMetadataForRuntimeTimeEmergingValue()
+          mProvider.newMetadataForRuntimeTimeEmergingValue()
         );
         if (primitiveValue !== null) {
           sValue = primitiveValue;
@@ -322,7 +346,7 @@ export function convertAllPropertiesToSValues(
       continue;
     }
   }
-  return newObject;
+  return newObject as O & Record<keyof R, SValue<any>>;
 }
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
   
@@ -333,8 +357,8 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
     return "[object Object]";
   }
 
-  constructor(properties: SObjectProperties, sTable: SLocalSymbolTable<M>) {
-    super(sTable.newMetadataForObjectValue());
+  constructor(properties: SObjectProperties, mProvider: SMetadataProvider<M>) {
+    super(undefined, mProvider.newMetadataForObjectValue());
     const obj = {};
     Object.setPrototypeOf(obj, null);
     Object.defineProperties(obj, Object.getOwnPropertyDescriptors(properties));
@@ -350,14 +374,14 @@ export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObj
     return Array.prototype.map(v=>v.sToPropertyKey(), this.sStorage).join(",");
   }
 
-  constructor(array: SValue<any>[], sTable: SLocalSymbolTable<M>) {
-    super(sTable.newMetadataForObjectValue());
+  constructor(array: SValue<any>[], mProvider: SMetadataProvider<M>) {
+    super(undefined, mProvider.newMetadataForObjectValue());
     Object.setPrototypeOf(array, null);
     this.sStorage = new Proxy(array, {
       get(target, p, receiver) {
         const r = Reflect.get(target, p, receiver);
         if (p === "length") {
-          return new SNumberValue<M, number>(r as number, sTable.newMetadataForRuntimeTimeEmergingValue());
+          return new SNumberValue<M, number>(r as number, mProvider.newMetadataForRuntimeTimeEmergingValue());
         }
         return r;
       },
@@ -365,12 +389,12 @@ export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObj
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 }
-export type AnySFunction = (sThisArg: SValue<any>, sArgArray: SValue<any>[]) => SValue<any>;
+export type AnySFunction = ((sThisArg: SValue<any>, sArgArray: SValue<any>[]) => SValue<any>) & SObjectProperties;
 export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SObjectValue<M, K, AnySFunction> {
   sUnaryTypeOf(): SStringValue<M, "function"> {
     return new SStringValue("function", this.metadata);
   }
-  sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M> {
+  sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): SValue<M> {
     return this.sStorage(thisArg, args);
   }
 }
@@ -383,24 +407,33 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     return this.functionAsString;
   }
 
-  constructor(anySFunction: AnySFunction, functionAsString: string, sTable: SLocalSymbolTable<M>) {
-    super(sTable.newMetadataForObjectValue());
+  private constructor(sStorage: AnySFunction, functionAsString: string, sSwizzleAndWhiteList: AnySObjectSwizzleAndWhiteList | undefined, metadata: M) {
+    super(sSwizzleAndWhiteList, metadata);
+    this.sStorage = sStorage;
     this.functionAsString = functionAsString;
-    const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, sTable);
-    Object.setPrototypeOf(fixedAnySFunction, null);
-    this.sStorage = new Proxy(fixedAnySFunction, {
-      // apply(target, thisArg, argArray) {
-        
-      // },
-    }) as any;
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
+  }
+
+  static create<M extends MaybeSValueMetadata>(anySFunction: AnySFunction, functionAsString: string, mProvider: SMetadataProvider<M>): SFunction<M> {
+    const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, mProvider);
+    Object.setPrototypeOf(fixedAnySFunction, null);
+    return new SFunction<M>(fixedAnySFunction, functionAsString, undefined, mProvider.newMetadataForObjectValue());
+  }
+  static createFromNative<K extends PropertyKey, M extends MaybeSValueMetadata>(
+    nativeJsFunction: Record<K, any> & (() => unknown),
+    sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<K>,
+    // sSwizzleProtocol: SObjectValue<M, any, any>, // todo
+    metadata: M
+  ): SFunction<M> {
+    const functionAsString = Function.bind(nativeJsFunction).toString();
+    return new SFunction<M>(nativeJsFunction as any, functionAsString, sSwizzleAndWhiteList, metadata);
   }
 }
 
 export function createSNormalObjectFromJSPrimitive<M extends MaybeSValueMetadata, P extends Record<string | symbol, any>> (
   jsValue: P,
   metaDataForAllProperties: M,
-  sTable: SLocalSymbolTable<M>
+  mProvider: SMetadataProvider<M>
 ): SNormalObject<M> {
   const properties: SObjectProperties = {};
   const keyStrings = Object.getOwnPropertyNames(jsValue);
@@ -420,7 +453,7 @@ export function createSNormalObjectFromJSPrimitive<M extends MaybeSValueMetadata
     const jsPropValue = jsValue[keySymbol];
     addProperty(keySymbol, jsPropValue);
   }
-  return new SNormalObject<M>(properties, sTable)
+  return new SNormalObject<M>(properties, mProvider)
 }
 
 
@@ -513,36 +546,36 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
   sUnaryTypeOf(): SStringValue<M, "boolean"> {
     return new SStringValue("boolean", this.metadata);
   }
-  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on boolean")
   }
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as boolean) && "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as boolean) || "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SBoolean prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SBooleanValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SBooleanValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 
@@ -571,36 +604,36 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sUnaryTypeOf(): SStringValue<M, "number"> {
     return new SStringValue("number", this.metadata);
   }
-  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on number")
   }
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as number) && "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as number) || "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SNumberValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SNumberValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SNumberValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
@@ -629,36 +662,36 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   sUnaryTypeOf(): SStringValue<M, "string"> {
     return new SStringValue("string", this.metadata);
   }
-  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on string")
   }
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as string) && 2;
     if (r === 2) {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as string) || 2;
     if (r === 2) {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SStringValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SStringValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SStringValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
@@ -686,36 +719,36 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
   sUnaryTypeOf(): SStringValue<M, "bigint"> {
     return new SStringValue("bigint", this.metadata);
   }
-  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on bigint")
   }
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as bigint) && "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     const r = (this.nativeJsValue as bigint) || "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, sTable);
+      return getRight().addingMetadata(this, mProvider);
     } else {
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SBigIntValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SBigIntValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SBigIntValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 
@@ -742,26 +775,26 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sUnaryTypeOf(): SStringValue<M, "undefined"> {
     return new SStringValue("undefined", this.metadata);
   }
-  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
     return this;
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
   sChainExpression(): SUndefinedValue<M> {
     return this;
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SUndefinedValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SUndefinedValue(this.combineMetadata(anotherValue, sTable)) as this;
+    return new SUndefinedValue(this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
@@ -790,23 +823,23 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sChainExpression(): SUndefinedValue<M> {
     return new SUndefinedValue<M>(this.metadata);
   }
-  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
     return this;
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SNullValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SNullValue(this.combineMetadata(anotherValue, sTable)) as this;
+    return new SNullValue(this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> extends SPrimitiveValue<M, V> {
@@ -839,20 +872,20 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     return this;
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     throw Error("Todo: sGet on SSymbolValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
-    if (sTable.transpileContext.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+    if (mProvider.valueMetadataSystem === null) {
       return this;
     }
-    return new SSymbolValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
+    return new SSymbolValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
 
@@ -902,25 +935,25 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
-    return getRight().addingMetadata(this, sTable);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
+    return getRight().addingMetadata(this, mProvider);
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
     return this;
   }
-  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SValue<M> {
     // todo: add proper metadata
-    return this.wrappedObject.sChainExpression(p, sTable);
+    return this.wrappedObject.sChainExpression(p, mProvider);
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     // todo: add proper metadata
-    return this.wrappedObject.sGet(p, receiver);
+    return this.wrappedObject.sGet(p, receiver, mProvider);
   }
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     // todo: add proper metadata
     return this.wrappedObject.sSet(p, newValue, receiver);
   }
-  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
+  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
     throw new Error("Method not implemented.");
   }
 }
@@ -929,10 +962,10 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
 function addMetadataToPropertyAccess<M extends MaybeSValueMetadata>(
   property: SValue<M>,
   sObject: SObjectValue<M, any, any>,
-  sTable: SLocalSymbolTable<M>
+  mProvider: SMetadataProvider<M>
 ): SReferencedObjectValue<any, any, any> | SPrimitiveValue<M, any> {
   if (property instanceof SPrimitiveValue || property instanceof SReferencedObjectValue) {
-    return property.addingMetadata(sObject, sTable);
+    return property.addingMetadata(sObject, mProvider);
   } else if (property instanceof SObjectValue) {
     return new SReferencedObjectValue(property as SObjectValue<any, any, any>, sObject.metadata);
   } else {
