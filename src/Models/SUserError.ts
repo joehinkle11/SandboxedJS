@@ -31,6 +31,9 @@ export default class SUserError extends Error {
   static get cannotConvertBigIntToNumber(): SUserError {
     return new SUserError(new Error("Conversion from 'BigInt' to 'number' is not allowed."));
   }
+  static get cannotConvertToObject(): SUserError {
+    return new SUserError(new Error("Cannot convert undefined or null to object"));
+  }
   static symbolNotDefined(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: ${symbolName} is not defined.`));
   }

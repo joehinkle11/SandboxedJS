@@ -66,6 +66,7 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
   abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
   abstract sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M>;
+  abstract sOwnKeys(): SArrayObject<M, SStringValue<M>>;
   abstract sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M>;
   abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean>;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): SValue<M>;
@@ -171,7 +172,14 @@ export type SObjectSwizzleAndWhiteList<O extends object> = {
   [P in keyof O as `swizzle_static_${string & P}`]?: SSwizzleEntry<O[P]>;
 } & {
   [P in keyof O as `swizzle_dynamic_${string & P}`]?: SDynamicSwizzleEntry<O[P]>;
-};
+} & (O extends UnknownFunction ? SFunctionSwizzleAndWhiteList : unknown);
+export type SFunctionSwizzleAndWhiteList = {
+  swizzled_apply_raw: SandboxedFunctionCall
+  swizzled_apply_proxied?: never
+} | {
+  swizzled_apply_raw?: never
+  swizzled_apply_proxied: UnknownFunction
+}
 export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<any>;
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
@@ -237,11 +245,11 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   get sValueKind(): "s-object" { return "s-object" };
   abstract readonly sStorage: S & object;
   metadata: M;
-  sSwizzleAndWhiteList: AnySObjectSwizzleAndWhiteList | undefined;
+  sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<S & any> | undefined;
 
   abstract readonly nativeJsValue: object;
 
-  constructor(sSwizzleAndWhiteList: AnySObjectSwizzleAndWhiteList | undefined, metadata: M) {
+  constructor(sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<S & any> | undefined, metadata: M) {
     super();
     this.sSwizzleAndWhiteList = sSwizzleAndWhiteList;
     this.metadata = metadata;
@@ -381,15 +389,15 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 }
-export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "array", SValue<any>[]> {
+export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> extends SNonFunctionObjectValue<M, "array", E[]> {
   readonly nativeJsValue: any[];
-  readonly sStorage: SValue<any>[] & {length: SNumberValue<M, number>};
+  readonly sStorage: E[] & {length: SNumberValue<M, number>};
 
   sToPropertyKey(): string {
     return Array.prototype.map(v=>v.sToPropertyKey(), this.sStorage).join(",");
   }
 
-  constructor(array: SValue<any>[], mProvider: SMetadataProvider<M>) {
+  constructor(array: E[], mProvider: SMetadataProvider<M>) {
     super(undefined, mProvider.newMetadataForObjectValue());
     Object.setPrototypeOf(array, null);
     this.sStorage = new Proxy(array, {
@@ -404,15 +412,28 @@ export class SArrayObject<M extends MaybeSValueMetadata> extends SNonFunctionObj
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 }
-export type AnySFunction = ((sThisArg: SValue<any>, sArgArray: SValue<any>[]) => SValue<any>) & SObjectProperties;
+export type SandboxedFunctionCall = (sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>) => SValue<any>;
+export type AnySFunction = SandboxedFunctionCall & SObjectProperties & UnknownFunction;
 export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SObjectValue<M, K, AnySFunction> {
   sUnaryTypeOf(): SStringValue<M, "function"> {
     return new SStringValue("function", this.metadata);
   }
   sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): SValue<M> {
-    return this.sStorage(thisArg, args);
+    if (this.sSwizzleAndWhiteList !== undefined) {
+      const sSwizzleAndWhiteList = this.sSwizzleAndWhiteList as SObjectSwizzleAndWhiteList<UnknownFunction>
+      const swizzledApplyRaw = sSwizzleAndWhiteList.swizzled_apply_raw;
+      if (swizzledApplyRaw !== undefined) {
+        return swizzledApplyRaw(thisArg, args, mProvider);
+      }
+      const swizzledApplyProxied = sSwizzleAndWhiteList.swizzled_apply_proxied;
+      const nativeJsResult = swizzledApplyProxied(3,4)
+      throw new Error(`Todo: convert native result ${nativeJsResult} to sandboxed value`);
+    }
+    return this.sStorage(thisArg, args, mProvider);
   }
 }
+
+type UnknownFunction = (...args: unknown[]) => unknown;
 export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectValue<M, "function"> {
   readonly nativeJsValue: () => {};
   readonly sStorage: AnySFunction;
@@ -434,7 +455,7 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     Object.setPrototypeOf(fixedAnySFunction, null);
     return new SFunction<M>(fixedAnySFunction, functionAsString, undefined, mProvider.newMetadataForObjectValue());
   }
-  static createFromNative<O extends (...args: unknown[]) => unknown, M extends MaybeSValueMetadata>(
+  static createFromNative<O extends UnknownFunction, M extends MaybeSValueMetadata>(
     nativeJsFunction: O,
     sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
     // sSwizzleProtocol: SObjectValue<M, any, any>, // todo
