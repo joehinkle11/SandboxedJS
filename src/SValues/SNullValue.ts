@@ -1,6 +1,6 @@
 import { SMetadataProvider } from "../SMetadataProvider";
 import { MaybeSValueMetadata } from "../SValueMetadata";
-import { SPrimitiveValue, SValue, SBooleanValue, SNumberValue, SStringValue, SUndefinedValue, $sPrimitiveConstructor } from "./SValues";
+import { SPrimitiveValue, SValue, SBooleanValue, SNumberValue, SStringValue, SUndefinedValue } from "./SValues";
 
 export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
@@ -11,7 +11,8 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   readonly metadata!: M;
   constructor(metadata: M) {
     super();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sUnaryNegate(): SNumberValue<M, -0> {
     return new SNumberValue(-0, this.metadata);

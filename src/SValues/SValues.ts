@@ -614,13 +614,6 @@ function $sPrimitiveConstructorNotNullOrUndefined<P extends SPrimitiveValueType>
   `)
 }
 
-export function $sPrimitiveConstructor() {
-  $$ts!(`
-    this.metadata = metadata;
-    Object.freeze(this);
-  `)
-}
-
 export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> extends SPrimitiveValue<M, V> {
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
@@ -631,7 +624,8 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
   constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedBool = -this.nativeJsValue;
@@ -687,7 +681,8 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<number>();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedNumber = -this.nativeJsValue;
@@ -741,7 +736,8 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<string>();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const stringMadeNegative = -this.nativeJsValue;
@@ -796,7 +792,8 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
   constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sUnaryNegate(): SBigIntValue<M, bigint> {
     const stringMadeNegative: bigint = -(this.nativeJsValue as bigint);
@@ -850,7 +847,8 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   readonly metadata!: M;
   constructor(metadata: M) {
     super();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
@@ -894,7 +892,8 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   constructor(nativeJsValue: V, metadata: M) {
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<symbol>();
-    $sPrimitiveConstructor!();
+    this.metadata = metadata;
+    Object.freeze(this);
   }
   sToPropertyKey(): symbol {
     return this.nativeJsValue;
