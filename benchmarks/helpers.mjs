@@ -14,7 +14,7 @@ export async function compareNativeToSandboxedEval(params) {
     return sandboxedJSRunner.evalTranspiledCode(transpiledJsCode);
   }
   const runTranspileAndEval = () => {
-    return sandboxedJSRunner.evalJs(jsCode);
+    return sandboxedJSRunner.evalJs(jsCode, {returnNativeJSValue: true});
   }
   const runNativeJsEval = () => {
     return eval(jsCode);

@@ -13,5 +13,7 @@ import { runBinaryOpsBenchmark } from "./binary_ops.benchmark.mjs";
 await runBinaryOpsBenchmark(benchmark);
 import { runObjectLookupsBenchmark } from "./object_lookups.benchmark.mjs";
 await runObjectLookupsBenchmark(benchmark);
+import { runObjectIntrospectionBenchmark } from "./object_introspection.benchmark.mjs";
+await runObjectIntrospectionBenchmark(benchmark);
 import { runArrayLookupsBenchmark } from "./array_lookups.benchmark.mjs";
 await runArrayLookupsBenchmark(benchmark);

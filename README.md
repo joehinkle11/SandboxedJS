@@ -2,23 +2,54 @@
 
 Sandbox untrusted/arbitrary JavaScript code and safely execute it in isolation.
 
-
 ## Performance
 
-Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~2x** slower than native JS. However, if you don't count the time required to transpile the code, execution time is only **~1.3x to ~1.6x** slower than native JS.
-
-Keep in mind that performance will likely degrade as other JS features are supported (i.e. prototype lookups).
+Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~20x** slower than native JS. However, if you don't count the time required to transpile the code, execution time can be between **~1.3x to ~20x** slower than native JS, depending on the kind of work being performed.
 
 ## Status
 
 Under active development. Looking for others to help out!
 
+## JS Support 
+
+| Feature | Status |
+| ------- | ------ |
+| primitives | ✅ |
+| `number` | ✅ |
+| `string` | ✅ |
+| `boolean` | ✅ |
+| `null` | ✅ |
+| `undefined` | ✅ |
+| `bigint` | ✅ |
+| `symbol` | ⚠️ |
+| autoboxing primitives to objects | ⚠️ |
+| binary operators (`+`, `-`, `%`, etc.) | ✅ |
+| unary operators  (`+`, `-`, `typeof`, etc.) | ✅ |
+| simple objects (i.e. `{a: true}`) | ✅ |
+| arrays | ✅ |
+| functions | ✅ |
+| `this` | ⚠️ |
+| `arguments` | ✅ |
+| local variables | ✅ |
+| assignment | ✅ |
+| global variables | ⚠️ |
+| prototypes | ⚠️ |
+| `Object` global | ⚠️ |
+| ternary operators | ❌ |
+| global variables | ❌ |
+
+
+| Legend |  |
+| ------- | ------ |
+| ✅ | Finished  |
+| ⚠️ | In development  |
+| ❌ | Haven't started work  |
 
 ## Comparison of JS in JS Implementations
 
 | Name | Link | Performance |
 | ----------- | ----------- | --------- |
-| SandboxedJS |  | ~2x slower than native? |
+| SandboxedJS |  | ~20x slower than native? |
 | js.js | https://github.com/jterrace/js.js/ | [~200x slower than native]()https://github.com/jterrace/js.js/#status |
 | JS-Interpreter | https://github.com/NeilFraser/JS-Interpreter/ | [~200x slower than native](https://github.com/NeilFraser/JS-Interpreter/issues/227) |
 
@@ -61,4 +92,3 @@ Build to `lib` folder: `npm run build`
 ## Unique Features
 
  - Add metadata to any JS value which is invisible to the client (untrusted) JS code but visible to the host environment.
-
