@@ -1,7 +1,6 @@
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
-import { JSTypeOfString } from "../SValueDef";
 import type { SBooleanValue } from "./SBooleanValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
