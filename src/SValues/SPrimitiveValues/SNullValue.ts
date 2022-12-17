@@ -1,6 +1,12 @@
-import { SMetadataProvider } from "../SMetadataProvider";
-import { MaybeSValueMetadata } from "../SValueMetadata";
-import { SPrimitiveValue, SValue, SBooleanValue, SNumberValue, SStringValue, SUndefinedValue } from "./SValues";
+import type { SMetadataProvider } from "../../SMetadataProvider";
+import type { MaybeSValueMetadata } from "../../SValueMetadata";
+import type { SValue } from "../SValue";
+import type { SBooleanValue } from "./SBooleanValue";
+import { SNumberValue } from "./SNumberValue";
+import { SPrimitiveValue } from "./SPrimitiveValue";
+import { SStringValue } from "./SStringValue";
+import { SUndefinedValue } from "./SUndefinedValue";
+
 
 export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
@@ -20,8 +26,8 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sUnaryMakePositive(): SNumberValue<M, 0> {
     return new SNumberValue(0, this.metadata);
   };
-  sUnaryTypeOf(): SStringValue<M, "object"> {
-    return new SStringValue("object", this.metadata);
+  sUnaryTypeOfAsNative(): "object" {
+    return "object";
   }
   sChainExpression(): SUndefinedValue<M> {
     return new SUndefinedValue<M>(this.metadata);

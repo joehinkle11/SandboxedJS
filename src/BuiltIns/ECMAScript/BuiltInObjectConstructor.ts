@@ -1,7 +1,7 @@
 import SUserError from "../../Models/SUserError";
 import { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import { MaybeSValueMetadata } from "../../SValueMetadata";
-import { SBooleanValue, SFunction, SObjectValue, SUndefinedValue } from "../../SValues/SValues";
+import { SFunction } from "../../SValues/SObjects/SFunction";
 
 
 

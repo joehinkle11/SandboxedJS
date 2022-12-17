@@ -1,11 +1,10 @@
 import { transpile } from "./Transpile";
-import * as SValues from "./SValues/SValues";SValues;
-import { SNullValue as SNullValueImport } from "./SValues/SNullValue";
-const SNullValue = SNullValueImport;
+import { SValues as SValuesImported } from "./SValues/AllSValues";const SValues = SValuesImported;
 import { RunnerBuiltIns, TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SLocalSymbolTable } from "./SLocalSymbolTable";
 import { installEcmaScript } from "./BuiltIns/BuiltInECMAScript";
+import { SValue } from "./SValues/SValue";
 
 export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
   private readonly sTable: SLocalSymbolTable<M>;
@@ -38,19 +37,19 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
     );
   }
   
-  evalJs<AsNativeJs extends boolean>(jsCode: string, options: {returnNativeJSValue: AsNativeJs}): AsNativeJs extends true ? any : SValues.SValue<M> {
+  evalJs<AsNativeJs extends boolean>(jsCode: string, options: {returnNativeJSValue: AsNativeJs}): AsNativeJs extends true ? any : SValue<M> {
     const transpiledJsCode: string = this.transpile(jsCode);
     return this.evalTranspiledCode(transpiledJsCode, options.returnNativeJSValue);
   }
   transpile(jsCode: string): string {
     return transpile(jsCode, this.transpileContext);
   }
-  evalTranspiledCode<AsNativeJs extends boolean>(transpiledJsCode: string, asNativeJs: AsNativeJs): AsNativeJs extends true ? any : SValues.SValue<M> {
-    let sResult: SValues.SValue<M>;
+  evalTranspiledCode<AsNativeJs extends boolean>(transpiledJsCode: string, asNativeJs: AsNativeJs): AsNativeJs extends true ? any : SValue<M> {
+    let sResult: SValue<M>;
     const sContext = this.sTable.duplicateAndEraseMetadata();
     try {
       const result = eval(transpiledJsCode);
-      if (result instanceof SValues.SValue) {
+      if (result instanceof SValue) {
         sResult = result;
       } else {
         sResult = new SValues.SUndefinedValue(sContext.newMetadataForRuntimeTimeEmergingValue());

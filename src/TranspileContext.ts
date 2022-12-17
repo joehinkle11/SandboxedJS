@@ -1,5 +1,5 @@
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
-import { SValue } from "./SValues/SValues";
+import type { SValue } from "./SValues/SValue";
 
 export interface RunnerBuiltIns {
   /** Default true */
@@ -23,7 +23,7 @@ export class TranspileContext<M extends MaybeSValueMetadata> {
     if (this.valueMetadataSystem === null) {
       return "";
     }
-    return ",sTable.newMetadataForCompileTimeLiteral()";
+    return ",sContext.newMetadataForCompileTimeLiteral()";
   }
   newMetadataGlobalSymbolTable(): M {
     if (this.valueMetadataSystem === null) {

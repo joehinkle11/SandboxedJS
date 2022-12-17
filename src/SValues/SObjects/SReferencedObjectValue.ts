@@ -2,9 +2,14 @@
 // Everything passes through this object, is used to make it possible to add metadata
 // to a reference to an object without effecting the metadata on other references to
 
-import { SMetadataProvider } from "../SMetadataProvider";
-import { SValueMetadata, MaybeSValueMetadata } from "../SValueMetadata";
-import { SBuiltInObjectKind, SValue, SObjectValue, SValueKind, SNumberValue, SStringValue, JSTypeOfString, SBooleanValue, SPrimitiveValue, MapSBuiltInObjectKindToSObjectStorage } from "./SValues";
+import type { SMetadataProvider } from "../../SMetadataProvider";
+import type { SValueMetadata } from "../../SValueMetadata";
+import { SValue } from "../SValue";
+import type { SValueKind } from "../SValueDef";
+import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
+import type { SObjectValue } from "./SObjectValue";
+import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage } from "./SObjectValueDef";
+import { sUnaryNegate, sUnaryMakePositive, sUnaryLogicalNot } from "./SReferencedObjectValueImpl";
 
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
@@ -33,19 +38,12 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   get sValueKind(): SValueKind {
     throw new Error("Method not implemented.");
   }
-  sUnaryNegate(): SValue<M> {
-    return new SNumberValue(NaN, this.metadata);
+  sUnaryTypeOfAsNative(): "object" | "function" {
+    return this.wrappedObject.sUnaryTypeOfAsNative();
   }
-  sUnaryMakePositive(): SValue<M> {
-    return new SNumberValue(NaN, this.metadata);
-  }
-  sUnaryTypeOf(): SStringValue<M, JSTypeOfString> {
-    const unaryTypeOf = this.wrappedObject.sUnaryTypeOf().nativeJsValue;
-    return new SStringValue<M, JSTypeOfString>(unaryTypeOf, this.metadata);
-  }
-  sUnaryLogicalNot(): SBooleanValue<M, boolean> {
-    return new SBooleanValue(false, this.metadata);
-  }
+  sUnaryNegate: () => SValue<M> = sUnaryNegate;
+  sUnaryMakePositive: () => SValue<M> = sUnaryMakePositive;
+  sUnaryLogicalNot: () => SBooleanValue<M, boolean> = sUnaryLogicalNot;
   sLogicalNullish(): this {
     return this;
   }
@@ -69,20 +67,5 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   }
   addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
     throw new Error("Method not implemented.");
-  }
-}
-
-
-function addMetadataToPropertyAccess<M extends MaybeSValueMetadata>(
-  property: SValue<M>,
-  sObject: SObjectValue<M, any, any>,
-  mProvider: SMetadataProvider<M>
-): SReferencedObjectValue<any, any, any> | SPrimitiveValue<M, any> {
-  if (property instanceof SPrimitiveValue || property instanceof SReferencedObjectValue) {
-    return property.addingMetadata(sObject, mProvider);
-  } else if (property instanceof SObjectValue) {
-    return new SReferencedObjectValue(property as SObjectValue<any, any, any>, sObject.metadata);
-  } else {
-    throw Error("Unknown property type in addMetadataToPropertyAccess.");
   }
 }
