@@ -5,7 +5,7 @@ import type { AnySFunction, UnknownFunction } from "./SFunctionDef";
 import { sApply } from "./SFunctionImpl";
 import { SObjectValue } from "./SObjectValue";
 import type { AnySObjectSwizzleAndWhiteList, SObjectSwizzleAndWhiteList, SBuiltInFunctionObjectKind } from "./SObjectValueDef";
-import { buildNativeJsValueForSObject, convertAllPropertiesToSValues } from "./SObjectValueImpl";
+import { convertAllPropertiesToSValues } from "./SObjectValueImpl";
 
 // todo: remove this class and just represent constructors, functions and arrow functions the same way...?
 export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SObjectValue<M, K, AnySFunction> {
@@ -14,7 +14,7 @@ export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K exte
 }
 
 export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectValue<M, "function"> {
-  readonly nativeJsValue: () => {};
+  get nativeJsValue(): () => {} { return this.getNativeJsValue() }
   readonly sStorage: AnySFunction;
   readonly functionAsString: string;
 
@@ -22,7 +22,6 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     super(sSwizzleAndWhiteList, metadata);
     this.sStorage = sStorage;
     this.functionAsString = functionAsString;
-    this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 
   static create<M extends MaybeSValueMetadata>(anySFunction: AnySFunction, functionAsString: string, mProvider: SMetadataProvider<M>): SFunction<M> {

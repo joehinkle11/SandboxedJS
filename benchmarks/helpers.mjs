@@ -24,9 +24,9 @@ export async function compareNativeToSandboxedEval(params) {
   const bench1 = benchmark.createSuite(suitName);
   
   // Add first func
-  bench1.add("transpile time", runTranspile);
+  // bench1.add("transpile time", runTranspile);
   bench1.add("transpiled code run time", runJsEvalOnTranspiledResult);
-  bench1.add("transpile and code run time", runTranspileAndEval);
+  // bench1.add("transpile and code run time", runTranspileAndEval);
   
   // Add second func. This result will be the reference
   bench1.ref("native eval", runNativeJsEval);

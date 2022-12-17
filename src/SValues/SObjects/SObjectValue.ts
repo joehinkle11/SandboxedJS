@@ -2,10 +2,9 @@ import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
-import type { SStringValue } from "../SPrimitiveValues/SStringValue";
 import { SValue } from "../SValue";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
-import { sGet, sUnaryLogicalNot, sUnaryMakePositive, sUnaryNegate } from "./SObjectValueImpl";
+import { buildNativeJsValueForSObject, sGet, sUnaryLogicalNot, sUnaryMakePositive, sUnaryNegate } from "./SObjectValueImpl";
 
 
 export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
@@ -14,6 +13,10 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   metadata: M;
   sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<S & any> | undefined;
 
+  #actualNativeJsValue: any | undefined;
+  getNativeJsValue(): any {
+    return this.#actualNativeJsValue ?? (this.#actualNativeJsValue = buildNativeJsValueForSObject<any, any>(this, this.sStorage));
+  }
   abstract readonly nativeJsValue: object;
 
   constructor(sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<S & any> | undefined, metadata: M) {
