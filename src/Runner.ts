@@ -1,5 +1,5 @@
 import { transpile } from "./Transpile";
-import * as SValues from "./SValues";SValues;
+import * as SValues from "./SValues/SValues";SValues;
 import { RunnerBuiltIns, TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SLocalSymbolTable } from "./SLocalSymbolTable";

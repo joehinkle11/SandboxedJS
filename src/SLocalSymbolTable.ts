@@ -1,7 +1,7 @@
 import SUserError from "./Models/SUserError";
 import { SMetadataProvider } from "./SMetadataProvider";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
-import { convertAllPropertiesToSValues, SNormalObject, SNumberValue, SObjectValue, SUndefinedValue, SValue } from "./SValues";
+import { convertAllPropertiesToSValues, SNormalObject, SNumberValue, SObjectValue, SUndefinedValue, SValue } from "./SValues/SValues";
 import { TranspileContext, ValueMetadataSystem } from "./TranspileContext";
 
 type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {

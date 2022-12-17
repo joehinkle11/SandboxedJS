@@ -1,4 +1,4 @@
-import { SValue } from "../SValues";
+import { SValue } from "../SValues/SValues";
 
 // An error in user-space (i.e., not an issue with the transpiler, but user code).
 export default class SUserError extends Error {

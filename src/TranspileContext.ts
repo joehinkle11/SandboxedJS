@@ -1,5 +1,5 @@
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
-import { SValue } from "./SValues";
+import { SValue } from "./SValues/SValues";
 
 export interface RunnerBuiltIns {
   /** Default true */
