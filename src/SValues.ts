@@ -162,10 +162,17 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
 }
 
 export type SWhiteListEntry = true;
-export type SSwizzleEntry = SValue<any>;
-export type SSwizzleOrWhiteListEntry = SSwizzleEntry | SWhiteListEntry;
-export type SObjectSwizzleAndWhiteList<K extends PropertyKey> = Partial<Record<K, SSwizzleOrWhiteListEntry>>;
-export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<PropertyKey>;
+export type SSwizzleEntry<V> = MapNativeValueTypeToSType<V>;
+export type SDynamicSwizzleEntry<V> = (nativeValue: V) => MapNativeValueTypeToSType<V>;
+export type SSwizzleOrWhiteListEntry<V> = V extends SPrimitiveValueType ? SWhiteListEntry | SSwizzleEntry<V> : SSwizzleEntry<V>;
+export type SObjectSwizzleAndWhiteList<O extends object> = {
+  [P in keyof O as O[P] extends SPrimitiveValueType ? `whitelist_${string & P}` : never]?: SWhiteListEntry;
+} & {
+  [P in keyof O as `swizzle_static_${string & P}`]?: SSwizzleEntry<O[P]>;
+} & {
+  [P in keyof O as `swizzle_dynamic_${string & P}`]?: SDynamicSwizzleEntry<O[P]>;
+};
+export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<any>;
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
@@ -244,10 +251,11 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   }
   sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
     if (this.sSwizzleAndWhiteList !== undefined) {
-      const swizzleOrWhiteListEntry = this.sSwizzleAndWhiteList[p];
-      if (swizzleOrWhiteListEntry === undefined) {
+      if (typeof p === "symbol") {
         return new SUndefinedValue<M>(this.metadata);
-      } else if (swizzleOrWhiteListEntry === true) {
+      }
+      const isWhiteListed = this.sSwizzleAndWhiteList[`whitelist_${p}`];
+      if (isWhiteListed === true) {
         // must be a primitive
         const primitiveValue: SPrimitiveValueType = Reflect.get(this.sStorage, p, receiver) as any;
         const sPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(primitiveValue, mProvider.newMetadataForRuntimeTimeEmergingValue());
@@ -255,9 +263,16 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
           throw new Error(`Failed to convert expected primitive value ${primitiveValue?.toString()} to s-primitive.`)
         }
         return sPrimitive;
-      } else {
-        throw new Error("swizz")
       }
+      const staticSwizzle = this.sSwizzleAndWhiteList[`swizzle_static_${p}`];
+      if (staticSwizzle !== undefined) {
+        return staticSwizzle;
+      }
+      const dynamicSwizzle = this.sSwizzleAndWhiteList[`swizzle_dynamic_${p}`];
+      if (dynamicSwizzle !== undefined) {
+        return dynamicSwizzle(Reflect.get(this.sStorage, p, receiver));
+      }
+      return new SUndefinedValue<M>(this.metadata);
     }
     const result = Reflect.get(this.sStorage, p, receiver);
     if (result instanceof SValue) {
@@ -419,9 +434,9 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     Object.setPrototypeOf(fixedAnySFunction, null);
     return new SFunction<M>(fixedAnySFunction, functionAsString, undefined, mProvider.newMetadataForObjectValue());
   }
-  static createFromNative<K extends PropertyKey, M extends MaybeSValueMetadata>(
-    nativeJsFunction: Record<K, any> & (() => unknown),
-    sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<K>,
+  static createFromNative<O extends (...args: unknown[]) => unknown, M extends MaybeSValueMetadata>(
+    nativeJsFunction: O,
+    sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
     // sSwizzleProtocol: SObjectValue<M, any, any>, // todo
     metadata: M
   ): SFunction<M> {
@@ -502,6 +517,9 @@ export abstract class SPrimitiveValue<
     }
   }
 }
+
+type MapNativeValueTypeToSType<V> = V extends SPrimitiveValueType ? MapSPrimitiveValueTypeToSType<V, any> : SObjectValue<any, any, any>
+type MapSPrimitiveValueTypeToSType<P extends SPrimitiveValueType, M extends MaybeSValueMetadata> = P extends bigint ? SBigIntValue<M, P> : P extends boolean ? SBooleanValue<M, P> : P extends number ? SNumberValue<M, P> : P extends string ? SStringValue<M, P> : P extends undefined ? SUndefinedValue<M> : P extends null ? SNullValue<M> : P extends symbol ? SSymbolValue<M, P> : never;
 type SPrimitiveValueType = bigint | boolean | number | string | undefined | null | symbol;
 
 function $sPrimitiveConstructorNotNullOrUndefined<P extends SPrimitiveValueType>() {
