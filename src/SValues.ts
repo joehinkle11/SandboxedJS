@@ -264,8 +264,11 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     this.sSwizzleAndWhiteList = sSwizzleAndWhiteList;
     this.metadata = metadata;
   }
-  sOwnKeysNative(): string[] {
-    throw Error("todo sOwnKeysNative on object") 
+  sOwnKeysNative(): (string | symbol)[] {
+    if (this.sSwizzleAndWhiteList !== undefined) {
+      throw Error("todo sOwnKeysNative on object with swizzle/whitelist") 
+    }
+    return Reflect.ownKeys(this.sStorage);
   }
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
@@ -558,7 +561,7 @@ export abstract class SPrimitiveValue<
   abstract get sValueKind(): SValuePrimitiveKind;
   abstract readonly nativeJsValue: P;
   abstract readonly metadata: M;
-  sOwnKeysNative(): string[] {
+  sOwnKeysNative(): (string | symbol)[] {
     throw Error("todo sOwnKeysNative on primitive")
   }
   sApply(): never {
