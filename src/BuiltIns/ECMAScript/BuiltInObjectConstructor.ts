@@ -13,9 +13,11 @@ export function sBuiltInObject<M extends MaybeSValueMetadata>(
     sTable.newMetadataForCompileTimeLiteral()
   )
   sTable.assign("Object", SFunction.createFromNative(
-    Object,
+    Object as ObjectConstructor & Function,
     {
-      swizzle_static_getOwnPropertyNames: s_getOwnPropertyNames
+      swizzle_static_getOwnPropertyNames: s_getOwnPropertyNames,
+      whitelist_name: true,
+      whitelist_length: true,
     },
     sTable.newMetadataForCompileTimeLiteral()
   ), "const");
