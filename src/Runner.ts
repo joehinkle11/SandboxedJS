@@ -1,5 +1,7 @@
 import { transpile } from "./Transpile";
 import * as SValues from "./SValues/SValues";SValues;
+import { SNullValue as SNullValueImport } from "./SValues/SNullValue";
+const SNullValue = SNullValueImport;
 import { RunnerBuiltIns, TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SLocalSymbolTable } from "./SLocalSymbolTable";

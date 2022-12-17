@@ -2,6 +2,7 @@ import { MaybeSValueMetadata, SValueMetadata } from "../SValueMetadata";
 import { $$ts, $$typeToString } from "ts-macros";
 import SUserErrorImport from "../Models/SUserError";
 import { emptySMetadataProvider, SMetadataProvider } from "../SMetadataProvider";
+import type { SNullValue } from "./SNullValue";
 const SUserError = SUserErrorImport;
 
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
@@ -613,7 +614,7 @@ function $sPrimitiveConstructorNotNullOrUndefined<P extends SPrimitiveValueType>
   `)
 }
 
-function $sPrimitiveConstructor() {
+export function $sPrimitiveConstructor() {
   $$ts!(`
     this.metadata = metadata;
     Object.freeze(this);
@@ -882,48 +883,7 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     return new SUndefinedValue(this.combineMetadata(anotherValue, mProvider)) as this;
   }
 }
-export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
-    throw new Error("Method not implemented.");
-  }
-  get sValueKind(): "s-null" { return "s-null" };
-  readonly nativeJsValue: null = null;
-  readonly metadata!: M;
-  constructor(metadata: M) {
-    super();
-    $sPrimitiveConstructor!();
-  }
-  sUnaryNegate(): SNumberValue<M, -0> {
-    return new SNumberValue(-0, this.metadata);
-  };
-  sUnaryMakePositive(): SNumberValue<M, 0> {
-    return new SNumberValue(0, this.metadata);
-  };
-  sUnaryTypeOf(): SStringValue<M, "object"> {
-    return new SStringValue("object", this.metadata);
-  }
-  sChainExpression(): SUndefinedValue<M> {
-    return new SUndefinedValue<M>(this.metadata);
-  }
-  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
-    return getRight().addingMetadata(this, mProvider);
-  }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
-    return this;
-  }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
-    return getRight().addingMetadata(this, mProvider);
-  }
-  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
-    throw Error("Todo: sGet on SNullValue prototype");
-  }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
-    if (mProvider.valueMetadataSystem === null) {
-      return this;
-    }
-    return new SNullValue(this.combineMetadata(anotherValue, mProvider)) as this;
-  }
-}
+
 export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> extends SPrimitiveValue<M, V> {
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
