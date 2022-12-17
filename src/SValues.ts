@@ -57,7 +57,16 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract get sValueKind(): SValueKind;
   abstract metadata: M;
   abstract nativeJsValue: any;
-  abstract sToPropertyKey(): string | symbol;
+  sToString(mProvider: SMetadataProvider<M>): SValue<M> { // it is possible for the user to overwrite the `toString` function so that it does not return a string
+    return this.sGet("toString", this, mProvider).sApply(this, [], mProvider);
+  };
+  sToPropertyKey(mProvider: SMetadataProvider<M>): string | symbol {
+    const sValue = this.sToString(mProvider);
+    if (sValue instanceof SStringValue) {
+      return sValue.nativeJsValue;
+    }
+    throw SUserError.cannotConvertObjectToPrimitive;
+  };
   abstract sUnaryNegate(): SValue<M>;
   abstract sUnaryMakePositive(): SValue<M>;
   abstract sUnaryTypeOf(): SStringValue<M, JSTypeOfString>;
@@ -304,7 +313,7 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     } else if (result === undefined) {
       return new SUndefinedValue<M>(this.metadata);
     } else if (p === "__proto__") {
-      throw new Error("getting __proto__");
+      throw new Error("getting _proto__");
     } else {
       throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
     }
@@ -343,8 +352,8 @@ export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K e
   sUnaryTypeOf(): SStringValue<M, "object"> {
     return new SStringValue("object", this.metadata);
   }
-  sApply(): never {
-    throw SUserError.cannotCall(this.sToPropertyKey().toString());
+  sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): never {
+    throw SUserError.cannotCall(this.sToPropertyKey(mProvider).toString());
   }
 }
 export function convertAllPropertiesToSValues<O extends SObjectProperties, R extends Record<PropertyKey, any>>(
@@ -392,10 +401,6 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
   readonly nativeJsValue: any;
   readonly sStorage: BaseSObjectStorage;
 
-  sToPropertyKey(): string {
-    return "[object Object]";
-  }
-
   constructor(properties: SObjectProperties, mProvider: SMetadataProvider<M>) {
     super(undefined, mProvider.newMetadataForObjectValue());
     const obj = {};
@@ -433,10 +438,6 @@ function createProxiedNativeArray<M extends MaybeSValueMetadata, E extends SValu
 export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> extends SNonFunctionObjectValue<M, "array", SProxiedNativeArray<E, M>> {
   readonly nativeJsValue: any[];
   readonly sStorage: SProxiedNativeArray<E, M>;
-
-  sToPropertyKey(): string {
-    return Array.prototype.map(v=>v.sToPropertyKey(), this.sStorage).join(",");
-  }
 
   private constructor(sStorage: SProxiedNativeArray<E, M>, metadata: M) {
     super(undefined, metadata);
@@ -499,10 +500,6 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
   readonly nativeJsValue: () => {};
   readonly sStorage: AnySFunction;
   readonly functionAsString: string;
-
-  sToPropertyKey(): string {
-    return this.functionAsString;
-  }
 
   private constructor(sStorage: AnySFunction, functionAsString: string, sSwizzleAndWhiteList: AnySObjectSwizzleAndWhiteList | undefined, metadata: M) {
     super(sSwizzleAndWhiteList, metadata);
@@ -635,9 +632,6 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     $sPrimitiveConstructorNotNullOrUndefined!<boolean>();
     $sPrimitiveConstructor!();
   }
-  sToPropertyKey(): string {
-    return this.nativeJsValue.toString();
-  }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedBool = -this.nativeJsValue;
     return new SNumberValue(negatedBool, this.metadata);
@@ -694,9 +688,6 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     $sPrimitiveConstructorNotNullOrUndefined!<number>();
     $sPrimitiveConstructor!();
   }
-  sToPropertyKey(): string {
-    return this.nativeJsValue.toString();
-  }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedNumber = -this.nativeJsValue;
     return new SNumberValue(negatedNumber, this.metadata);
@@ -750,9 +741,6 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     super();
     $sPrimitiveConstructorNotNullOrUndefined!<string>();
     $sPrimitiveConstructor!();
-  }
-  sToPropertyKey(): string {
-    return this.nativeJsValue;
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const stringMadeNegative = -this.nativeJsValue;
@@ -809,9 +797,6 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     $sPrimitiveConstructorNotNullOrUndefined!<bigint>();
     $sPrimitiveConstructor!();
   }
-  sToPropertyKey(): string {
-    return this.nativeJsValue.toString();
-  }
   sUnaryNegate(): SBigIntValue<M, bigint> {
     const stringMadeNegative: bigint = -(this.nativeJsValue as bigint);
     return new SBigIntValue(stringMadeNegative, this.metadata);
@@ -866,9 +851,6 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     super();
     $sPrimitiveConstructor!();
   }
-  sToPropertyKey(): string {
-    return "undefined";
-  }
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);
   };
@@ -910,9 +892,6 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   constructor(metadata: M) {
     super();
     $sPrimitiveConstructor!();
-  }
-  sToPropertyKey(): string {
-    return "null";
   }
   sUnaryNegate(): SNumberValue<M, -0> {
     return new SNumberValue(-0, this.metadata);
@@ -1021,9 +1000,6 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
 
   get sValueKind(): SValueKind {
     throw new Error("Method not implemented.");
-  }
-  sToPropertyKey(): string | symbol {
-    return this.wrappedObject.sToPropertyKey();
   }
   sUnaryNegate(): SValue<M> {
     return new SNumberValue(NaN, this.metadata);

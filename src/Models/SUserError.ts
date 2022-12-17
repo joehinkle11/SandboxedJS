@@ -34,6 +34,9 @@ export default class SUserError extends Error {
   static get cannotConvertToObject(): SUserError {
     return new SUserError(new Error("Cannot convert undefined or null to object"));
   }
+  static get cannotConvertObjectToPrimitive(): SUserError {
+    return new SUserError(new Error(`Cannot convert object to primitive value.`));
+  }
   static symbolNotDefined(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: ${symbolName} is not defined.`));
   }

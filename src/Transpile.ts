@@ -149,7 +149,7 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
             const keyNode = propertyNode.key as IdentifierNode;
             keyCode = keyNode.name;
           } else {
-            keyCode = `[${resolveAnyNode(propertyNode.key, transpileContext)}.sToPropertyKey()]`;
+            keyCode = `[${resolveAnyNode(propertyNode.key, transpileContext)}.sToPropertyKey(sContext)]`;
           }
           let valueCode = resolveAnyNode(propertyNode.value, transpileContext);
           propertiesCodes.push(keyCode + ":" + valueCode);
@@ -169,7 +169,7 @@ function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, tran
   if (node.property.type === "Identifier") {
     propertyCode = resolveLookupIdentifierByName((node.property as IdentifierNode).name, transpileContext, resolveLookupWork);
   } else {
-    propertyCode = resolveLookupWork(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey()`)
+    propertyCode = resolveLookupWork(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey(sContext)`)
   }
   const objectCode: string = resolveAnyNode(node.object, transpileContext);
   return {objectCode, propertyCode};
