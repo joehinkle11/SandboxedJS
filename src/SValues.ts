@@ -66,7 +66,17 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
   abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
   abstract sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M>;
-  abstract sOwnKeys(): SArrayObject<M, SStringValue<M>>;
+  abstract sOwnKeysNative(): (string | symbol)[];
+  sOwnKeys(): SArrayObject<M, SStringValue<M, string> | SSymbolValue<M, symbol>> {
+    const array: (SStringValue<M, string> | SSymbolValue<M, symbol>)[] = this.sOwnKeysNative().map((r) => {
+      if (typeof r === "string") {
+        return new SStringValue(r, this.metadata);
+      } else {
+        return new SSymbolValue(r, this.metadata);
+      }
+    });
+    return SArrayObject.createWithMetadata(array, this.metadata);
+  }
   abstract sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M>;
   abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean>;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): SValue<M>;
@@ -254,6 +264,9 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     this.sSwizzleAndWhiteList = sSwizzleAndWhiteList;
     this.metadata = metadata;
   }
+  sOwnKeysNative(): string[] {
+    throw Error("todo sOwnKeysNative on object") 
+  }
   sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
     throw new Error("Method not implemented.");
   }
@@ -389,28 +402,73 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
 }
-export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> extends SNonFunctionObjectValue<M, "array", E[]> {
+export type SProxiedNativeArray<E extends SValue<M>, M extends MaybeSValueMetadata> = Omit<E[], "length"> & {length: SNumberValue<M, number>};
+function createProxiedNativeArray<M extends MaybeSValueMetadata, E extends SValue<M>>(
+  array: E[],
+  weakSArrayObject: {weakRef?: WeakRef<SArrayObject<M, SValue<M>>>}
+): SProxiedNativeArray<E, M> {
+  return new Proxy(array, {
+    get(target, p, receiver) {
+      const r = Reflect.get(target, p, receiver);
+      if (p === "length") {
+        return new SNumberValue<M, number>(r as number, weakSArrayObject.weakRef!.deref()!.metadata);
+      }
+      return r;
+    },
+    set(target, p, newValue, receiver) {
+      if (p === "length") {
+        if (newValue instanceof SNumberValue) {
+          return Reflect.set(target, p, newValue.nativeJsValue as number, receiver);
+        } else {
+          throw new Error(`Expected SNumberValue but received ${typeof newValue} (${newValue}) when trying to set the length of the SProxiedNativeArray.`)
+        }
+      }
+      return Reflect.set(target, p, newValue, receiver);
+    },
+  }) as any;
+}
+export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> extends SNonFunctionObjectValue<M, "array", SProxiedNativeArray<E, M>> {
   readonly nativeJsValue: any[];
-  readonly sStorage: E[] & {length: SNumberValue<M, number>};
+  readonly sStorage: SProxiedNativeArray<E, M>;
 
   sToPropertyKey(): string {
     return Array.prototype.map(v=>v.sToPropertyKey(), this.sStorage).join(",");
   }
 
-  constructor(array: E[], mProvider: SMetadataProvider<M>) {
-    super(undefined, mProvider.newMetadataForObjectValue());
-    Object.setPrototypeOf(array, null);
-    this.sStorage = new Proxy(array, {
-      get(target, p, receiver) {
-        const r = Reflect.get(target, p, receiver);
-        if (p === "length") {
-          return new SNumberValue<M, number>(r as number, mProvider.newMetadataForRuntimeTimeEmergingValue());
-        }
-        return r;
-      },
-    }) as any;
+  private constructor(sStorage: SProxiedNativeArray<E, M>, metadata: M) {
+    super(undefined, metadata);
+    Object.setPrototypeOf(sStorage, null);
+    this.sStorage = sStorage;
     this.nativeJsValue = buildNativeJsValueForSObject(this, this.sStorage);
   }
+
+  static createWithMetadata<M extends MaybeSValueMetadata, E extends SValue<M>>(
+    array: E[],
+    metadata: M
+  ): SArrayObject<M, E> {
+    const weakSArrayObject: {weakRef?: WeakRef<SArrayObject<M, E>>} = {};
+    const proxiedArray = createProxiedNativeArray(array, weakSArrayObject);
+    Object.setPrototypeOf(proxiedArray, null);
+    const sArrayObj = new SArrayObject<M, E>(proxiedArray, metadata);
+    weakSArrayObject.weakRef = new WeakRef(sArrayObj);
+    return sArrayObj;
+  }
+
+  static create<M extends MaybeSValueMetadata, E extends SValue<M>>(
+    array: E[],
+    mProvider: SMetadataProvider<M>
+  ): SArrayObject<M, E> {
+    return this.createWithMetadata(array, mProvider.newMetadataForObjectValue());
+  }
+
+  // static createFromNative<M extends MaybeSValueMetadata>(
+  //   array: any[],
+  //   mProvider: SMetadataProvider<M>
+  // ): SArrayObject<M> {
+  //   const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, mProvider);
+  //   Object.setPrototypeOf(fixedAnySFunction, null);
+  //   return new SFunction<M>(fixedAnySFunction, functionAsString, undefined, mProvider.newMetadataForObjectValue());
+  // }
 }
 export type SandboxedFunctionCall = (sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>) => SValue<any>;
 export type AnySFunction = SandboxedFunctionCall & SObjectProperties & UnknownFunction;
@@ -500,6 +558,9 @@ export abstract class SPrimitiveValue<
   abstract get sValueKind(): SValuePrimitiveKind;
   abstract readonly nativeJsValue: P;
   abstract readonly metadata: M;
+  sOwnKeysNative(): string[] {
+    throw Error("todo sOwnKeysNative on primitive")
+  }
   sApply(): never {
     throw Error("todo sApply on primitive")
   }
@@ -623,7 +684,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-number" { return "s-number" };
-  readonly nativeJsValue!: V;
+  readonly nativeJsValue!: V & number;
   readonly metadata!: M;
   constructor(nativeJsValue: V, metadata: M) {
     super();
@@ -933,9 +994,6 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
 // to a reference to an object without effecting the metadata on other references to
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
-  sApply(): never {
-    throw Error("todo sApply on SReferencedObjectValue")
-  }
   wrappedObject: SObjectValue<M, K, S>
 
   addedMetadata: M;
@@ -944,6 +1002,12 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   }
   get metadata(): M {
     return this.wrappedObject.metadata.mixWithReferencedMetadata(this.addedMetadata) as M;
+  }
+  sOwnKeysNative(): (string | symbol)[] {
+    throw new Error("Method not implemented.");
+  }
+  sApply(): never {
+    throw Error("todo sApply on SReferencedObjectValue")
   }
 
   constructor(wrappedObject: SObjectValue<M, K, S>, addedMetadata: M) {

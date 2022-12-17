@@ -188,7 +188,7 @@ function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: Tra
     }
   }
   let sArrayValueInitArgsCode = "[" + allElementsCode + "]";
-  return `new SValues.SArrayObject(${sArrayValueInitArgsCode},sContext)`
+  return `SValues.SArrayObject.create(${sArrayValueInitArgsCode},sContext)`
 };
 function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'const' | 'let' | "var", transpileContext: TranspileContext<any>): string {
   const idType = node.id.type;
