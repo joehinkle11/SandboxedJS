@@ -41,6 +41,7 @@ export function sUnaryTypeOf<M extends MaybeSValueMetadata>(
 
 export function sOwnKeys<M extends MaybeSValueMetadata>(
   this: SValue<M>,
+  sTable: SLocalSymbolTable<M>
 ): SArrayObject<M, SStringValue<M, string> | SSymbolValue<M, symbol>> {
   const array: (SStringValue<M, string> | SSymbolValue<M, symbol>)[] = this.sOwnKeysNative().map((r) => {
     if (typeof r === "string") {
@@ -49,7 +50,7 @@ export function sOwnKeys<M extends MaybeSValueMetadata>(
       return new SValues.SSymbolValue(r, this.metadata);
     }
   });
-  return SValues.SArrayObject.createWithMetadata(array, this.metadata);
+  return SValues.SArrayObject.createWithMetadata(array, this.metadata, sTable);
 }
 
 export function combineMetadata<M extends MaybeSValueMetadata>(

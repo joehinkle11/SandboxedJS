@@ -1,4 +1,4 @@
-import type { SRootSymbolTable } from "../../SLocalSymbolTable";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../AllSValues";
@@ -18,11 +18,12 @@ export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> ex
 
   static createWithMetadata<M extends MaybeSValueMetadata, E extends SValue<M>>(
     array: E[],
-    metadata: M
+    metadata: M,
+    sTable: SLocalSymbolTable<M>
   ): SArrayObject<M, E> {
     const weakSArrayObject: {weakRef?: WeakRef<SArrayObject<M, E>>} = {};
     const proxiedArray = createProxiedNativeArray(array, weakSArrayObject);
-    const sPrototype = new SValues.SNullValue(metadata); // todo: sPrototype
+    const sPrototype = sTable.sGlobalProtocols.ArrayProtocol
     const sArrayObj = new SArrayObject<M, E>(proxiedArray, sPrototype, metadata);
     weakSArrayObject.weakRef = new WeakRef(sArrayObj);
     return sArrayObj;
@@ -30,8 +31,8 @@ export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> ex
 
   static create<M extends MaybeSValueMetadata, E extends SValue<M>>(
     array: E[],
-    mProvider: SMetadataProvider<M>
+    sTable: SLocalSymbolTable<M>
   ): SArrayObject<M, E> {
-    return this.createWithMetadata(array, mProvider.newMetadataForObjectValue());
+    return this.createWithMetadata(array, sTable.newMetadataForObjectValue(), sTable);
   }
 }

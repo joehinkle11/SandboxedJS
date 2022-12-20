@@ -9,11 +9,11 @@ export function sBuiltInObjectConstructor<M extends MaybeSValueMetadata>(
   const s_getOwnPropertyNames = SValues.SFunction.createFromNative(
     Object.getOwnPropertyNames,
     {
-      swizzled_apply_raw(sThis, sArgs, mProvider) {
+      swizzled_apply_raw(sThis, sArgs, sTable) {
         if (sArgs.length === 0) {
           throw SUserError.cannotConvertToObject;
         }
-        return sArgs[0].sOwnKeys();
+        return sArgs[0].sOwnKeys(sTable);
       },
     },
     () => sTable.sGlobalProtocols.FunctionProtocol,

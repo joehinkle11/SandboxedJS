@@ -1,5 +1,5 @@
-import { SLocalSymbolTable } from "../SLocalSymbolTable"
+import { SRootSymbolTable } from "../SLocalSymbolTable"
 import { MaybeSValueMetadata } from "../SValueMetadata"
 
 
-export type InstallBuiltIn<M extends MaybeSValueMetadata> = (sTable: SLocalSymbolTable<M>) => void
+export type InstallBuiltIn<M extends MaybeSValueMetadata> = (sTable: SRootSymbolTable<M>) => void

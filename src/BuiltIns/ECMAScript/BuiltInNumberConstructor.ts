@@ -17,7 +17,6 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
     }
     throw new Error("todo good error could not do extractNativeBoxedNumber");
   }
-  // sTable.sGlobalProtocols.BoxNumber = (num, metadata) => {
   const s_BoxNumber = (num: number, metadata: MaybeSValueMetadata) => {
     const numObj = new Number(num);
     return SValues.SNormalObject.exposeNativeBuiltIn<any, any>(
@@ -58,7 +57,6 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
         } catch (e: any) {
           throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
         }
-        throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
       },
     },
     sTable.sGlobalProtocols.FunctionProtocol,
@@ -75,7 +73,6 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
         } catch (e: any) {
           throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
         }
-        throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
       },
     },
     sTable.sGlobalProtocols.FunctionProtocol,
