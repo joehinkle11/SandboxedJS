@@ -14,9 +14,9 @@ export function sBuiltInObjectPrototype<M extends MaybeSValueMetadata>(
         if (sThis instanceof SValues.SPrimitiveValue) {
           result = Object.prototype.toString.bind(sThis.nativeJsValue)();
         } else if (sThis instanceof SValues.SObjectValue) {
-          result =Object.prototype.toString.bind(sThis.sStorage)();
+          result = Object.prototype.toString.bind(sThis.sStorage)();
         } else {
-          throw new Error("Expect s-value in swizzled_apply_raw of Object.prototype.toString")
+          throw new Error("Expect s-value in swizzled_apply_raw of Object.prototype.toString, not " + sThis + " | " + typeof sThis)
         }
         return new SValues.SStringValue(result, mProvider.newMetadataForRuntimeTimeEmergingValue());
       },

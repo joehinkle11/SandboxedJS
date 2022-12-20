@@ -40,19 +40,19 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
-    return getRight().addingMetadata(this, mProvider);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
+    return getRight().addingMetadata(this, sTable);
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
     return this;
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SSymbolValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
-    if (mProvider.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
+    if (sTable.valueMetadataSystem === null) {
       return this;
     }
-    return new SSymbolValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
+    return new SSymbolValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }

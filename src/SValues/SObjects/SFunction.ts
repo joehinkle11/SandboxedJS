@@ -1,9 +1,7 @@
-import type { SandboxedJSRunner } from "../../Runner";
-import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../AllSValues";
-import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SValue } from "../SValue";
 import type { AnySFunction, SandboxedFunctionCall, UnknownFunction } from "./SFunctionDef";
 import { sApply, sConstruct } from "./SFunctionImpl";
@@ -15,11 +13,11 @@ import { applySwizzleToObj, convertAllPropertiesToSValues } from "./SObjectValue
 export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SObjectValue<M, K, AnySFunction> {
   abstract readonly sStorage: AnySFunction;
   sUnaryTypeOfAsNative(): "function" { return "function" }
-  sApply: (thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>) => SValue<M> = sApply;
+  sApply: (thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>) => SValue<M> = sApply;
 }
 
 export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectValue<M, "function"> {
-  declare getNativeJsValue: (runner: SandboxedJSRunner<M>) => () => {};
+  declare getNativeJsValue: (rootSTable: SRootSymbolTable<M>) => () => {};
   declare readonly sStorage: AnySFunction;
   readonly functionAsString: string;
 

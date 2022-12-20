@@ -14,6 +14,7 @@ import { $$ts } from "ts-macros";
 import { JSTypeOfString } from "./SValueDef";
 import type { SArrayObject } from "./SObjects/SArrayObject";
 import type { SLocalSymbolTable } from "../SLocalSymbolTable";
+import type { ValueMetadataSystem } from "../TranspileContext";
 
 export function sToString<M extends MaybeSValueMetadata>(
   this: SValue<M>,
@@ -54,15 +55,15 @@ export function sOwnKeys<M extends MaybeSValueMetadata>(
 export function combineMetadata<M extends MaybeSValueMetadata>(
   this: SValue<M>,
   anotherValue: SValue<M>,
-  mProvider: SMetadataProvider<M>
+  sTable: SLocalSymbolTable<M>
 ): M {
-  const valueMetadataSystem = mProvider.valueMetadataSystem;
+  const valueMetadataSystem: ValueMetadataSystem<any> | null = sTable.valueMetadataSystem;
   return valueMetadataSystem === null ? undefined : valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue);
 }
 
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
   $$ts!(`
-    const resultingMetadata = this.combineMetadata(right, mProvider);
+    const resultingMetadata = this.combineMetadata(right, sTable);
     const opResult = this.nativeJsValue ${binaryOp} right.nativeJsValue;
     const newSPrimitive = SValues.SPrimitiveValue.newPrimitiveFromJSValue(opResult, resultingMetadata);
     if (newSPrimitive !== null) {
@@ -73,7 +74,7 @@ function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
 }
 function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | ">>>") {
   $$ts!(`
-    const resultingMetadata = this.combineMetadata(right, mProvider);
+    const resultingMetadata = this.combineMetadata(right, sTable);
     const bitwiseResult = this.nativeJsValue ${bitwise} right.nativeJsValue;
     if (typeof bitwiseResult === "number") {
       const newSNumber = new SValues.SNumberValue(bitwiseResult, resultingMetadata);
@@ -93,7 +94,7 @@ function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | "
 
 function $sComparisonOpOnPrimitive(comparison: "==" | "===" | "!=" | "!==" | ">" | "<" | ">=" | "<=") {
   $$ts!(`
-    const resultingMetadata = this.combineMetadata(right, mProvider);
+    const resultingMetadata = this.combineMetadata(right, sTable);
     const comparisonResult = this.nativeJsValue ${comparison} right.nativeJsValue;
     const newSBoolean = new SValues.SBooleanValue(comparisonResult, resultingMetadata);
     if (newSBoolean !== null) {
@@ -104,86 +105,86 @@ function $sComparisonOpOnPrimitive(comparison: "==" | "===" | "!=" | "!==" | ">"
 }
 
 // @ts-expect-error
-export function sBinaryAdd<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
+export function sBinaryAdd<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
   $sBinaryOpOnPrimitives!("+");
 }
 // @ts-expect-error
-export function sBinarySubtract<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
+export function sBinarySubtract<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
   $sBinaryOpOnPrimitives!("-");
 }
 // @ts-expect-error
-export function sBinaryMult<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
+export function sBinaryMult<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
   $sBinaryOpOnPrimitives!("*");
 }
 // @ts-expect-error
-export function sBinaryDiv<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
+export function sBinaryDiv<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
   $sBinaryOpOnPrimitives!("/");
 }
 // @ts-expect-error
-export function sBinaryExpo<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
+export function sBinaryExpo<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
   $sBinaryOpOnPrimitives!("**");
 }
 // @ts-expect-error
-export function sBinaryMod<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SPrimitiveValue<M, any> {
+export function sBinaryMod<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SPrimitiveValue<M, any> {
   $sBinaryOpOnPrimitives!("%");
 }
 // @ts-expect-error
-export function sBitwiseAND<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseAND<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!("&")
 }
 // @ts-expect-error
-export function sBitwiseOR<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseOR<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!("|")
 }
 // @ts-expect-error
-export function sBitwiseNOT<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseNOT<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!("~")
 }
 // @ts-expect-error
-export function sBitwiseXOR<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseXOR<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!("^")
 }
 // @ts-expect-error
-export function sBitwiseLeftShift<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseLeftShift<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!("<<")
 }
 // @ts-expect-error
-export function sBitwiseRightShift<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseRightShift<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!(">>")
 }
 // @ts-expect-error
-export function sBitwiseUnsignedRight<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SNumberValue<M, number> {
+export function sBitwiseUnsignedRight<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SNumberValue<M, number> {
   $sBitwiseOpOnPrimitive!(">>>")
 }
 // @ts-expect-error
-export function sCompEqualValue<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompEqualValue<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("==")
 }
 // @ts-expect-error
-export function sCompEqualValueAndEqualType<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompEqualValueAndEqualType<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("===")
 }
 // @ts-expect-error
-export function sCompNotEqualValue<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompNotEqualValue<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("!=")
 }
 // @ts-expect-error
-export function sCompNotEqualValueAndEqualType<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompNotEqualValueAndEqualType<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("!==")
 }
 // @ts-expect-error
-export function sCompGreaterThan<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompGreaterThan<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!(">")
 }
 // @ts-expect-error
-export function sCompLessThan<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompLessThan<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("<")
 }
 // @ts-expect-error
-export function sCompGreaterThanOrEqualTo<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompGreaterThanOrEqualTo<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!(">=")
 }
 // @ts-expect-error
-export function sCompLessThanOrEqualTo<M extends MaybeSValueMetadata>(right: SValue<M>, mProvider: SMetadataProvider<M>): SBooleanValue<M, boolean> {
+export function sCompLessThanOrEqualTo<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("<=")
 }

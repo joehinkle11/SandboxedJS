@@ -1,11 +1,9 @@
-import type { SMetadataProvider } from "../../SMetadataProvider";
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { MaybeSValueMetadata, SValueMetadata } from "../../SValueMetadata";
 import { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
-import { SStringValue } from "../SPrimitiveValues/SStringValue";
 import type { SValue } from "../SValue";
-import type { JSTypeOfString } from "../SValueDef";
 import { SObjectValue } from "./SObjectValue";
 import { SReferencedObjectValue } from "./SReferencedObjectValue";
 
@@ -32,10 +30,10 @@ export function sUnaryLogicalNot<M extends SValueMetadata>(
 export function addMetadataToPropertyAccess<M extends MaybeSValueMetadata>(
   property: SValue<M>,
   sObject: SObjectValue<M, any, any>,
-  mProvider: SMetadataProvider<M>
+  sTable: SLocalSymbolTable<M>
 ): SReferencedObjectValue<any, any, any> | SPrimitiveValue<M, any> {
   if (property instanceof SPrimitiveValue || property instanceof SReferencedObjectValue) {
-    return property.addingMetadata(sObject, mProvider);
+    return property.addingMetadata(sObject, sTable);
   } else if (property instanceof SObjectValue) {
     return new SReferencedObjectValue(property as SObjectValue<any, any, any>, sObject.metadata);
   } else {

@@ -7,8 +7,7 @@ import { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
 import { SValue } from "../SValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
-import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
-import type { SandboxedJSRunner } from "../../Runner";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 
 export function sGet<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>,
@@ -31,14 +30,15 @@ export function sGet<M extends MaybeSValueMetadata>(
       return sPrimitive;
     }
   } else {
-    // get prototype if needed
-    if (typeof this.sPrototype === "function") {
-      this.sPrototype = this.sPrototype();
-    }
     // check prototype
     if (this.sPrototype instanceof SValues.SObjectValue) {
       return this.sPrototype.sGet(p, receiver, sTable);
     } else {
+      // get prototype if needed
+      if (typeof this.sPrototype === "function") {
+        this.sPrototype = this.sPrototype();
+        return this.sPrototype.sGet(p, receiver, sTable);
+      }
       return new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
     }
   }
@@ -134,12 +134,20 @@ export function convertAllPropertiesToSValues<O extends SObjectProperties, R ext
 export function buildNativeJsValueForSObject<S extends object, O extends SObjectValue<any, any, S>>(
   sObject: O,
   startingElement: S,
-  runner: SandboxedJSRunner<any>
+  rootSTable: SRootSymbolTable<any>
 ): any {
   const proxy = new Proxy(startingElement, {
-    // apply(target, thisArg, argArray) {
-    //   throw Error("SandboxedJS todo proxy s-object apply");
-    // },
+    apply(target, thisArg, argArray) {
+      const sValueArgs: SValue<any>[] = argArray.map((v) => {
+        return 0 as any
+      })
+      const __raw_s_value: SValue<any> | undefined = thisArg.__raw_s_value
+      if (__raw_s_value) {
+        return sObject.sApply(__raw_s_value, sValueArgs, rootSTable).getNativeJsValue(rootSTable);
+      } else {
+        throw new Error("Failed to find an s-value as this.");
+      }
+    },
     // construct(target, argArray, newTarget) {
     //   throw Error("SandboxedJS todo proxy s-object construct");
     // },
@@ -150,15 +158,27 @@ export function buildNativeJsValueForSObject<S extends object, O extends SObject
     //   throw Error("SandboxedJS todo proxy s-object deleteProperty");
     // },
     get(target, p, receiver) {
-      return sObject.sGet(p, receiver, runner.sTable).getNativeJsValue(runner);
+      if (p === "__raw_s_value") {
+        return sObject;
+      }
+      return sObject.sGet(p, receiver, rootSTable).getNativeJsValue(rootSTable);
     },
     // getOwnPropertyDescriptor(target, p) {
     //   return Reflect.getOwnPropertyDescriptor(target, p);
     // },
-    // getPrototypeOf(target) {
-    //   // throw Error("SandboxedJS todo proxy s-object getPrototypeOf");
-    //   return Object.prototype;
-    // },
+    getPrototypeOf(target) {
+      // check prototype
+      if (sObject.sPrototype instanceof SValues.SObjectValue) {
+        return sObject.sPrototype.getNativeJsValue(rootSTable);
+      } else {
+        // get prototype if needed
+        if (typeof sObject.sPrototype === "function") {
+          sObject.sPrototype = sObject.sPrototype();
+          return sObject.sPrototype.getNativeJsValue(rootSTable);
+        }
+        return null;
+      }
+    },
     // has(target, p) {
     //   // return Reflect.has(target, p);
     //   return false;
@@ -182,7 +202,7 @@ export function buildNativeJsValueForSObject<S extends object, O extends SObject
   // Built-In objects cannot be put into a proxy without changing some of their special behavior
   if (sObject.exportNativeJsValueAsCopiedBuiltIn) {
     const copy = structuredClone(startingElement);
-    const nativePrototype = sObject.sPrototype.getNativeJsValue(runner);
+    const nativePrototype = sObject.sPrototype.getNativeJsValue(rootSTable);
     if (nativePrototype !== null) {
       Object.setPrototypeOf(copy, proxy);  
       // basically we will do a little hack to cause it to inherit from two protocols,

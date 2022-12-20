@@ -21,6 +21,8 @@ interface SGlobalProtocols<M extends MaybeSValueMetadata> {
   // BoxNumber: (number: number, metadata: M) => SNormalObject<M>;
 }
 
+export type SRootSymbolTable<M extends MaybeSValueMetadata> = SLocalSymbolTable<M> & {readonly parent: null}
+
 export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetadataProvider<M> {
   
   readonly transpileContext: TranspileContext<M>;
@@ -158,7 +160,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
   duplicateAndEraseMetadata(): SLocalSymbolTable<M> {
     return new SLocalSymbolTable<M>(this.sThis, this.symbols, this, this.transpileContext);
   }
-  static createGlobal<M extends MaybeSValueMetadata>(transpileContext: TranspileContext<M>): SLocalSymbolTable<M> {
-    return new SLocalSymbolTable<M>(new SUndefinedValue(transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue()), {}, null, transpileContext);
+  static createGlobal<M extends MaybeSValueMetadata>(transpileContext: TranspileContext<M>): SRootSymbolTable<M> {
+    return new SLocalSymbolTable<M>(new SUndefinedValue(transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue()), {}, null, transpileContext) as SRootSymbolTable<M>;
   }
 }

@@ -1,4 +1,4 @@
-import type { SandboxedJSRunner } from "../../Runner";
+import type { SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../AllSValues";
@@ -9,7 +9,7 @@ import { SNonFunctionObjectValue } from "./SNonFunctionObjectValue";
 import type { SPrototypeType } from "./SObjectValueDef";
 
 export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> extends SNonFunctionObjectValue<M, "array", SProxiedNativeArray<E, M>> {
-  declare getNativeJsValue: (runner: SandboxedJSRunner<M>) => any[];
+  declare getNativeJsValue: (rootSTable: SRootSymbolTable<M>) => any[];
   declare readonly sStorage: SProxiedNativeArray<E, M>;
 
   private constructor(sStorage: SProxiedNativeArray<E, M>, sPrototype: SPrototypeType, metadata: M) {

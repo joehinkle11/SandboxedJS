@@ -14,8 +14,8 @@ export function sBuiltInFunctionPrototype<M extends MaybeSValueMetadata>(
         const thingToBind = sArgs[0];
         if (sThis instanceof SValues.SFunction) {
           const sFuncToCall = sThis;
-          return SValues.SFunction.create((sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>) => {
-            return sFuncToCall.sApply(thingToBind, sArgs, mProvider);
+          return SValues.SFunction.create((sThisArg: SValue<any>, sArgArray: SValue<any>[], sTable: SLocalSymbolTable<any>) => {
+            return sFuncToCall.sApply(thingToBind, sArgs, sTable);
           }, sThis.functionAsString, mProvider);
         }
         throw new Error("Err expected function here")

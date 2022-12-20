@@ -2,12 +2,12 @@ import { transpile } from "./Transpile";
 import { SValues as SValuesImported } from "./SValues/AllSValues";const SValues = SValuesImported;
 import { RunnerBuiltIns, TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
-import { SLocalSymbolTable } from "./SLocalSymbolTable";
+import { SLocalSymbolTable, SRootSymbolTable } from "./SLocalSymbolTable";
 import { installEcmaScript } from "./BuiltIns/BuiltInECMAScript";
 import { SValue } from "./SValues/SValue";
 
 export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
-  readonly sTable: SLocalSymbolTable<M>;
+  readonly sTable: SRootSymbolTable<M>;
   private readonly transpileContext: TranspileContext<M>;
 
   private constructor(transpileContextSetup: TranspileContextSetup<M>) {
@@ -58,7 +58,7 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
       throw [e, new Error("Transpiled code:\n\n" + transpiledJsCode)];
     }
     if (asNativeJs) {
-      return sResult.getNativeJsValue(this);
+      return sResult.getNativeJsValue(this.sTable);
     } else {
       return sResult;
     }

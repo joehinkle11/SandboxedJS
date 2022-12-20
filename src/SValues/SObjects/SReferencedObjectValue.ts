@@ -1,8 +1,7 @@
 
 // Everything passes through this object, is used to make it possible to add metadata
 // to a reference to an object without effecting the metadata on other references to
-import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
-import type { SMetadataProvider } from "../../SMetadataProvider";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SValueMetadata } from "../../SValueMetadata";
 import { SValue } from "../SValue";
 import type { SValueKind } from "../SValueDef";
@@ -10,15 +9,14 @@ import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage } from "./SObjectValueDef";
 import { sUnaryNegate, sUnaryMakePositive, sUnaryLogicalNot } from "./SReferencedObjectValueImpl";
-import type { SandboxedJSRunner } from "../../Runner";
 
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
   wrappedObject: SObjectValue<M, K, S>
 
   addedMetadata: M;
-  getNativeJsValue(runner: SandboxedJSRunner<M>): any {
-    return this.wrappedObject.getNativeJsValue(runner);
+  getNativeJsValue(rootSTable: SRootSymbolTable<M>): any {
+    return this.wrappedObject.getNativeJsValue(rootSTable);
   }
   get metadata(): M {
     return this.wrappedObject.metadata.mixWithReferencedMetadata(this.addedMetadata) as M;
@@ -51,10 +49,10 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
-    return getRight().addingMetadata(this, mProvider);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
+    return getRight().addingMetadata(this, sTable);
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
     return this;
   }
   sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
@@ -69,7 +67,7 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
     // todo: add proper metadata
     return this.wrappedObject.sSet(p, newValue, receiver);
   }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
+  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     throw new Error("Method not implemented.");
   }
 }

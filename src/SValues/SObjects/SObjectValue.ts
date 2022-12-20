@@ -1,9 +1,7 @@
-import type { SandboxedJSRunner } from "../../Runner";
-import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
-import type { SMetadataProvider } from "../../SMetadataProvider";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
+import type { ValueMetadataSystem } from "../../TranspileContext";
 import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
-import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SValue } from "../SValue";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList, BaseSObjectStorage, SPrototypeType } from "./SObjectValueDef";
@@ -18,9 +16,10 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   exportNativeJsValueAsCopiedBuiltIn: boolean;
 
   #actualNativeJsValue: any | undefined;
-  getNativeJsValue(runner: SandboxedJSRunner<M>): object {
-    return this.#actualNativeJsValue ?? (this.#actualNativeJsValue = buildNativeJsValueForSObject<any, any>(this, this.sStorage, runner));
+  getNativeJsValue(rootSTable: SRootSymbolTable<M>): object {
+    return this.#actualNativeJsValue ?? (this.#actualNativeJsValue = buildNativeJsValueForSObject<any, any>(this, this.sStorage, rootSTable));
   }
+  get nativeJsValue(): any { return this.sStorage }
 
   constructor(sStorage: S & object, sPrototype: SPrototypeType, metadata: M, exportNativeJsValueAsCopiedBuiltIn: boolean) {
     super();
@@ -48,17 +47,17 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
-    return getRight().addingMetadata(this, mProvider);
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
+    return getRight().addingMetadata(this, sTable);
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
     return this;
   }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
-    if (mProvider.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
+    if (sTable.valueMetadataSystem === null) {
       return this;
     }
-    this.metadata = mProvider.valueMetadataSystem.newMetadataForCombiningValues(this, anotherValue)
+    this.metadata = (sTable.valueMetadataSystem as ValueMetadataSystem<any>).newMetadataForCombiningValues(this, anotherValue)
     return this;
   }
 }

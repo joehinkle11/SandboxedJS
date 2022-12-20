@@ -11,7 +11,7 @@ import type { SObjectValue } from "./SObjectValue";
 export function sApply<M extends MaybeSValueMetadata>(
   this: SFunctionObjectValue<M, any>,
   thisArg: SValue<M>, args: SValue<M>[],
-  mProvider: SMetadataProvider<M>
+  sTable: SLocalSymbolTable<M>
 ): SValue<M> {
   // if (this.sSwizzleAndWhiteList !== undefined) {
   //   const sSwizzleAndWhiteList = this.sSwizzleAndWhiteList as SObjectSwizzleAndWhiteList<UnknownFunction>
@@ -24,7 +24,7 @@ export function sApply<M extends MaybeSValueMetadata>(
   //   throw new Error(`Todo: convert native result ${nativeJsResult} to sandboxed value`);
   // }
   // throw new Error("todo sApply");
-  return (this.sStorage as SandboxedFunctionCall)(thisArg, args, mProvider);
+  return (this.sStorage as SandboxedFunctionCall)(thisArg, args, sTable);
 }
 
 export function sConstruct<M extends MaybeSValueMetadata>(

@@ -1,4 +1,4 @@
-import type { SandboxedJSRunner } from "../../Runner";
+import type { SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SNonFunctionObjectValue } from "./SNonFunctionObjectValue";
@@ -6,7 +6,7 @@ import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList,
 import { applySwizzleToObj } from "./SObjectValueImpl";
 
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
-  declare getNativeJsValue: (runner: SandboxedJSRunner<M>) => any;
+  declare getNativeJsValue: (rootSTable: SRootSymbolTable<M>) => any;
   declare readonly sStorage: BaseSObjectStorage;
 
   private constructor(

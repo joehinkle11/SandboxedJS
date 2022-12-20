@@ -26,14 +26,14 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sUnaryTypeOfAsNative(): "undefined" {
     return "undefined";
   }
-  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
-    return getRight().addingMetadata(this, mProvider);
+  sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
+    return getRight().addingMetadata(this, sTable);
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this {
     return this;
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): RSValue {
-    return getRight().addingMetadata(this, mProvider);
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
+    return getRight().addingMetadata(this, sTable);
   }
   sChainExpression(): SUndefinedValue<M> {
     return this;
@@ -41,11 +41,11 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SUndefinedValue prototype");
   }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
-    if (mProvider.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
+    if (sTable.valueMetadataSystem === null) {
       return this;
     }
-    return new SUndefinedValue(this.combineMetadata(anotherValue, mProvider)) as this;
+    return new SUndefinedValue(this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
 

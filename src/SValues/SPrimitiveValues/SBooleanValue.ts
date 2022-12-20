@@ -39,18 +39,18 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
     const r = (this.nativeJsValue as boolean) && "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, mProvider);
+      return getRight().addingMetadata(this, sTable);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
     const r = (this.nativeJsValue as boolean) || "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, mProvider);
+      return getRight().addingMetadata(this, sTable);
     } else {
       return this;
     }
@@ -59,10 +59,10 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     // auto-boxing
     return sTable.sGlobalProtocols.BooleanProtocol.sGet(p, receiver, sTable);
   }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
-    if (mProvider.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
+    if (sTable.valueMetadataSystem === null) {
       return this;
     }
-    return new SBooleanValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
+    return new SBooleanValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }

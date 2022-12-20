@@ -37,18 +37,18 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sLogicalNullish(): this {
     return this;
   }
-  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
+  sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
     const r = (this.nativeJsValue as number) && "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, mProvider);
+      return getRight().addingMetadata(this, sTable);
     } else {
       return this;
     }
   }
-  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
+  sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): this | RSValue {
     const r = (this.nativeJsValue as number) || "right";
     if (r === "right") {
-      return getRight().addingMetadata(this, mProvider);
+      return getRight().addingMetadata(this, sTable);
     } else {
       return this;
     }
@@ -57,10 +57,10 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     // auto-boxing
     return sTable.sGlobalProtocols.NumberProtocol.sGet(p, receiver, sTable);
   }
-  addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
-    if (mProvider.valueMetadataSystem === null) {
+  addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
+    if (sTable.valueMetadataSystem === null) {
       return this;
     }
-    return new SNumberValue(this.nativeJsValue, this.combineMetadata(anotherValue, mProvider)) as this;
+    return new SNumberValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
 }
