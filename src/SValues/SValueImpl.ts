@@ -64,7 +64,7 @@ export function combineMetadata<M extends MaybeSValueMetadata>(
 function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
   $$ts!(`
     const resultingMetadata = this.combineMetadata(right, sTable);
-    const opResult = this.nativeJsValue ${binaryOp} right.nativeJsValue;
+    const opResult = this.getNativeJsValue(sTable) ${binaryOp} right.getNativeJsValue(sTable);
     const newSPrimitive = SValues.SPrimitiveValue.newPrimitiveFromJSValue(opResult, resultingMetadata);
     if (newSPrimitive !== null) {
       return newSPrimitive;
@@ -75,7 +75,7 @@ function $sBinaryOpOnPrimitives(binaryOp: "+" | "-" | "*" | "/" | "**" | "%") {
 function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | ">>>") {
   $$ts!(`
     const resultingMetadata = this.combineMetadata(right, sTable);
-    const bitwiseResult = this.nativeJsValue ${bitwise} right.nativeJsValue;
+    const bitwiseResult = this.getNativeJsValue(sTable) ${bitwise} right.getNativeJsValue(sTable);
     if (typeof bitwiseResult === "number") {
       const newSNumber = new SValues.SNumberValue(bitwiseResult, resultingMetadata);
       if (newSNumber !== null) {
@@ -95,7 +95,7 @@ function $sBitwiseOpOnPrimitive(bitwise: "&" | "|" | "~" | "^" | "<<" | ">>" | "
 function $sComparisonOpOnPrimitive(comparison: "==" | "===" | "!=" | "!==" | ">" | "<" | ">=" | "<=") {
   $$ts!(`
     const resultingMetadata = this.combineMetadata(right, sTable);
-    const comparisonResult = this.nativeJsValue ${comparison} right.nativeJsValue;
+    const comparisonResult = this.getNativeJsValue(sTable) ${comparison} right.getNativeJsValue(sTable);
     const newSBoolean = new SValues.SBooleanValue(comparisonResult, resultingMetadata);
     if (newSBoolean !== null) {
       return newSBoolean;

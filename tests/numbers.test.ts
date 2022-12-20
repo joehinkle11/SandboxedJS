@@ -10,12 +10,12 @@ describe('basic numbers', () => {
   testSafeEvalAgainstNative("-1.2");
   testSafeEvalAgainstNative("NaN");
   testSafeEvalAgainstNative("Infinity");
-  testSafeEvalAgainstNative("-Infinity");
+  testSafeEvalAgainstNative("(-Infinity)");
 });
 describe('basic math operators', () => {
   testSafeEvalAgainstNative("+1");
   testSafeEvalAgainstNative("+NaN");
-  testSafeEvalAgainstNative("+Infinity");
+  testSafeEvalAgainstNative("(+Infinity)");
   testSafeEvalAgainstNative('+-+-+Infinity');
   testSafeEvalAgainstNative('-+-+-+-5.4');
   testSafeEvalAgainstNative('1 + 1');
