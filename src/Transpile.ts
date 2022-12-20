@@ -368,7 +368,7 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
   if (compoundAssignmentOperatorsWork === null) {
     rightCode = baseRightCode;
   } else {
-    let getterCode = `${contextLookup}.sGet("${keyToLookup}",'todo-receiver',sContext)`
+    let getterCode = `${contextLookup}.sGet(${keyToLookup},'todo-receiver',sContext)`
     rightCode = `${getterCode}.${compoundAssignmentOperatorsWork}(${baseRightCode},sContext)`
   }
   return `${contextLookup}.sSet(${keyToLookup},${rightCode}, "todo-receiver")`;

@@ -1,4 +1,5 @@
 import { SLocalSymbolTable } from "../SLocalSymbolTable";
+import { sBuiltInBooleanConstructor } from "./ECMAScript/BuiltInBooleanConstructor";
 import { sBuiltInFunctionPrototype } from "./ECMAScript/BuiltInFunctionPrototype";
 import { sBuiltInNumberConstructor } from "./ECMAScript/BuiltInNumberConstructor";
 import { sBuiltInObjectConstructor } from "./ECMAScript/BuiltInObjectConstructor";
@@ -10,4 +11,5 @@ export const installEcmaScript: InstallBuiltIn<any> = (sTable: SLocalSymbolTable
   sBuiltInFunctionPrototype(sTable);
   sBuiltInObjectConstructor(sTable);
   sBuiltInNumberConstructor(sTable);
+  sBuiltInBooleanConstructor(sTable);
 }

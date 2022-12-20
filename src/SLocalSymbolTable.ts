@@ -17,6 +17,7 @@ interface SGlobalProtocols<M extends MaybeSValueMetadata> {
   ObjectProtocol: SNormalObject<M>;
   FunctionProtocol: SNormalObject<M>;
   NumberProtocol: SNormalObject<M>;
+  BooleanProtocol: SNormalObject<M>;
   // BoxNumber: (number: number, metadata: M) => SNormalObject<M>;
 }
 
@@ -93,6 +94,10 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
         return newValue;
       }
     }
+  }
+  sSet<T extends SValue<M>>(p: string, newValue: T, receiver: SValue<M>): T {
+    this.assign(p, newValue, "update");
+    return newValue;
   }
   sGet(p: string, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     const entry = this.symbols[p];

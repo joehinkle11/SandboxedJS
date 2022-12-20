@@ -3,37 +3,36 @@ import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../../SValues/AllSValues";
-import type { SNumberValue } from "../../SValues/SPrimitiveValues/SNumberValue";
+import type { SBooleanValue } from "../../SValues/SPrimitiveValues/SBooleanValue";
 import type { SValue } from "../../SValues/SValue";
 
-export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
+export function sBuiltInBooleanConstructor<M extends MaybeSValueMetadata>(
   sTable: SLocalSymbolTable<M>
 ) {
-  const extractNativeBoxedNumber = (value: SValue<any>) => {
-    if (value instanceof SValues.SNumberValue) {
-      return new Number(value.nativeJsValue);
+  const extractNativeBoxedBoolean = (value: SValue<any>) => {
+    if (value instanceof SValues.SBooleanValue) {
+      return new Boolean(value.nativeJsValue);
     } else if (value instanceof SValues.SObjectValue) {
       return value.sStorage;
     }
-    throw new Error("todo good error could not do extractNativeBoxedNumber");
+    throw new Error("todo good error could not do extractNativeBoxedBoolean");
   }
-  // sTable.sGlobalProtocols.BoxNumber = (num, metadata) => {
-  const s_BoxNumber = (num: number, metadata: MaybeSValueMetadata) => {
-    const numObj = new Number(num);
+  const s_BoxBoolean = (bool: boolean, metadata: MaybeSValueMetadata) => {
+    const boolObj = new Boolean(bool);
     return SValues.SNormalObject.exposeNativeBuiltIn<any, any>(
-      numObj,
-      sTable.sGlobalProtocols.NumberProtocol,
+      boolObj,
+      sTable.sGlobalProtocols.BooleanProtocol,
       metadata,
     );
   }
-  sTable.assign("Number", SValues.SFunction.createFromNative(
-    Number as NumberConstructor & Function,
+  sTable.assign("Boolean", SValues.SFunction.createFromNative(
+    Boolean as BooleanConstructor & Function,
     {
       swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>): SValue<any> {
         // todo: safety
-        const sNum = sArgArray[0] as SNumberValue<M, number>;
-        return s_BoxNumber(
-          sNum.nativeJsValue,
+        const sBool = sArgArray[0] as SBooleanValue<M, boolean>;
+        return s_BoxBoolean(
+          sBool.nativeJsValue,
           mProvider.newMetadataForRuntimeTimeEmergingValue()
         );
       }
@@ -42,47 +41,41 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
     sTable.newMetadataForCompileTimeLiteral()
   ), "const");
 
-  const s_toString = SValues.SFunction.createFromNative(
-    Number.prototype.toString,
+  const s_valueOf = SValues.SFunction.createFromNative(
+    Boolean.prototype.valueOf,
     {
       swizzled_apply_raw(sThis, sArgs, mProvider) {
         try {
-          let arg: number | undefined;
-          const sArg = sArgs[0];
-          if (sArg instanceof SValues.SNumberValue) {
-            arg = sArg.nativeJsValue;
-          }
-          const boxedNum = extractNativeBoxedNumber(sThis);
-          const str = Number.prototype.toString.bind(boxedNum)(arg);
+          const boxedBool = extractNativeBoxedBoolean(sThis);
+          const bool = Boolean.prototype.valueOf.bind(boxedBool)();
+          return new SValues.SBooleanValue(bool, mProvider.newMetadataForRuntimeTimeEmergingValue());
+        } catch (e: any) {
+          throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
+        }
+        throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
+      },
+    },
+    new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
+    sTable.newMetadataForCompileTimeLiteral()
+  );
+  const s_toString = SValues.SFunction.createFromNative(
+    (Boolean.prototype as ExtraBooleanDefs).toString,
+    {
+      swizzled_apply_raw(sThis, sArgs, mProvider) {
+        try {
+          const boxedBool = extractNativeBoxedBoolean(sThis);
+          const str = Boolean.prototype.toString.bind(boxedBool)();
           return new SValues.SStringValue(str, mProvider.newMetadataForRuntimeTimeEmergingValue());
         } catch (e: any) {
           throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
         }
-        throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
       },
     },
     new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
     sTable.newMetadataForCompileTimeLiteral()
   );
-  const s_valueOf = SValues.SFunction.createFromNative(
-    Number.prototype.valueOf,
-    {
-      swizzled_apply_raw(sThis, sArgs, mProvider) {
-        try {
-          const boxedNum = extractNativeBoxedNumber(sThis);
-          const num = Number.prototype.valueOf.bind(boxedNum)();
-          return new SValues.SNumberValue(num, mProvider.newMetadataForRuntimeTimeEmergingValue());
-        } catch (e: any) {
-          throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
-        }
-        throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
-      },
-    },
-    new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
-    sTable.newMetadataForCompileTimeLiteral()
-  );
-  sTable.sGlobalProtocols.NumberProtocol = SValues.SNormalObject.createFromNative(
-    Number.prototype,
+  sTable.sGlobalProtocols.BooleanProtocol = SValues.SNormalObject.createFromNative(
+    Boolean.prototype as ExtraBooleanDefs & Boolean,
     {
       swizzle_static_valueOf: s_valueOf,
       swizzle_static_toString: s_toString
@@ -90,4 +83,10 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
     sTable.sGlobalProtocols.ObjectProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
+}
+
+// typescript is missing some definitions
+
+declare interface ExtraBooleanDefs {
+  toString(): string;
 }

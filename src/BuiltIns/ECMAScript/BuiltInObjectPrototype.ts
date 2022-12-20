@@ -10,8 +10,14 @@ export function sBuiltInObjectPrototype<M extends MaybeSValueMetadata>(
     Object.prototype.toString,
     {
       swizzled_apply_raw(sThis, sArgs, mProvider) {
-        // todo
-        return new SValues.SStringValue(sThis.toString(), mProvider.newMetadataForRuntimeTimeEmergingValue());
+        let result: string;
+        if (sThis instanceof SValues.SPrimitiveValue) {
+          result = Object.prototype.toString.bind(sThis.nativeJsValue)();
+        } else {
+          // return Object.prototype.toString.bind(sThis.nativeJsValue)();
+          result = "idkkk";
+        }
+        return new SValues.SStringValue(result, mProvider.newMetadataForRuntimeTimeEmergingValue());
       },
     },
     new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function

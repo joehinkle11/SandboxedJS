@@ -56,7 +56,8 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     }
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
-    throw Error("Todo: sGet on SBoolean prototype");
+    // auto-boxing
+    return sTable.sGlobalProtocols.BooleanProtocol.sGet(p, receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
     if (mProvider.valueMetadataSystem === null) {

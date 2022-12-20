@@ -22,6 +22,9 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     this.metadata = metadata;
     Object.freeze(this);
   }
+  sToPropertyKey: () => string = () => {
+    return this.nativeJsValue;
+  }
   sUnaryNegate(): SNumberValue<M, number> {
     const stringMadeNegative = -this.nativeJsValue;
     return new SNumberValue(stringMadeNegative, this.metadata);
