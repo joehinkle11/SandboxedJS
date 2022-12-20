@@ -3,36 +3,36 @@ import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../../SValues/AllSValues";
-import type { SBooleanValue } from "../../SValues/SPrimitiveValues/SBooleanValue";
+import type { SStringValue } from "../../SValues/SPrimitiveValues/SStringValue";
 import type { SValue } from "../../SValues/SValue";
 
-export function sBuiltInBooleanConstructor<M extends MaybeSValueMetadata>(
+export function sBuiltInStringConstructor<M extends MaybeSValueMetadata>(
   sTable: SLocalSymbolTable<M>
 ) {
-  const extractNativeBoxedBoolean = (value: SValue<any>) => {
-    if (value instanceof SValues.SBooleanValue) {
-      return new Boolean(value.nativeJsValue);
+  const extractNativeBoxedString = (value: SValue<any>) => {
+    if (value instanceof SValues.SStringValue) {
+      return new String(value.nativeJsValue);
     } else if (value instanceof SValues.SObjectValue) {
       return value.sStorage;
     }
-    throw new Error("todo good error could not do extractNativeBoxedBoolean");
+    throw new Error("todo good error could not do extractNativeBoxedString");
   }
-  const s_BoxBoolean = (bool: boolean, metadata: MaybeSValueMetadata) => {
-    const boolObj = new Boolean(bool);
+  const s_BoxString = (str: string, metadata: MaybeSValueMetadata) => {
+    const strObj = new String(str);
     return SValues.SNormalObject.exposeNativeBuiltIn<any, any>(
-      boolObj,
-      sTable.sGlobalProtocols.BooleanProtocol,
+      strObj,
+      sTable.sGlobalProtocols.StringProtocol,
       metadata,
     );
   }
-  sTable.assign("Boolean", SValues.SFunction.createFromNative(
-    Boolean as BooleanConstructor,
+  sTable.assign("String", SValues.SFunction.createFromNative(
+    String as StringConstructor,
     {
       swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>): SValue<any> {
         // todo: safety
-        const sBool = sArgArray[0] as SBooleanValue<M, boolean>;
-        return s_BoxBoolean(
-          sBool.nativeJsValue,
+        const sStr = sArgArray[0] as SStringValue<M, string>;
+        return s_BoxString(
+          sStr.nativeJsValue,
           mProvider.newMetadataForRuntimeTimeEmergingValue()
         );
       }
@@ -42,29 +42,28 @@ export function sBuiltInBooleanConstructor<M extends MaybeSValueMetadata>(
   ), "const");
 
   const s_valueOf = SValues.SFunction.createFromNative(
-    Boolean.prototype.valueOf,
+    String.prototype.valueOf,
     {
       swizzled_apply_raw(sThis, sArgs, mProvider) {
         try {
-          const boxedBool = extractNativeBoxedBoolean(sThis);
-          const bool = Boolean.prototype.valueOf.bind(boxedBool)();
-          return new SValues.SBooleanValue(bool, mProvider.newMetadataForRuntimeTimeEmergingValue());
+          const boxedStr = extractNativeBoxedString(sThis);
+          const str = String.prototype.valueOf.bind(boxedStr)();
+          return new SValues.SStringValue(str, mProvider.newMetadataForRuntimeTimeEmergingValue());
         } catch (e: any) {
           throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
         }
-        throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
       },
     },
     () => sTable.sGlobalProtocols.FunctionProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
   const s_toString = SValues.SFunction.createFromNative(
-    (Boolean.prototype as ExtraBooleanDefs).toString,
+    String.prototype.toString,
     {
       swizzled_apply_raw(sThis, sArgs, mProvider) {
         try {
-          const boxedBool = extractNativeBoxedBoolean(sThis);
-          const str = Boolean.prototype.toString.bind(boxedBool)();
+          const boxedStr = extractNativeBoxedString(sThis);
+          const str = String.prototype.toString.bind(boxedStr)();
           return new SValues.SStringValue(str, mProvider.newMetadataForRuntimeTimeEmergingValue());
         } catch (e: any) {
           throw new Error("todo sensible error2 swizzled_apply_raw " + e.toString());
@@ -74,8 +73,8 @@ export function sBuiltInBooleanConstructor<M extends MaybeSValueMetadata>(
     sTable.sGlobalProtocols.FunctionProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
-  sTable.sGlobalProtocols.BooleanProtocol = SValues.SNormalObject.createFromNative(
-    Boolean.prototype as ExtraBooleanDefs & Boolean,
+  sTable.sGlobalProtocols.StringProtocol = SValues.SNormalObject.createFromNative(
+    String.prototype,
     {
       swizzle_static_valueOf: s_valueOf,
       swizzle_static_toString: s_toString
@@ -83,10 +82,4 @@ export function sBuiltInBooleanConstructor<M extends MaybeSValueMetadata>(
     sTable.sGlobalProtocols.ObjectProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
-}
-
-// typescript is missing some definitions
-
-declare interface ExtraBooleanDefs {
-  toString(): string;
 }

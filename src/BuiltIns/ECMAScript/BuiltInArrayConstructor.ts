@@ -3,6 +3,7 @@ import type { SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../../SValues/AllSValues";
+import type { SArrayObject } from "../../SValues/SObjects/SArrayObject";
 import type { SNumberValue } from "../../SValues/SPrimitiveValues/SNumberValue";
 import type { SValue } from "../../SValues/SValue";
 
@@ -77,4 +78,36 @@ export function sBuiltInArrayConstructor<M extends MaybeSValueMetadata>(
     sTable.sGlobalProtocols.ObjectProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
+  sTable.sGlobalProtocols.ArrayProtocol.sUnaryMakePositiveInternal = (self) => {
+    if (self instanceof SValues.SArrayObject) {
+      const length: unknown = self.sStorage.length.nativeJsValue
+      if (typeof length === "number") {
+        if (length > 1) {
+          return new SValues.SNumberValue(NaN, self.metadata);
+        } else if (length === 1) {
+          const firstEl: SValue<any> = self.sStorage[0]
+          return firstEl.sUnaryMakePositive();
+        } else {
+          return new SValues.SNumberValue(0, self.metadata);
+        }
+      }
+    }
+    throw SUserError.cannotConvertObjectToPrimitive;
+  }
+  sTable.sGlobalProtocols.ArrayProtocol.sUnaryNegateInternal = (self) => {
+    if (self instanceof SValues.SArrayObject) {
+      const length: unknown = self.sStorage.length.nativeJsValue
+      if (typeof length === "number") {
+        if (length > 1) {
+          return new SValues.SNumberValue(NaN, self.metadata);
+        } else if (length === 1) {
+          const firstEl: SValue<any> = self.sStorage[0]
+          return firstEl.sUnaryNegate();
+        } else {
+          return new SValues.SNumberValue(-0, self.metadata);
+        }
+      }
+    }
+    throw SUserError.cannotConvertObjectToPrimitive;
+  }
 }

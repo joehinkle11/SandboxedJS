@@ -59,7 +59,15 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     }
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
-    throw Error("Todo: sGet on SStringValue prototype");
+    if (typeof p === "string") {
+      const num = parseInt(p);
+      if (num >= 0) {
+        const result = this.nativeJsValue[num];
+        return new SStringValue(result, this.metadata);
+      }
+    }
+    // auto-boxing
+    return sTable.sGlobalProtocols.StringProtocol.sGet(p, receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     if (sTable.valueMetadataSystem === null) {

@@ -1,7 +1,8 @@
 import SUserError from "../../Models/SUserError";
-import { SLocalSymbolTable } from "../../SLocalSymbolTable";
-import { MaybeSValueMetadata } from "../../SValueMetadata";
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
+import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../../SValues/AllSValues";
+import type { SNumberValue } from "../../SValues/SPrimitiveValues/SNumberValue";
 
 export function sBuiltInObjectPrototype<M extends MaybeSValueMetadata>(
   sTable: SLocalSymbolTable<M>
@@ -33,4 +34,10 @@ export function sBuiltInObjectPrototype<M extends MaybeSValueMetadata>(
     new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()),
     sTable.newMetadataForCompileTimeLiteral()
   );
+  sTable.sGlobalProtocols.ObjectProtocol.sUnaryMakePositiveInternal = (self) => {
+    return new SValues.SNumberValue(NaN, self.metadata);
+  }
+  sTable.sGlobalProtocols.ObjectProtocol.sUnaryNegateInternal = (self) => {
+    return new SValues.SNumberValue(NaN, self.metadata);
+  }
 }

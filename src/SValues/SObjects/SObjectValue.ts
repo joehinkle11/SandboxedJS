@@ -29,6 +29,8 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     this.metadata = metadata;
     this.exportNativeJsValueAsCopiedBuiltIn = exportNativeJsValueAsCopiedBuiltIn;
   }
+  sUnaryNegateInternal: ((self: SObjectValue<M, any, any>) => SValue<M>) | undefined = undefined;
+  sUnaryMakePositiveInternal: ((self: SObjectValue<M, any, any>) => SValue<M>) | undefined = undefined;
   sOwnKeysNative(): (string | symbol)[] {
     return Reflect.ownKeys(this.sStorage);
   }
@@ -41,8 +43,8 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     return this.sGet(p, this, sTable);
   }
   abstract sUnaryTypeOfAsNative(): "object" | "function";
-  sUnaryNegate: () => SNumberValue<M, typeof NaN> = sUnaryNegate;
-  sUnaryMakePositive: () => SNumberValue<M, typeof NaN> = sUnaryMakePositive;
+  sUnaryNegate: () => SValue<M> = sUnaryNegate;
+  sUnaryMakePositive: () => SValue<M> = sUnaryMakePositive;
   sUnaryLogicalNot: () => SBooleanValue<M, false> = sUnaryLogicalNot;
   sLogicalNullish(): this {
     return this;

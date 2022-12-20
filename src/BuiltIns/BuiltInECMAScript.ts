@@ -5,6 +5,7 @@ import { sBuiltInFunctionPrototype } from "./ECMAScript/BuiltInFunctionPrototype
 import { sBuiltInNumberConstructor } from "./ECMAScript/BuiltInNumberConstructor";
 import { sBuiltInObjectConstructor } from "./ECMAScript/BuiltInObjectConstructor";
 import { sBuiltInObjectPrototype } from "./ECMAScript/BuiltInObjectPrototype";
+import { sBuiltInStringConstructor } from "./ECMAScript/BuiltInStringConstructor";
 import { InstallBuiltIn } from "./InstallBuiltIn";
 
 export const installEcmaScript: InstallBuiltIn<any> = (sTable: SRootSymbolTable<any>) => {
@@ -14,4 +15,5 @@ export const installEcmaScript: InstallBuiltIn<any> = (sTable: SRootSymbolTable<
   sBuiltInNumberConstructor(sTable);
   sBuiltInBooleanConstructor(sTable);
   sBuiltInArrayConstructor(sTable);
+  sBuiltInStringConstructor(sTable);
 }

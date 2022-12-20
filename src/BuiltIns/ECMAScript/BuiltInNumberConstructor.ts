@@ -26,7 +26,7 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
     );
   }
   sTable.assign("Number", SValues.SFunction.createFromNative(
-    Number as NumberConstructor & Function,
+    Number as NumberConstructor,
     {
       swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>): SValue<any> {
         // todo: safety
@@ -35,7 +35,15 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
           sNum.nativeJsValue,
           mProvider.newMetadataForRuntimeTimeEmergingValue()
         );
-      }
+      },
+      whitelist_MAX_VALUE: true,
+      whitelist_MIN_VALUE: true,
+      whitelist_EPSILON: true,
+      whitelist_NaN: true,
+      whitelist_MAX_SAFE_INTEGER: true,
+      whitelist_MIN_SAFE_INTEGER: true,
+      whitelist_NEGATIVE_INFINITY: true,
+      whitelist_POSITIVE_INFINITY: true,
     },
     new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
     sTable.newMetadataForCompileTimeLiteral()

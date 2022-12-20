@@ -1,4 +1,4 @@
-import { SMetadataProvider } from "../../SMetadataProvider";
+import type { SMetadataProvider } from "../../SMetadataProvider";
 import { SValues } from "../AllSValues";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
@@ -8,6 +8,8 @@ import { SValue } from "../SValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
+import type { SNullValue } from "../SPrimitiveValues/SNullValue";
+import SUserError from "../../Models/SUserError";
 
 export function sGet<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>,
@@ -46,13 +48,29 @@ export function sGet<M extends MaybeSValueMetadata>(
 
 export function sUnaryNegate<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>
-): SNumberValue<M, typeof NaN> {
-  return new SValues.SNumberValue(NaN, this.metadata);
+): SValue<M> {
+  let p: SObjectValue<M, any, any> | SNullValue<M> = this;
+  while (p instanceof SValues.SObjectValue) {
+    const sUnaryNegateInternal = p.sUnaryNegateInternal;
+    if (sUnaryNegateInternal !== undefined) {
+      return sUnaryNegateInternal(this);
+    }
+    p = p.sPrototype;
+  }
+  throw SUserError.cannotConvertObjectToPrimitive;
 };
 export function sUnaryMakePositive<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>
-): SNumberValue<M, typeof NaN> {
-  return new SValues.SNumberValue(NaN, this.metadata);
+): SValue<M> {
+  let p: SObjectValue<M, any, any> | SNullValue<M> = this;
+  while (p instanceof SValues.SObjectValue) {
+    const sUnaryMakePositiveInternal = p.sUnaryMakePositiveInternal;
+    if (sUnaryMakePositiveInternal !== undefined) {
+      return sUnaryMakePositiveInternal(this);
+    }
+    p = p.sPrototype;
+  }
+  throw SUserError.cannotConvertObjectToPrimitive;
 };
 export function sUnaryLogicalNot<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>

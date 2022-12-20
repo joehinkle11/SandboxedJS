@@ -19,24 +19,26 @@ describe('wtf tests', () => {
 
   testSafeEvalAgainstNative(`NaN === NaN; // -> false`);
 
-  // todo: add support for `Object` global
-  // testSafeEvalAgainstNative(`Object.is(NaN, NaN); // -> true`);
+  testSafeEvalAgainstNative(`Object.is(NaN, NaN); // -> true`);
   testSafeEvalAgainstNative(`NaN === NaN; // -> false`);
   
-  // todo: add support for `Object` global
-  // testSafeEvalAgainstNative(`Object.is(-0, 0); // -> false`);
+  testSafeEvalAgainstNative(`Object.is(-0, 0); // -> false`);
   testSafeEvalAgainstNative(`-0 === 0; // -> true`);
   
-  // todo: add support for `Object` global
-  // testSafeEvalAgainstNative(`Object.is(NaN, 0 / 0); // -> true`);
+  testSafeEvalAgainstNative(`Object.is(NaN, 0 / 0); // -> true`);
   testSafeEvalAgainstNative(`NaN === 0 / 0; // -> false`);
 
-  // todo: requires string lookups to work
-  // testSafeEvalAgainstNative(`(![] + [])[+[]] +
-  //   (![] + [])[+!+[]] +
-  //   ([![]] + [][[]])[+!+[] + [+[]]] +
-  //   (![] + [])[!+[] + !+[]];
-  // // -> 'fail'`);
+  testSafeEvalAgainstNative(`![] + []; // -> 'false'`);
+  testSafeEvalAgainstNative(`"false"[0]; // -> 'f'`);
+  testSafeEvalAgainstNative(`+!+[]`)
+  testSafeEvalAgainstNative(`+[]`)
+  testSafeEvalAgainstNative(`(![] + [])`);
+  testSafeEvalAgainstNative(`(![] + [])[+[]]`);
+  testSafeEvalAgainstNative(`(![] + [])[+[]] +
+    (![] + [])[+!+[]] +
+    ([![]] + [][[]])[+!+[] + [+[]]] +
+    (![] + [])[!+[] + !+[]];
+  // -> 'fail'`);
 
   testSafeEvalAgainstNative(`+![]          // -> 0`);
   testSafeEvalAgainstNative(`+!![]         // -> 1`);
@@ -67,8 +69,7 @@ describe('wtf tests', () => {
   // testSafeEvalAgainstNative(`document.all == null; // -> true`);
   // end
 
-  // todo: add support for `Number` global
-  // testSafeEvalAgainstNative(`Number.MIN_VALUE > 0; // -> true`);
+  testSafeEvalAgainstNative(`Number.MIN_VALUE > 0; // -> true`);
 
   testSafeEvalAgainstNative(`// Declare a class which extends null
   class Foo extends null {}
@@ -86,8 +87,8 @@ describe('wtf tests', () => {
   testSafeEvalAgainstNative(`[1, 2, 3] + [4, 5, 6]; // -> '1,2,34,5,6'`);
 
   testSafeEvalAgainstNative(`[, , ,].length; // -> 3`);
-  // todo: `toString` support
-  // testSafeEvalAgainstNative(`[, , ,].toString(); // -> ',,'`);
+  
+  testSafeEvalAgainstNative(`[, , ,].toString(); // -> ',,'`);
 
   testSafeEvalAgainstNative(`[] == ''   // -> true`);
   testSafeEvalAgainstNative(`[] == 0    // -> true`);
@@ -112,4 +113,7 @@ describe('wtf tests', () => {
 
   testSafeEvalAgainstNative(`[[[[[[ undefined ]]]]]] == 0  // true`);
   testSafeEvalAgainstNative(`[[[[[[ undefined ]]]]]] == '' // true`);
+
+  testSafeEvalAgainstNative(`Number(); // -> 0`);
+  testSafeEvalAgainstNative(`Number(undefined); // -> NaN`);
 });
