@@ -21,6 +21,7 @@ describe('function names tests', () => {
     const x = function y() {}
     x.name;
   `);
+  testSafeEvalAgainstNative(`Object.prototype.toString.name`);
 });
 
 describe('anonymous functions assignment tests', () => {

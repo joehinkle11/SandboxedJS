@@ -13,14 +13,15 @@ export function sBuiltInObjectPrototype<M extends MaybeSValueMetadata>(
         let result: string;
         if (sThis instanceof SValues.SPrimitiveValue) {
           result = Object.prototype.toString.bind(sThis.nativeJsValue)();
+        } else if (sThis instanceof SValues.SObjectValue) {
+          result =Object.prototype.toString.bind(sThis.sStorage)();
         } else {
-          // return Object.prototype.toString.bind(sThis.nativeJsValue)();
-          result = "idkkk";
+          throw new Error("Expect s-value in swizzled_apply_raw of Object.prototype.toString")
         }
         return new SValues.SStringValue(result, mProvider.newMetadataForRuntimeTimeEmergingValue());
       },
     },
-    new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
+    () => sTable.sGlobalProtocols.FunctionProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
   sTable.sGlobalProtocols.ObjectProtocol = SValues.SNormalObject.createFromNative(

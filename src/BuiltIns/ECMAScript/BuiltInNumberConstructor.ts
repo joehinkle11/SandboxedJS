@@ -61,7 +61,7 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
         throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
       },
     },
-    new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
+    sTable.sGlobalProtocols.FunctionProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
   const s_valueOf = SValues.SFunction.createFromNative(
@@ -78,7 +78,7 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
         throw new Error("todo sensible error1 swizzled_apply_raw " + sThis.sValueKind);
       },
     },
-    new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
+    sTable.sGlobalProtocols.FunctionProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
   sTable.sGlobalProtocols.NumberProtocol = SValues.SNormalObject.createFromNative(

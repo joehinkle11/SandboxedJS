@@ -8,7 +8,7 @@ import type { SValue } from "../SValue";
 import type { AnySFunction, SandboxedFunctionCall, UnknownFunction } from "./SFunctionDef";
 import { sApply, sConstruct } from "./SFunctionImpl";
 import { SObjectValue } from "./SObjectValue";
-import type { SObjectSwizzleAndWhiteList, SBuiltInFunctionObjectKind } from "./SObjectValueDef";
+import type { SObjectSwizzleAndWhiteList, SBuiltInFunctionObjectKind, SPrototypeType } from "./SObjectValueDef";
 import { applySwizzleToObj, convertAllPropertiesToSValues } from "./SObjectValueImpl";
 
 // todo: remove this class and just represent constructors, functions and arrow functions the same way...?
@@ -25,7 +25,7 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
 
   private constructor(
     sStorage: AnySFunction,
-    sPrototype: SObjectValue<M, any, any> | SNullValue<M>,
+    sPrototype: SPrototypeType,
     functionAsString: string,
     metadata: M
   ) {
@@ -47,7 +47,7 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
   static createFromNative<O extends UnknownFunction, M extends MaybeSValueMetadata>(
     nativeJsFunction: O,
     sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
-    sPrototype: SObjectValue<M, any, any> | SNullValue<M>,
+    sPrototype: SPrototypeType,
     metadata: M
   ): SFunction<M> {
     const functionAsString = Function.bind(nativeJsFunction).toString();

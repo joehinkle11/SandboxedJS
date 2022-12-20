@@ -162,7 +162,7 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
     }
   }
   let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
-  return `new SValues.SNormalObject(${sObjectValueInitArgsCode},sContext)`;
+  return `SValues.SNormalObject.create(${sObjectValueInitArgsCode},sContext.sGlobalProtocols.ObjectProtocol,sContext)`;
 };
 function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string) => string): {objectCode: string, propertyCode: string} {
   let propertyCode: string;

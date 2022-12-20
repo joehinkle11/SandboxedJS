@@ -5,7 +5,6 @@ import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
 import { SValue } from "../SValue";
-import type { SNormalObject } from "./SNormalObject";
 import type { SObjectValue } from "./SObjectValue";
 import type { SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
@@ -23,6 +22,7 @@ export function sGet<M extends MaybeSValueMetadata>(
     if (result instanceof SValue) {
       return result;
     } else {
+      // todo: make sure this is a whitelisted property
       // must be a primitive or we fail
       const sPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
       if (sPrimitive === null) {
@@ -31,6 +31,10 @@ export function sGet<M extends MaybeSValueMetadata>(
       return sPrimitive;
     }
   } else {
+    // get prototype if needed
+    if (typeof this.sPrototype === "function") {
+      this.sPrototype = this.sPrototype();
+    }
     // check prototype
     if (this.sPrototype instanceof SValues.SObjectValue) {
       return this.sPrototype.sGet(p, receiver, sTable);
@@ -99,32 +103,32 @@ export function convertAllPropertiesToSValues<O extends SObjectProperties, R ext
 
 
 
-export function createSNormalObjectFromJSPrimitive<M extends MaybeSValueMetadata, P extends Record<string | symbol, any>> (
-  jsValue: P,
-  metaDataForAllProperties: M,
-  mProvider: SMetadataProvider<M>
-): SNormalObject<M> {
-  const properties: SObjectProperties = {};
-  const keyStrings = Object.getOwnPropertyNames(jsValue);
-  function addProperty<K extends string | symbol>(key: K, jsPropValue: any) {
-    const result = SPrimitiveValue.newPrimitiveFromJSValue(jsPropValue, metaDataForAllProperties);
-    if (result === null) {
-      throw Error("Sub-objects not supported in createFromJSPrimitive");
-    }
-    properties[key] = result;
-  }
-  for (const keyString of keyStrings) {
-    const jsPropValue = jsValue[keyString];
-    addProperty(keyString, jsPropValue);
-  }
-  const keySymbols = Object.getOwnPropertySymbols(jsValue);
-  for (const keySymbol of keySymbols) {
-    const jsPropValue = jsValue[keySymbol];
-    addProperty(keySymbol, jsPropValue);
-  }
-  const sPrototype = new SValues.SNullValue(metaDataForAllProperties); // todo!
-  return SValues.SNormalObject.create<M>(properties, sPrototype, mProvider)
-}
+// export function createSNormalObjectFromJSPrimitive<M extends MaybeSValueMetadata, P extends Record<string | symbol, any>> (
+//   jsValue: P,
+//   metaDataForAllProperties: M,
+//   sTable: SLocalSymbolTable<M>
+// ): SNormalObject<M> {
+//   const properties: SObjectProperties = {};
+//   const keyStrings = Object.getOwnPropertyNames(jsValue);
+//   function addProperty<K extends string | symbol>(key: K, jsPropValue: any) {
+//     const result = SPrimitiveValue.newPrimitiveFromJSValue(jsPropValue, metaDataForAllProperties);
+//     if (result === null) {
+//       throw Error("Sub-objects not supported in createFromJSPrimitive");
+//     }
+//     properties[key] = result;
+//   }
+//   for (const keyString of keyStrings) {
+//     const jsPropValue = jsValue[keyString];
+//     addProperty(keyString, jsPropValue);
+//   }
+//   const keySymbols = Object.getOwnPropertySymbols(jsValue);
+//   for (const keySymbol of keySymbols) {
+//     const jsPropValue = jsValue[keySymbol];
+//     addProperty(keySymbol, jsPropValue);
+//   }
+//   const sPrototype = sTable.sGlobalProtocols.ObjectProtocol;
+//   return SValues.SNormalObject.create<M>(properties, sPrototype, sTable)
+// }
 
 
 export function buildNativeJsValueForSObject<S extends object, O extends SObjectValue<any, any, S>>(

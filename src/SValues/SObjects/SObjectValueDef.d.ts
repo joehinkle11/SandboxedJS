@@ -35,3 +35,6 @@ export type SFunctionSwizzleAndWhiteList = {
   swizzled_apply_proxied: UnknownFunction
 }
 export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<any>;
+
+export type SPrototypeType = (SPrototypeDeterminedType) | (() => SPrototypeDeterminedType)
+export type SPrototypeDeterminedType = SObjectValue<M, any, any> | SNullValue<M>

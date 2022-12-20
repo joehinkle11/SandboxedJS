@@ -6,13 +6,13 @@ import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SValue } from "../SValue";
-import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList, BaseSObjectStorage } from "./SObjectValueDef";
+import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList, BaseSObjectStorage, SPrototypeType } from "./SObjectValueDef";
 import { buildNativeJsValueForSObject, sGet, sUnaryLogicalNot, sUnaryMakePositive, sUnaryNegate } from "./SObjectValueImpl";
 
 
 export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
   get sValueKind(): "s-object" { return "s-object" };
-  readonly sPrototype: SObjectValue<M, any, any> | SNullValue<M>;
+  sPrototype: SPrototypeType;
   readonly sStorage: S & object;
   metadata: M;
   exportNativeJsValueAsCopiedBuiltIn: boolean;
@@ -22,7 +22,7 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     return this.#actualNativeJsValue ?? (this.#actualNativeJsValue = buildNativeJsValueForSObject<any, any>(this, this.sStorage, runner));
   }
 
-  constructor(sStorage: S & object, sPrototype: SObjectValue<M, any, any> | SNullValue<M>, metadata: M, exportNativeJsValueAsCopiedBuiltIn: boolean) {
+  constructor(sStorage: S & object, sPrototype: SPrototypeType, metadata: M, exportNativeJsValueAsCopiedBuiltIn: boolean) {
     super();
     Object.setPrototypeOf(sStorage, null);
     this.sStorage = sStorage;

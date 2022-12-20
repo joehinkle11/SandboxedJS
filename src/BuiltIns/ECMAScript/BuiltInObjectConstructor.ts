@@ -16,7 +16,7 @@ export function sBuiltInObjectConstructor<M extends MaybeSValueMetadata>(
         return sArgs[0].sOwnKeys();
       },
     },
-    new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()), // todo: change to function
+    () => sTable.sGlobalProtocols.FunctionProtocol,
     sTable.newMetadataForCompileTimeLiteral()
   );
   sTable.assign("Object", SValues.SFunction.createFromNative(
@@ -28,6 +28,7 @@ export function sBuiltInObjectConstructor<M extends MaybeSValueMetadata>(
       // swizzled_apply_proxied(...args) {
       //   // todo
       // },
+      swizzle_static_prototype: sTable.sGlobalProtocols.ObjectProtocol,
       swizzled_apply_raw() {
         throw new Error("todo swizzled_apply_raw for Object")
       }

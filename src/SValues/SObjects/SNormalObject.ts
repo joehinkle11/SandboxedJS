@@ -1,10 +1,8 @@
 import type { SandboxedJSRunner } from "../../Runner";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
-import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import { SNonFunctionObjectValue } from "./SNonFunctionObjectValue";
-import type { SObjectValue } from "./SObjectValue";
-import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
+import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList, SPrototypeType } from "./SObjectValueDef";
 import { applySwizzleToObj } from "./SObjectValueImpl";
 
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
@@ -13,7 +11,7 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
 
   private constructor(
     properties: SObjectProperties,
-    sPrototype: SObjectValue<M, any, any> | SNullValue<M>,
+    sPrototype: SPrototypeType,
     metadata: M,
     exportNativeJsValueAsCopiedBuiltIn: boolean
   ) {
@@ -22,7 +20,7 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
 
   static create<M extends MaybeSValueMetadata>(
     anySObject: BaseSObjectStorage,
-    sPrototype: SObjectValue<M, any, any> | SNullValue<M>,
+    sPrototype: SPrototypeType,
     mProvider: SMetadataProvider<M>
   ): SNormalObject<M> {
     return new SNormalObject<M>(anySObject, sPrototype, mProvider.newMetadataForObjectValue(), false);
@@ -30,7 +28,7 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
   static createFromNative<O extends object, M extends MaybeSValueMetadata>(
     nativeJsObject: O,
     sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
-    sPrototype: SObjectValue<M, any, any> | SNullValue<M>,
+    sPrototype: SPrototypeType,
     metadata: M
   ): SNormalObject<M> {
     let safeObject: any = {}; 
@@ -40,7 +38,7 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
   // not properties are allowed, mainly for build-in objects like [object Number]
   static exposeNativeBuiltIn<O extends object, M extends MaybeSValueMetadata>(
     nativeJsObjectToExpose: O,
-    sPrototype: SObjectValue<M, any, any> | SNullValue<M>,
+    sPrototype: SPrototypeType,
     metadata: M,
   ): SNormalObject<M> {
     if (Reflect.ownKeys(nativeJsObjectToExpose).length > 0) {
