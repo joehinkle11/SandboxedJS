@@ -7,7 +7,7 @@ import { installEcmaScript } from "./BuiltIns/BuiltInECMAScript";
 import { SValue } from "./SValues/SValue";
 
 export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
-  private readonly sTable: SLocalSymbolTable<M>;
+  readonly sTable: SLocalSymbolTable<M>;
   private readonly transpileContext: TranspileContext<M>;
 
   private constructor(transpileContextSetup: TranspileContextSetup<M>) {
@@ -58,7 +58,7 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
       throw [e, new Error("Transpiled code:\n\n" + transpiledJsCode)];
     }
     if (asNativeJs) {
-      return sResult.nativeJsValue;
+      return sResult.getNativeJsValue(this);
     } else {
       return sResult;
     }

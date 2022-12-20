@@ -1,12 +1,12 @@
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
-import type { SBooleanValue } from "./SBooleanValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
 
 export class SNumberValue<M extends MaybeSValueMetadata, V extends number> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-number" { return "s-number" };
@@ -31,7 +31,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sUnaryMakePositive(): SNumberValue<M, V> {
     return this;
   };
-  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on number")
   }
   sLogicalNullish(): this {
@@ -53,8 +53,8 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
-    throw Error("Todo: sGet on SNumberValue prototype");
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+    return sTable.sGlobalProtocols.NumberProtocol.sGet(p, receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {
     if (mProvider.valueMetadataSystem === null) {

@@ -1,14 +1,13 @@
 import SUserError from "../../Models/SUserError";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SValue } from "../SValue";
-import type { SBooleanValue } from "./SBooleanValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
-import { SStringValue } from "./SStringValue";
 import { SUndefinedValue } from "./SUndefinedValue";
 
 export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-symbol" { return "s-symbol" };
@@ -47,7 +46,7 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue {
     return this;
   }
-  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SSymbolValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {

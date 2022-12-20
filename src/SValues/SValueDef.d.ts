@@ -1,5 +1,5 @@
 import type { SObjectValue } from "./SObjects/SObjectValue";
-import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "./SPrimitiveValues/SPrimitiveValue";
+import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "./SPrimitiveValues/SPrimitiveValueDef";
 
 export type JSTypeOfString = "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function";
 

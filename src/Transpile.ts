@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -353,16 +353,14 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
   if (leftType === "Identifier") {
     contextLookup = "sContext";
     const leftIdentifier = node.left as IdentifierNode;
-    keyToLookup = leftIdentifier.name;
-  // } else if (leftType === "MemberExpression") {
-  //   const leftMemberExpression = node.left as MemberExpressionNode;
-  //   const objectCode: string = resolveMemberExpressionObject(leftMemberExpression.object);
-  //   if (leftMemberExpression.property.type === "Identifier") {
-  //     const propertyNode = leftMemberExpression.property as IdentifierNode;
-  //     return `${objectCode}.nsContext.setNSVar("${propertyNode.name}", ${rightCode}, "set", nsStackFrameInfo)`;
-  //   } else {
-  //     throw new NSError(`Unsupported property AST node type in AssignmentExpression left MemberExpression ${leftMemberExpression.property.type}`);
-  //   }
+    keyToLookup = "'" + leftIdentifier.name + "'"; // todo: make sure this string is safe
+  } else if (leftType === "MemberExpression") {
+    const leftMemberExpression = node.left as MemberExpressionNode;
+    const memberPieces = resolveMemberExpressionReturningPieces(leftMemberExpression, transpileContext, (key) => {
+      return key;
+    });
+    contextLookup = memberPieces.objectCode;
+    keyToLookup = memberPieces.propertyCode;
   } else {
     throw new Error(`Unsupported AST node on left of AssignmentExpression ${leftType}`);  
   }
@@ -373,7 +371,7 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
     let getterCode = `${contextLookup}.sGet("${keyToLookup}",'todo-receiver',sContext)`
     rightCode = `${getterCode}.${compoundAssignmentOperatorsWork}(${baseRightCode},sContext)`
   }
-  return `${contextLookup}.assign("${keyToLookup}",${rightCode},"update")`;
+  return `${contextLookup}.sSet(${keyToLookup},${rightCode}, "todo-receiver")`;
 }
 function resolveFunctionExpression(node: FunctionExpressionNode, willBeSetToVariableIdentifier: string | undefined, transpileContext: TranspileContext<any>): string {
   let functionName: string;
@@ -417,6 +415,13 @@ function resolveChainExpression(node: ChainExpressionNode, transpileContext: Tra
   });
   return `${memberPieces.objectCode}.${memberPieces.propertyCode}`;
 }
+function resolveNewExpression(node: NewExpressionNode, transpileContext: TranspileContext<any>): string {
+  const argumentsCode: string[] = node.arguments.map((arg: acorn.Node) => {
+    return resolveAnyNode(arg, transpileContext);
+  });
+  const lookupCode: string = resolveAnyNode(node.callee, transpileContext);
+  return `${lookupCode}.sConstruct([${argumentsCode.join(",")}],sContext)`
+}
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
   if (node.type === "Literal") {
     return resolveLiteral(node as LiteralNode, transpileContext);
@@ -458,6 +463,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return "sContext.sThis"
   } else if (node.type === "ChainExpression") {
     return resolveChainExpression(node as ChainExpressionNode, transpileContext);
+  } else if (node.type === "NewExpression") {
+    return resolveNewExpression(node as NewExpressionNode, transpileContext);
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

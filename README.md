@@ -4,7 +4,7 @@ Sandbox untrusted/arbitrary JavaScript code and safely execute it in isolation.
 
 ## Performance
 
-Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~8x** slower than native JS. However, if you don't count the time required to transpile the code, execution time can be between **~1.3x to ~8x** slower than native JS, depending on the kind of work being performed.
+Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~20x** slower than native JS. However, if you don't count the time required to transpile the code, execution time can be between **~1.3x to ~20x** slower than native JS, depending on the kind of work being performed. The goal for the MVP is to just get this thing working in a secure manner (breaking out of sandbox should be impossible), and optimizations can come later.
 
 ## Status
 
@@ -22,7 +22,7 @@ Under active development. Looking for others to help out!
 | `undefined` | ✅ |
 | `bigint` | ✅ |
 | `symbol` | ⚠️ |
-| autoboxing primitives to objects | ⚠️ |
+| autoboxing primitives to objects | ⚠️ works for some types like `Number` |
 | binary operators (`+`, `-`, `%`, etc.) | ✅ |
 | unary operators  (`+`, `-`, `typeof`, etc.) | ✅ |
 | simple objects (i.e. `{a: true}`) | ✅ |
@@ -49,7 +49,7 @@ Under active development. Looking for others to help out!
 
 | Name | Link | Performance |
 | ----------- | ----------- | --------- |
-| SandboxedJS |  | ~8x slower than native? |
+| SandboxedJS |  | ~20x slower than native |
 | js.js | https://github.com/jterrace/js.js/ | [~200x slower than native]()https://github.com/jterrace/js.js/#status |
 | JS-Interpreter | https://github.com/NeilFraser/JS-Interpreter/ | [~200x slower than native](https://github.com/NeilFraser/JS-Interpreter/issues/227) |
 

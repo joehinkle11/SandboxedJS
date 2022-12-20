@@ -3,11 +3,11 @@ import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
 import { SNumberValue } from "./SNumberValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
-import { SStringValue } from "./SStringValue";
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SUndefinedValue } from "./SUndefinedValue";
 
 export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-boolean" { return "s-boolean" };
@@ -33,7 +33,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
   sUnaryTypeOfAsNative(): "boolean" {
     return "boolean";
   }
-  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on boolean")
   }
   sLogicalNullish(): this {
@@ -55,7 +55,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SBoolean prototype");
   }
   addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {

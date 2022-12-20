@@ -11,16 +11,22 @@ export abstract class SPrimitiveValue<
 > extends SValue<M> {
   abstract get sValueKind(): SValuePrimitiveKind;
   abstract readonly nativeJsValue: P;
+  getNativeJsValue(): any {
+    return this.nativeJsValue;
+  }
   abstract readonly metadata: M;
   sOwnKeysNative(): (string | symbol)[] {
     throw Error("todo sOwnKeysNative on primitive")
   }
   sApply(): never {
-    throw Error("todo sApply on primitive")
+    throw Error(`todo sApply on primitive type ${this.sValueKind}`)
+  }
+  sConstruct(): never {
+    throw Error("todo sConstruct on primitive")
   }
   sUnaryLogicalNot: () => SBooleanValue<M, boolean> = primitiveSUnaryLogicalNot;
   static newPrimitiveFromJSValue: <M extends MaybeSValueMetadata, P extends SPrimitiveValueType>(
-    jsValue: P,
+    jsValue: P | unknown,
     metaData: M
   ) => SPrimitiveValue<M, P | undefined | null> | null = newPrimitiveFromJSValue;
 }

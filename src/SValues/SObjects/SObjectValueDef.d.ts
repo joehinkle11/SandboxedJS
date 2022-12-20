@@ -1,13 +1,14 @@
 
 import type { MapNativeValueTypeToSType } from "../SValueDef";
 import type { UnknownFunction, AnySFunction, SandboxedFunctionCall } from "./SFunctionDef";
+import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValueDef";
 
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
 export type SBuiltInNonFunctionObjectKind = "normal" | "array";
 export type SBuiltInObjectKind = SBuiltInFunctionObjectKind | SBuiltInNonFunctionObjectKind;
 export type SObjectProperties = Record<PropertyKey, SValue<any> | undefined>;
 export type BaseSObjectStorage = SObjectProperties & object;
-export type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> =
+export type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> = BaseSObjectStorage &
   K extends "normal" ? BaseSObjectStorage
     : K extends "array" ? Array<any>
     : K extends "function" ? AnySFunction

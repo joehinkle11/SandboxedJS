@@ -10,15 +10,18 @@ import type { SBooleanValue } from "./SPrimitiveValues/SBooleanValue";
 import type { SStringValue } from "./SPrimitiveValues/SStringValue";
 import type { SSymbolValue } from "./SPrimitiveValues/SSymbolValue";
 import type { SUndefinedValue } from "./SPrimitiveValues/SUndefinedValue";
+import type { SObjectValue } from "./SObjects/SObjectValue";
+import type { SLocalSymbolTable } from "../SLocalSymbolTable";
 import { combineMetadata, sBinaryAdd, sBinaryDiv, sBinaryExpo, sBinaryMod, sBinaryMult, sBinarySubtract, sBitwiseAND, sBitwiseLeftShift, sBitwiseNOT, sBitwiseOR, sBitwiseRightShift, sBitwiseUnsignedRight, sBitwiseXOR, sCompEqualValue, sCompEqualValueAndEqualType, sCompGreaterThan, sCompGreaterThanOrEqualTo, sCompLessThan, sCompLessThanOrEqualTo, sCompNotEqualValue, sCompNotEqualValueAndEqualType, sOwnKeys, sToPropertyKey, sToString, sUnaryTypeOf } from "./SValueImpl";
+import type { SandboxedJSRunner } from "../Runner";
 
 export abstract class SValue<M extends MaybeSValueMetadata> {
   get sContext(): this { return this }
   abstract get sValueKind(): SValueKind;
   abstract metadata: M;
-  abstract nativeJsValue: any;
-  sToString: (mProvider: SMetadataProvider<M>) => SValue<M> = sToString;
-  sToPropertyKey: (mProvider: SMetadataProvider<M>) => string | symbol = sToPropertyKey;
+  abstract getNativeJsValue(runner: SandboxedJSRunner<M>): any;
+  sToString: (sTable: SLocalSymbolTable<M>) => SValue<M> = sToString;
+  sToPropertyKey: (sTable: SLocalSymbolTable<M>) => string | symbol = sToPropertyKey;
   abstract sUnaryNegate(): SValue<M>;
   abstract sUnaryMakePositive(): SValue<M>;
   abstract sUnaryTypeOfAsNative(): JSTypeOfString;
@@ -27,12 +30,13 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sLogicalNullish<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
   abstract sLogicalAnd<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
   abstract sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this | RSValue;
-  abstract sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M>;
+  abstract sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M>;
   abstract sOwnKeysNative(): (string | symbol)[];
   sOwnKeys: () => SArrayObject<M, SStringValue<M, string> | SSymbolValue<M, symbol>> = sOwnKeys;
-  abstract sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M>;
-  abstract sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean>;
+  abstract sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
+  abstract sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], mProvider: SMetadataProvider<M>): SValue<M>;
+  abstract sConstruct(args: SValue<M>[], sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any>;
   combineMetadata: (anotherValue: SValue<M>, mProvider: SMetadataProvider<M>) => M = combineMetadata;
   abstract addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this;
   sBinaryAdd: (right: SValue<M>, mProvider: SMetadataProvider<M>) => SPrimitiveValue<M, any> = sBinaryAdd;

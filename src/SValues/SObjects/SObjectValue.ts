@@ -1,41 +1,45 @@
+import type { SandboxedJSRunner } from "../../Runner";
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
+import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SValue } from "../SValue";
-import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
+import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList, BaseSObjectStorage } from "./SObjectValueDef";
 import { buildNativeJsValueForSObject, sGet, sUnaryLogicalNot, sUnaryMakePositive, sUnaryNegate } from "./SObjectValueImpl";
 
 
 export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
   get sValueKind(): "s-object" { return "s-object" };
-  abstract readonly sStorage: S & object;
+  readonly sPrototype: SObjectValue<M, any, any> | SNullValue<M>;
+  readonly sStorage: S & object;
   metadata: M;
-  sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<S & any> | undefined;
+  exportNativeJsValueAsCopiedBuiltIn: boolean;
 
   #actualNativeJsValue: any | undefined;
-  getNativeJsValue(): any {
-    return this.#actualNativeJsValue ?? (this.#actualNativeJsValue = buildNativeJsValueForSObject<any, any>(this, this.sStorage));
+  getNativeJsValue(runner: SandboxedJSRunner<M>): object {
+    return this.#actualNativeJsValue ?? (this.#actualNativeJsValue = buildNativeJsValueForSObject<any, any>(this, this.sStorage, runner));
   }
-  abstract readonly nativeJsValue: object;
 
-  constructor(sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<S & any> | undefined, metadata: M) {
+  constructor(sStorage: S & object, sPrototype: SObjectValue<M, any, any> | SNullValue<M>, metadata: M, exportNativeJsValueAsCopiedBuiltIn: boolean) {
     super();
-    this.sSwizzleAndWhiteList = sSwizzleAndWhiteList;
+    Object.setPrototypeOf(sStorage, null);
+    this.sStorage = sStorage;
+    this.sPrototype = sPrototype;
     this.metadata = metadata;
+    this.exportNativeJsValueAsCopiedBuiltIn = exportNativeJsValueAsCopiedBuiltIn;
   }
   sOwnKeysNative(): (string | symbol)[] {
-    if (this.sSwizzleAndWhiteList !== undefined) {
-      throw Error("todo sOwnKeysNative on object with swizzle/whitelist") 
-    }
     return Reflect.ownKeys(this.sStorage);
   }
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
-    throw new Error("Method not implemented.");
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+    (this.sStorage as Record<PropertyKey, SValue<any> | undefined>)[p] = newValue;
+    return newValue;
   }
-  sGet:(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>) => SValue<M> = sGet;
-  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SValue<M> {
-    return this.sGet(p, this, mProvider);
+  sGet:(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>) => SValue<M> = sGet;
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
+    return this.sGet(p, this, sTable);
   }
   abstract sUnaryTypeOfAsNative(): "object" | "function";
   sUnaryNegate: () => SNumberValue<M, typeof NaN> = sUnaryNegate;

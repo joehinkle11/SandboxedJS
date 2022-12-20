@@ -1,6 +1,6 @@
 import {describe} from '@jest/globals';
 import { testSafeEvalAgainstNative } from './helpers';
 
-describe('number wrapper tests', () => {
-  testSafeEvalAgainstNative("new Number(1)");
+describe('toString tests', () => {
+  testSafeEvalAgainstNative('5.5.toString()');
 });

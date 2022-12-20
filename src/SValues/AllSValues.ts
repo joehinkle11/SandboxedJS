@@ -10,6 +10,7 @@ export const SValues = {
   SSymbolValue: undefined as any as typeof SSymbolValue,
   SUndefinedValue: undefined as any as typeof SUndefinedValue,
   SReferencedObjectValue: undefined as any as typeof SReferencedObjectValue,
+  SObjectValue: undefined as any as typeof SObjectValue,
   SNormalObject: undefined as any as typeof SNormalObject,
   SArrayObject: undefined as any as typeof SArrayObject,
   SFunction: undefined as any as typeof SFunction,
@@ -30,6 +31,7 @@ import { SUndefinedValue } from "./SPrimitiveValues/SUndefinedValue";
 import { SReferencedObjectValue } from "./SObjects/SReferencedObjectValue";
 
 // Objects
+import { SObjectValue } from "./SObjects/SObjectValue";
 import { SNormalObject } from "./SObjects/SNormalObject";
 import { SArrayObject } from "./SObjects/SArrayObject";
 import { SFunction } from "./SObjects/SFunction";
@@ -44,6 +46,7 @@ SValues.SStringValue = SStringValue;
 SValues.SSymbolValue = SSymbolValue;
 SValues.SUndefinedValue = SUndefinedValue;
 SValues.SReferencedObjectValue = SReferencedObjectValue;
+SValues.SObjectValue = SObjectValue;
 SValues.SNormalObject = SNormalObject;
 SValues.SArrayObject = SArrayObject;
 SValues.SFunction = SFunction;

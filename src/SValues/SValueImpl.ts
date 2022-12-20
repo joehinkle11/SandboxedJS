@@ -13,18 +13,19 @@ import type { SValue } from "./SValue";
 import { $$ts } from "ts-macros";
 import { JSTypeOfString } from "./SValueDef";
 import type { SArrayObject } from "./SObjects/SArrayObject";
+import type { SLocalSymbolTable } from "../SLocalSymbolTable";
 
 export function sToString<M extends MaybeSValueMetadata>(
   this: SValue<M>,
-  mProvider: SMetadataProvider<M>
+  sTable: SLocalSymbolTable<M>
 ): SValue<M> { // it is possible for the user to overwrite the `toString` function so that it does not return a string
-  return this.sGet("toString", this, mProvider).sApply(this, [], mProvider);
+  return this.sGet("toString", this, sTable).sApply(this, [], sTable);
 };
 export function sToPropertyKey<M extends MaybeSValueMetadata>(
   this: SValue<M>,
-  mProvider: SMetadataProvider<M>
+  sTable: SLocalSymbolTable<M>
 ): string | symbol {
-  const sValue = this.sToString(mProvider);
+  const sValue = this.sToString(sTable);
   if (sValue instanceof SValues.SStringValue) {
     return sValue.nativeJsValue;
   }

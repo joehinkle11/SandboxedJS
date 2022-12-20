@@ -1,6 +1,7 @@
 import SUserError from "./Models/SUserError";
 import type { SMetadataProvider } from "./SMetadataProvider";
 import type { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
+import { SValues } from "./SValues/AllSValues";
 import { SNormalObject } from "./SValues/SObjects/SNormalObject";
 import { convertAllPropertiesToSValues } from "./SValues/SObjects/SObjectValueImpl";
 import { SUndefinedValue } from "./SValues/SPrimitiveValues/SUndefinedValue";
@@ -12,12 +13,20 @@ type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
   value: SValue<M>
 } | undefined>;
 
+interface SGlobalProtocols<M extends MaybeSValueMetadata> {
+  ObjectProtocol: SNormalObject<M>;
+  FunctionProtocol: SNormalObject<M>;
+  NumberProtocol: SNormalObject<M>;
+  // BoxNumber: (number: number, metadata: M) => SNormalObject<M>;
+}
+
 export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetadataProvider<M> {
   
   readonly transpileContext: TranspileContext<M>;
   metadata: M;
 
   readonly parent: SLocalSymbolTable<M> | null;
+  readonly sGlobalProtocols: SGlobalProtocols<M>;
   readonly symbols: SymbolsRecord<M>;
 
   newMetadataForRuntimeTimeEmergingValue(): M {
@@ -104,6 +113,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
     this.metadata = transpileContext.newMetadataGlobalSymbolTable();
     this.symbols = symbols;
     this.sThis = sThis;
+    this.sGlobalProtocols = parent?.sGlobalProtocols ?? {} as any;
   }
 
   spawnChild(
@@ -114,7 +124,8 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
     const symbolsInChild: SymbolsRecord<M> = {};
     if (sArguments !== undefined) {
       const arrayOfSValues = convertAllPropertiesToSValues({}, sArguments, this);
-      const args: SNormalObject<M> = new SNormalObject(arrayOfSValues, this);
+      const sPrototype = new SValues.SNullValue(this.newMetadataForRuntimeTimeEmergingValue()); // todo! should be object prototype?
+      const args: SNormalObject<M> = SNormalObject.create(arrayOfSValues, sPrototype, this);
       symbolsInChild.arguments = {
         kind: "const",
         value: args

@@ -14,16 +14,34 @@ export function testSafeEvalAgainstNative(
       try {
         safeEvalResult = safeEval(jsCode);
       } catch {
-        expect("thew error").toBe("thew error");
+        expect("threw error").toBe("threw error");
         return
       }
       expect(safeEvalResult).toBe(`Native eval threw error '${e.message}'`)
       return
     }
     if (typeof evalResult === "object") {
-      expect(JSON.stringify(safeEval(jsCode))).toBe(JSON.stringify(evalResult));
+      const safeEvalResult = safeEval(jsCode);
+      const safeEvalResultStr = JSON.stringify(safeEvalResult);
+      const evalResultStr = JSON.stringify(evalResult);
+      expect(safeEvalResultStr).toBe(evalResultStr);
     } else {
-      expect(safeEval(jsCode)).toBe(evalResult);
+      const safeEvalResult = safeEval(jsCode);
+      expect(safeEvalResult).toBe(evalResult);
     }
+  });
+}
+export function testSafeEvalAgainstNativeCustom(
+  jsCode: string,
+  checkObjectProperty: (resultObj: any) => any,
+  testName: string = jsCode
+) {
+  test(testName, () => {
+    let evalResult = globalThis.eval(jsCode);
+    const safeEvalResult = safeEval(jsCode);
+    const safeEvalResultStr = JSON.stringify(safeEvalResult);
+    const evalResultStr = JSON.stringify(evalResult);
+    expect(safeEvalResultStr).toBe(evalResultStr);
+    expect(checkObjectProperty(safeEvalResult)).toBe(checkObjectProperty(evalResult));
   });
 }

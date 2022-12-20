@@ -1,7 +1,7 @@
 
 // Everything passes through this object, is used to make it possible to add metadata
 // to a reference to an object without effecting the metadata on other references to
-
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { SValueMetadata } from "../../SValueMetadata";
 import { SValue } from "../SValue";
@@ -10,14 +10,15 @@ import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage } from "./SObjectValueDef";
 import { sUnaryNegate, sUnaryMakePositive, sUnaryLogicalNot } from "./SReferencedObjectValueImpl";
+import type { SandboxedJSRunner } from "../../Runner";
 
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
   wrappedObject: SObjectValue<M, K, S>
 
   addedMetadata: M;
-  get nativeJsValue(): object {
-    return this.wrappedObject.nativeJsValue;
+  getNativeJsValue(runner: SandboxedJSRunner<M>): any {
+    return this.wrappedObject.getNativeJsValue(runner);
   }
   get metadata(): M {
     return this.wrappedObject.metadata.mixWithReferencedMetadata(this.addedMetadata) as M;
@@ -27,6 +28,9 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   }
   sApply(): never {
     throw Error("todo sApply on SReferencedObjectValue")
+  }
+  sConstruct(): never {
+    throw Error("todo sConstruct on SReferencedObjectValue")
   }
 
   constructor(wrappedObject: SObjectValue<M, K, S>, addedMetadata: M) {
@@ -53,15 +57,15 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, mProvider: SMetadataProvider<M>): this {
     return this;
   }
-  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SValue<M> {
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SValue<M> {
     // todo: add proper metadata
-    return this.wrappedObject.sChainExpression(p, mProvider);
+    return this.wrappedObject.sChainExpression(p, sTable);
   }
-  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // todo: add proper metadata
-    return this.wrappedObject.sGet(p, receiver, mProvider);
+    return this.wrappedObject.sGet(p, receiver, sTable);
   }
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
     // todo: add proper metadata
     return this.wrappedObject.sSet(p, newValue, receiver);
   }

@@ -102,6 +102,11 @@ export interface MemberExpressionNode extends acorn.Node {
   computed: unknown
   optional?: acorn.Node
 }
+export interface NewExpressionNode extends acorn.Node {
+  type: "NewExpression"
+  callee: acorn.Node
+  arguments: acorn.Node[]
+}
 export interface ChainExpressionNode extends acorn.Node {
   type: "ChainExpression"
   expression: MemberExpressionNode

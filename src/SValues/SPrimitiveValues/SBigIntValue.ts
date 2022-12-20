@@ -2,14 +2,13 @@ import SUserError from "../../Models/SUserError";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
-import type { SBooleanValue } from "./SBooleanValue";
+import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import { SPrimitiveValue } from "./SPrimitiveValue";
-import { SStringValue } from "./SStringValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
 
 
 export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
-  sSet(p: string | symbol, newValue: SValue<M>, receiver: SValue<M>): SBooleanValue<M, boolean> {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-bigint" { return "s-bigint" };
@@ -34,7 +33,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
   sUnaryTypeOfAsNative(): "bigint" {
     return "bigint";
   }
-  sChainExpression(p: string | symbol, mProvider: SMetadataProvider<M>): SUndefinedValue<M> | SValue<M> {
+  sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M> {
     throw new Error("todo sChainExpression on bigint")
   }
   sLogicalNullish(): this {
@@ -56,7 +55,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, mProvider: SMetadataProvider<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SBigIntValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, mProvider: SMetadataProvider<M>): this {

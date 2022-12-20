@@ -8,16 +8,3 @@ export interface SMetadataProvider<M extends MaybeSValueMetadata> {
   newMetadataForObjectValue(): M
   valueMetadataSystem: M extends SValueMetadata ? ValueMetadataSystem<any> : null
 }
-
-export const emptySMetadataProvider: SMetadataProvider<any> = {
-  newMetadataForRuntimeTimeEmergingValue(): null {
-    return null;
-  },
-  newMetadataForCompileTimeLiteral(): null {
-    return null;
-  },
-  newMetadataForObjectValue(): null {
-    return null;
-  },
-  get valueMetadataSystem(): null { return null }
-}

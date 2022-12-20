@@ -1,5 +1,5 @@
 
-import { compareNativeToSandboxedEval } from './helpers';
+import { compareNativeToSandboxedEval } from './helpers.mjs';
 
 export async function runBinaryOpsBenchmark(benchmark) {
   compareNativeToSandboxedEval({
