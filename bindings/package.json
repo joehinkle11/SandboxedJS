@@ -1,0 +1,17 @@
+{
+  "name": "@joehinkle11/sandboxedjs-bindings",
+  "version": "0.0.1",
+  "description": "Native JS bindings generator for SandboxedJS.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build;node lib/Index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Joseph Hinkle",
+  "license": "MIT",
+  "devDependencies": {
+    "ts-morph": "^17.0.1",
+    "typescript": "^4.9.4"
+  }
+}

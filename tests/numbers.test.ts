@@ -11,6 +11,14 @@ describe('basic numbers', () => {
   testSafeEvalAgainstNative("NaN");
   testSafeEvalAgainstNative("Infinity");
   testSafeEvalAgainstNative("(-Infinity)");
+  testSafeEvalAgainstNative("Number.MAX_VALUE");
+  testSafeEvalAgainstNative("Number.MIN_VALUE");
+  testSafeEvalAgainstNative("Number.EPSILON");
+  testSafeEvalAgainstNative("Number.NaN");
+  testSafeEvalAgainstNative("MAX_SAFE_INTEGER");
+  testSafeEvalAgainstNative("MIN_SAFE_INTEGER");
+  testSafeEvalAgainstNative("NEGATIVE_INFINITY");
+  testSafeEvalAgainstNative("POSITIVE_INFINITY");
 });
 describe('basic math operators', () => {
   testSafeEvalAgainstNative("+1");

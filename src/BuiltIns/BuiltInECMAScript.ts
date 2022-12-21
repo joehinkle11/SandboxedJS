@@ -1,4 +1,4 @@
-import { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
+import { SRootSymbolTable } from "../SLocalSymbolTable";
 import { sBuiltInArrayConstructor } from "./ECMAScript/BuiltInArrayConstructor";
 import { sBuiltInBooleanConstructor } from "./ECMAScript/BuiltInBooleanConstructor";
 import { sBuiltInFunctionPrototype } from "./ECMAScript/BuiltInFunctionPrototype";

@@ -3,7 +3,6 @@ import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../../SValues/AllSValues";
-import type { SNumberValue } from "../../SValues/SPrimitiveValues/SNumberValue";
 import type { SValue } from "../../SValues/SValue";
 
 export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
@@ -30,11 +29,24 @@ export function sBuiltInNumberConstructor<M extends MaybeSValueMetadata>(
     {
       swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>): SValue<any> {
         // todo: safety
-        const sNum = sArgArray[0] as SNumberValue<M, number>;
-        return s_BoxNumber(
-          sNum.nativeJsValue,
-          mProvider.newMetadataForRuntimeTimeEmergingValue()
-        );
+        const firstArg = sArgArray[0];
+        if (firstArg instanceof SValues.SNumberValue) {
+          return s_BoxNumber(
+            firstArg.nativeJsValue,
+            mProvider.newMetadataForRuntimeTimeEmergingValue()
+          );
+        }
+        if (sArgArray.length === 0) {
+          return s_BoxNumber(
+            0,
+            mProvider.newMetadataForRuntimeTimeEmergingValue()
+          );
+        } else {
+          return s_BoxNumber(
+            NaN,
+            mProvider.newMetadataForRuntimeTimeEmergingValue()
+          );
+        }
       },
       whitelist_MAX_VALUE: true,
       whitelist_MIN_VALUE: true,

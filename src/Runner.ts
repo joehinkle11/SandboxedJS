@@ -3,8 +3,8 @@ import { SValues as SValuesImported } from "./SValues/AllSValues";const SValues 
 import { RunnerBuiltIns, TranspileContext, TranspileContextSetup, ValueMetadataSystem } from "./TranspileContext";
 import { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SLocalSymbolTable, SRootSymbolTable } from "./SLocalSymbolTable";
-import { installEcmaScript } from "./BuiltIns/BuiltInECMAScript";
 import { SValue } from "./SValues/SValue";
+import { installGeneratedBindings } from "./gen/Bindings_Generated";
 
 export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
   readonly sTable: SRootSymbolTable<M>;
@@ -14,7 +14,7 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
     this.transpileContext = new TranspileContext(transpileContextSetup);
     this.sTable = SLocalSymbolTable.createGlobal<M>(this.transpileContext);
     if (transpileContextSetup.builtIns.ecmaScript !== false) {
-      installEcmaScript(this.sTable);
+      installGeneratedBindings(this.sTable);
     }
   }
   static newRunnerWithMetadata<M extends SValueMetadata>(
