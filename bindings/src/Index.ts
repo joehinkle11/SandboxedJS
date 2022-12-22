@@ -1,6 +1,7 @@
 
-import { printNode, Project, Signature } from "ts-morph";
+import { printNode, Project, Signature, TypeFormatFlags } from "ts-morph";
 import fs from 'fs';
+import { convertTypeToSValue, NativeToSValueConversionCode } from "./ConvertTypeToSValue";
 
 const project = new Project({
   tsConfigFilePath: "./src/target.tsconfig.json"
@@ -21,6 +22,7 @@ import type { InstallBuiltIn } from "../BuiltIns/InstallBuiltIn";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
 import type { SMetadataProvider } from "../SMetadataProvider";
 import type { SFunction } from "../SValues/SObjects/SFunction";
+import type { SNumberValue } from "../SValues/SPrimitiveValues/SNumberValue";
 import type { SValue } from "../SValues/SValue";
 
 /// Main entry point for installing all generated bindings.
@@ -88,9 +90,14 @@ function doFileWork(filePath: string) {
     const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
     const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
       const returnType = signature.getReturnType()
+      const resultConversion: NativeToSValueConversionCode = convertTypeToSValue(returnType);
       swizzleOrWhiteListModel.push({
         kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
-        code_body: `throw new Error('asdf ${returnType.getText()} ${returnType.isNumber()}')`
+        code_body: `
+const result: ${returnType.getText(undefined, TypeFormatFlags.UseFullyQualifiedType)} = ${isConstructor ? "new " : ""}${globalVariableName}();
+const sResult: ${resultConversion.resultingSType} = ${resultConversion.convert("result")};
+return sResult;
+`
       })
     };
     const callSignatures = declType.getCallSignatures();
@@ -153,13 +160,13 @@ function doFileWork(filePath: string) {
       case "swizzled_raw_apply":
         appendToSwizzleOrWhiteListModelStr(`
 swizzled_apply_raw(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: undefined, sTable: SLocalSymbolTable<any>) {
-  ${swizzleOrWhiteListEntry.code_body.trim().split("\n  ")}
+  ${swizzleOrWhiteListEntry.code_body.trim().split("\n").join("\n  ")}
 },`);
         continue;
       case "swizzled_raw_construct":
         appendToSwizzleOrWhiteListModelStr(`
 swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) {
-  ${swizzleOrWhiteListEntry.code_body.trim().split("\n  ")}
+  ${swizzleOrWhiteListEntry.code_body.trim().split("\n").join("\n  ")}
 },`);
         continue;
       default:
