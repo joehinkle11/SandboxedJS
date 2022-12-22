@@ -6,6 +6,7 @@ import { ParamExtraction, extractParameters } from "./ExtractParameters";
 import { isValidJsPropertyName } from "./Utils";
 import { globalPrimitiveDeclaration } from "./GlobalPrimitiveDeclaration";
 import { getPrototypeForObject } from "./GetPrototypeForObject";
+import { addGlobalPrototypeObject } from "./AddGlobalPrototypeObject";
 
 const project = new Project({
   tsConfigFilePath: "./src/target.tsconfig.json"
@@ -24,7 +25,6 @@ stream.write(`///
 import { SValues } from "../SValues/AllSValues";
 import type { InstallBuiltIn } from "../BuiltIns/InstallBuiltIn";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
-import type { SMetadataProvider } from "../SMetadataProvider";
 import type { SNormalObject } from "../SValues/SObjects/SNormalObject";
 import type { SFunction } from "../SValues/SObjects/SFunction";
 import type { SNumberValue } from "../SValues/SPrimitiveValues/SNumberValue";
@@ -60,10 +60,10 @@ const makeAppendToFileWithIndentationFunction = (writeFunc: (appendStr: string) 
 const makeAppendToFileWithIndentation = makeAppendToFileWithIndentationFunction((str)=>stream.write(str));
 const appendToFile = makeAppendToFileWithIndentation(1);
 
-const target = "lib.es2015.d.ts";
+// const target = "lib.es2015.d.ts";
 // const target = "lib.esnext.d.ts";
 // const target = "lib.d.ts";
-// const target = "lib.es5.d.ts";
+const target = "lib.es5.d.ts";
 
 const filesToDoWorkOn: string[] = [];
 function importFileRecursively(fileName: string) {
@@ -82,23 +82,12 @@ function importFileRecursively(fileName: string) {
 }
 importFileRecursively(target);
 
-function doFileWork(filePath: string) {
-  console.log("Doing work on " + filePath);
+let builtInBindings: BuiltInBinding[] = [];
+function addFileGlobalVariables(filePath: string) {
   const file = project.getSourceFileOrThrow(filePath);
-  const interfaces = file.getInterfaces();
-  // for (const anInterface of interfaces) {
-  //   console.log(anInterface.getType().getText())
-  // }
-  // if (true as any) {
-  //   return
-  // }
   const decls = file.getVariableDeclarations();
   for (const decl of decls) {
     const globalVariableName = decl.getStructure().name;
-    // if (globalVariableName !== "Number") {
-    //   // skipping others for now
-    //   continue;
-    // }
     const declType = decl.getType();
     if (declType.isNumber() || declType.isBoolean() || declType.isLiteral() || declType.isNull() || declType.isString() || declType.isUndefined() ) {
       globalPrimitiveDeclaration(
@@ -107,9 +96,9 @@ function doFileWork(filePath: string) {
         appendToFile
       );
       continue;
-    }
-    if (declType.isObject() === false) {
-      continue
+    } else if (declType.isObject() === false) {
+      // throw new Error("todo " + declType.getText());
+      continue;
     }
     const isNormalCallable = declType.getCallSignatures().length > 0;
     const isConstructCallable = declType.getConstructSignatures().length > 0;
@@ -227,7 +216,17 @@ rootSTable.assign("${globalVariableName}", SValues.SFunction.createFromNative(
   }
 }
 for (const fileToDoWorkOn of filesToDoWorkOn) {
-  doFileWork(fileToDoWorkOn);
+  addFileGlobalVariables(fileToDoWorkOn);
+}
+function addFileGlobalPrototypes(filePath: string) {
+  const file = project.getSourceFileOrThrow(filePath);
+  const interfaces = file.getInterfaces();
+  for (const anInterface of interfaces) {
+    addGlobalPrototypeObject(anInterface, appendToFile);
+  }
+}
+for (const fileToDoWorkOn of filesToDoWorkOn) {
+  addFileGlobalPrototypes(fileToDoWorkOn);
 }
 
 project.createSourceFile("test.ts",`let w = Number.NaN`);
@@ -257,4 +256,8 @@ interface HardCodedSwizzleOrWhiteListEntry {
 interface WhiteListEntry {
   kind: "whitelist"
   property: string
+}
+
+interface BuiltInBinding {
+  
 }

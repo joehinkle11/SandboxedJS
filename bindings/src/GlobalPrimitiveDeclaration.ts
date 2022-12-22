@@ -1,8 +1,5 @@
 import { Type } from "ts-morph";
 
-
-
-
 export function globalPrimitiveDeclaration(
   globalVariableName: string,
   declType: Type<ts.Type>,
@@ -13,6 +10,12 @@ export function globalPrimitiveDeclaration(
   switch (primitiveTypeString) {
   case "number":
     sPrimitiveClass = "SNumberValue";
+    break;
+  case "boolean":
+    sPrimitiveClass = "SBooleanValue";
+    break;
+  case "string":
+    sPrimitiveClass = "SStringValue";
     break;
   default:
     throw new Error(`Unsupported primitive type ${primitiveTypeString}.`);
