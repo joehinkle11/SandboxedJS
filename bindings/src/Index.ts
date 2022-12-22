@@ -5,6 +5,7 @@ import { convertTypeToSValue, NativeToSValueConversionCode } from "./ConvertType
 import { ParamExtraction, extractParameters } from "./ExtractParameters";
 import { isValidJsPropertyName } from "./Utils";
 import { globalPrimitiveDeclaration } from "./GlobalPrimitiveDeclaration";
+import { getPrototypeForObject } from "./GetPrototypeForObject";
 
 const project = new Project({
   tsConfigFilePath: "./src/target.tsconfig.json"
@@ -84,10 +85,13 @@ importFileRecursively(target);
 function doFileWork(filePath: string) {
   console.log("Doing work on " + filePath);
   const file = project.getSourceFileOrThrow(filePath);
-//   // const interfaces = file.getInterfaces();
-//   // for (const anInterface of interfaces) {
-//   //   console.log(anInterface.getType().getText())
-//   // }
+  const interfaces = file.getInterfaces();
+  // for (const anInterface of interfaces) {
+  //   console.log(anInterface.getType().getText())
+  // }
+  // if (true as any) {
+  //   return
+  // }
   const decls = file.getVariableDeclarations();
   for (const decl of decls) {
     const globalVariableName = decl.getStructure().name;
@@ -102,9 +106,6 @@ function doFileWork(filePath: string) {
         declType,
         appendToFile
       );
-      continue;
-    }
-    if (true as any) {
       continue;
     }
     if (declType.isObject() === false) {
@@ -147,6 +148,7 @@ return sResult;
       const constructSignature = constructSignatures[0];
       addCallOrConstructSigs(constructSignature, true);
     }
+    let sPrototype = "new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral())";
     const typeProperties = declType.getProperties();
     for (const typeProperty of typeProperties) {
       const propertyName = typeProperty.getName();
@@ -158,8 +160,7 @@ return sResult;
       const propertyDeclaration = propertyDeclarations[0];
       const propertyType = propertyDeclaration.getType();
       if (propertyName === "prototype") {
-        /// special treatment for prototype swizzling
-        // todo
+        sPrototype = getPrototypeForObject(propertyType);
         continue;
       } else {
         // is a primitive
@@ -219,7 +220,7 @@ rootSTable.assign("${globalVariableName}", SValues.SFunction.createFromNative(
   {
     ${swizzleOrWhiteListModelStr.trim()}
   },
-  new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral()), // todo: change to function
+  () => ${sPrototype},
   rootSTable.newMetadataForCompileTimeLiteral()
 ), "const");
 `);

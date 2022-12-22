@@ -60,10 +60,10 @@ function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileCont
   switch (name) {
   case "undefined":
     return `new SValues.SUndefinedValue(${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
-  case "NaN":
-    return `new SValues.SNumberValue(NaN${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
-  case "Infinity":
-    return `new SValues.SNumberValue(Infinity${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+  // case "NaN":
+  //   return `new SValues.SNumberValue(NaN${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+  // case "Infinity":
+  //   return `new SValues.SNumberValue(Infinity${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   default:
     return resolveLookupIdentifierByName(name, transpileContext, resolveLookup);
   }
