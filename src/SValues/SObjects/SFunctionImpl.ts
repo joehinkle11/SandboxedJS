@@ -3,8 +3,8 @@ import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../AllSValues";
 import type { SValue } from "../SValue";
-import type { SFunctionObjectValue } from "./SFunction";
-import type { SandboxedFunctionCall } from "./SFunctionDef";
+import type { SFunction, SFunctionObjectValue } from "./SFunction";
+import type { SandboxedConstructorFunctionCall, SandboxedFunctionCall } from "./SFunctionDef";
 import type { SObjectValue } from "./SObjectValue";
 
 
@@ -24,25 +24,29 @@ export function sApply<M extends MaybeSValueMetadata>(
   //   throw new Error(`Todo: convert native result ${nativeJsResult} to sandboxed value`);
   // }
   // throw new Error("todo sApply");
-  return (this.sStorage as SandboxedFunctionCall)(thisArg, args, sTable);
+  return (this.sStorage as SandboxedFunctionCall)(thisArg, args, undefined, sTable);
 }
 
 export function sConstruct<M extends MaybeSValueMetadata>(
-  this: SFunctionObjectValue<M, any>,
+  this: SFunction<M>,
   args: SValue<M>[],
+  newTarget: SFunction<any>,
   sTable: SLocalSymbolTable<M>
 ): SObjectValue<M, any, any> {
-  let newThisPrototype: SObjectValue<M, any, any>;
-  if (this.sPrototype instanceof SValues.SObjectValue) {
-    newThisPrototype = this.sPrototype;
-  } else {
-    newThisPrototype = sTable.sGlobalProtocols.ObjectProtocol;
-  }
-  const newThis = SValues.SNormalObject.create({}, newThisPrototype, sTable);
-  const result = this.sApply(newThis, args, sTable);
+  const result = new (this.sStorage as SandboxedConstructorFunctionCall)(undefined, args, newTarget, sTable);
   if (result instanceof SValues.SObjectValue) {
     return result;
   } else {
-    return newThis;
+    throw new Error("todo return the newly created this")
+    // return newThis;
   }
 }
+
+// creating new `this` logic for constructor call
+// let newThisPrototype: SObjectValue<M, any, any>;
+// if (this.sPrototype instanceof SValues.SObjectValue) {
+//   newThisPrototype = this.sPrototype;
+// } else {
+//   newThisPrototype = sTable.sGlobalProtocols.ObjectProtocol;
+// }
+// const newThis = SValues.SNormalObject.create({}, newThisPrototype, sTable);

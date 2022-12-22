@@ -250,7 +250,8 @@ export function applySwizzleToObj<O extends object>(
 ) {
   const swizzleOrWhitelistKeys = Reflect.ownKeys(sSwizzleAndWhiteList);
   for (const swizzleOrWhitelistKey of swizzleOrWhitelistKeys) {
-    if ((swizzleOrWhitelistKey === "swizzled_apply_raw") || swizzleOrWhitelistKey === "swizzled_apply_proxied") {
+    if ((swizzleOrWhitelistKey === "swizzled_apply_raw") || (swizzleOrWhitelistKey === "swizzled_apply_proxied") ||
+        (swizzleOrWhitelistKey === "swizzled_construct_raw") || (swizzleOrWhitelistKey === "swizzled_construct_proxied")) {
       continue
     } else if (typeof swizzleOrWhitelistKey === "string") {
       if (swizzleOrWhitelistKey.startsWith("whitelist_")) {

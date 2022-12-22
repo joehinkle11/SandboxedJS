@@ -1,6 +1,6 @@
 
 import type { MapNativeValueTypeToSType } from "../SValueDef";
-import type { UnknownFunction, AnySFunction, SandboxedFunctionCall } from "./SFunctionDef";
+import type { UnknownFunction, UnknownConstructorFunction, AnySFunction, SandboxedFunctionCall, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall } from "./SFunctionDef";
 import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValueDef";
 
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
@@ -26,13 +26,20 @@ export type SObjectSwizzleAndWhiteList<O extends object> = {
   [P in keyof O as `swizzle_static_${string & P}`]?: SSwizzleEntry<O[P]>;
 } & {
   [P in keyof O as `swizzle_dynamic_${string & P}`]?: SDynamicSwizzleEntry<O[P]>;
-} & (O extends UnknownFunction ? SFunctionSwizzleAndWhiteList : unknown);
+} & (O extends UnknownFunction ? SFunctionSwizzleAndWhiteList : unknown)& (O extends UnknownConstructorFunction ? SConstructorFunctionSwizzleAndWhiteList : unknown);
 export type SFunctionSwizzleAndWhiteList = {
   swizzled_apply_raw: SandboxedFunctionCall
   swizzled_apply_proxied?: never
 } | {
   swizzled_apply_raw?: never
   swizzled_apply_proxied: UnknownFunction
+}
+export type SConstructorFunctionSwizzleAndWhiteList = {
+  swizzled_construct_raw: SandboxedConstructorFunctionCallAsNormalCall
+  swizzled_construct_proxied?: never
+} | {
+  swizzled_apply_raw?: never
+  swizzled_construct_proxied: UnknownFunction
 }
 export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<any>;
 

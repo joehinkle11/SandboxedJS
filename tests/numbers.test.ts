@@ -40,3 +40,8 @@ describe('basic math operators', () => {
   testSafeEvalAgainstNative('true + 1');
   testSafeEvalAgainstNative('true - 1');
 });
+
+describe('use of global "Number" tests', () => {
+  testSafeEvalAgainstNative('Number(1.3)');
+  testSafeEvalAgainstNative('new Number(1.3).valueOf()');
+});

@@ -1,7 +1,4 @@
-import type { SMetadataProvider } from "../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../SValueMetadata";
-
-
 import type { JSTypeOfString, SValueKind } from "./SValueDef";
 import type { SNumberValue } from "./SPrimitiveValues/SNumberValue";
 import type { SPrimitiveValue } from "./SPrimitiveValues/SPrimitiveValue";
@@ -12,6 +9,7 @@ import type { SSymbolValue } from "./SPrimitiveValues/SSymbolValue";
 import type { SUndefinedValue } from "./SPrimitiveValues/SUndefinedValue";
 import type { SObjectValue } from "./SObjects/SObjectValue";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
+import type { SFunction } from "./SObjects/SFunction";
 import { combineMetadata, sBinaryAdd, sBinaryDiv, sBinaryExpo, sBinaryMod, sBinaryMult, sBinarySubtract, sBitwiseAND, sBitwiseLeftShift, sBitwiseNOT, sBitwiseOR, sBitwiseRightShift, sBitwiseUnsignedRight, sBitwiseXOR, sCompEqualValue, sCompEqualValueAndEqualType, sCompGreaterThan, sCompGreaterThanOrEqualTo, sCompLessThan, sCompLessThanOrEqualTo, sCompNotEqualValue, sCompNotEqualValueAndEqualType, sOwnKeys, sToPropertyKey, sToString, sUnaryTypeOf } from "./SValueImpl";
 
 export abstract class SValue<M extends MaybeSValueMetadata> {
@@ -35,7 +33,7 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
   abstract sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M>;
-  abstract sConstruct(args: SValue<M>[], sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any>;
+  abstract sConstruct(args: SValue<M>[], newTarget: SFunction<any>, sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any>;
   combineMetadata: (anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>) => M = combineMetadata;
   abstract addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this;
   sBinaryAdd: (right: SValue<M>, sTable: SLocalSymbolTable<M>) => SPrimitiveValue<M, any> = sBinaryAdd;

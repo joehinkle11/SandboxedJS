@@ -1,5 +1,5 @@
 
-import { Project } from "ts-morph";
+import { printNode, Project, Signature } from "ts-morph";
 import fs from 'fs';
 
 const project = new Project({
@@ -16,10 +16,11 @@ stream.write(`///
 ///
 
 /// Imports
-import { InstallBuiltIn } from "../BuiltIns/InstallBuiltIn";
-import { SRootSymbolTable } from "../SLocalSymbolTable";
 import { SValues } from "../SValues/AllSValues";
+import type { InstallBuiltIn } from "../BuiltIns/InstallBuiltIn";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
 import type { SMetadataProvider } from "../SMetadataProvider";
+import type { SFunction } from "../SValues/SObjects/SFunction";
 import type { SValue } from "../SValues/SValue";
 
 /// Main entry point for installing all generated bindings.
@@ -83,17 +84,32 @@ function doFileWork(filePath: string) {
       // skipping others for now
       continue;
     }
-    const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
-    swizzleOrWhiteListModel.push({
-      kind: "hardcoded",
-      code: `
-swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: SMetadataProvider<any>): SValue<any> {
-  throw new Error("todo!");
-}`});
     const declType = decl.getType();
+    const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
+    const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
+      const returnType = signature.getReturnType()
+      swizzleOrWhiteListModel.push({
+        kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
+        code_body: `throw new Error('asdf ${returnType.getText()} ${returnType.isNumber()}')`
+      })
+    };
+    const callSignatures = declType.getCallSignatures();
+    if (callSignatures.length > 0) {
+      if (callSignatures.length > 1) {
+        throw new Error("Unexpectedly found more than 1 call signature.")
+      }
+      const callSignature = callSignatures[0];
+      addCallOrConstructSigs(callSignature, false);
+    }
+    const constructSignatures = declType.getConstructSignatures();
+    if (constructSignatures.length > 0) {
+      if (constructSignatures.length > 1) {
+        throw new Error("Unexpectedly found more than 1 construct signature.")
+      }
+      const constructSignature = constructSignatures[0];
+      addCallOrConstructSigs(constructSignature, true);
+    }
     const typeProperties = declType.getProperties();
-    // const baseTypes = declType.getPropertyOrThrow("EPSILON");
-    // console.log(baseTypes, "baseTypes")
     for (const typeProperty of typeProperties) {
       const propertyName = typeProperty.getName();
       const propertyDeclarations = typeProperty.getDeclarations();
@@ -109,12 +125,12 @@ swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: S
         continue;
       } else {
         // is a primitive
-        if (propertyType.isBoolean() || propertyType.isNumber()) {
+        if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
           // whitelist it!
           // todo: force the user who is generating the bindings to opt-in to white listing for safety
           swizzleOrWhiteListModel.push({
-            kind: "hardcoded",
-            code: `whitelist_${propertyName}: true`
+            kind: "whitelist",
+            property: propertyName
           });
           continue;
         } else {
@@ -127,10 +143,27 @@ swizzled_apply_raw(sThisArg: SValue<any>, sArgArray: SValue<any>[], mProvider: S
     const appendToSwizzleOrWhiteListModelStrWithIndentation = makeAppendToFileWithIndentationFunction((str)=>swizzleOrWhiteListModelStr+=str);
     const appendToSwizzleOrWhiteListModelStr = appendToSwizzleOrWhiteListModelStrWithIndentation(2);
     for (const swizzleOrWhiteListEntry of swizzleOrWhiteListModel) {
-      if (swizzleOrWhiteListEntry.kind === "hardcoded") {
+      switch (swizzleOrWhiteListEntry.kind) {
+      case "hardcoded":
         appendToSwizzleOrWhiteListModelStr(swizzleOrWhiteListEntry.code + ",");
-      } else {
-        throw new Error("Todo kind "+ swizzleOrWhiteListEntry.kind);
+        continue;
+      case "whitelist":
+        appendToSwizzleOrWhiteListModelStr(`whitelist_${swizzleOrWhiteListEntry.property}: true,`);
+        continue;
+      case "swizzled_raw_apply":
+        appendToSwizzleOrWhiteListModelStr(`
+swizzled_apply_raw(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: undefined, sTable: SLocalSymbolTable<any>) {
+  ${swizzleOrWhiteListEntry.code_body.trim().split("\n  ")}
+},`);
+        continue;
+      case "swizzled_raw_construct":
+        appendToSwizzleOrWhiteListModelStr(`
+swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) {
+  ${swizzleOrWhiteListEntry.code_body.trim().split("\n  ")}
+},`);
+        continue;
+      default:
+        console.log("TODO " + (swizzleOrWhiteListEntry as any).property);
       }
     }
     appendToFile(`
@@ -154,16 +187,27 @@ project.createSourceFile("test.ts",`let w = Number.NaN`);
 const sourceFile = project.getSourceFiles()[0];
 console.log(sourceFile.getVariableDeclarationOrThrow("w").getType().getText());
 
-
 stream.write(`
 };`);
 
 
 
-type SwizzleOrWhiteListEntry = HardCodedSwizzleOrWhiteListEntry & {
+type SwizzleOrWhiteListEntry = (HardCodedSwizzleOrWhiteListEntry | WhiteListEntry | SwizzledRawApply | SwizzledRawConstruct) & {
   kind: string
 };
+interface SwizzledRawApply {
+  kind: "swizzled_raw_apply"
+  code_body: string
+}
+interface SwizzledRawConstruct {
+  kind: "swizzled_raw_construct"
+  code_body: string
+}
 interface HardCodedSwizzleOrWhiteListEntry {
   kind: "hardcoded"
   code: string
+}
+interface WhiteListEntry {
+  kind: "whitelist"
+  property: string
 }
