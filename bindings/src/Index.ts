@@ -1,7 +1,10 @@
 
-import { printNode, Project, Signature, TypeFormatFlags } from "ts-morph";
+import { Project, Signature, TypeFormatFlags } from "ts-morph";
 import fs from 'fs';
 import { convertTypeToSValue, NativeToSValueConversionCode } from "./ConvertTypeToSValue";
+import { ParamExtraction, extractParameters } from "./ExtractParameters";
+import { isValidJsPropertyName } from "./Utils";
+import { globalPrimitiveDeclaration } from "./GlobalPrimitiveDeclaration";
 
 const project = new Project({
   tsConfigFilePath: "./src/target.tsconfig.json"
@@ -21,9 +24,15 @@ import { SValues } from "../SValues/AllSValues";
 import type { InstallBuiltIn } from "../BuiltIns/InstallBuiltIn";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
 import type { SMetadataProvider } from "../SMetadataProvider";
+import type { SNormalObject } from "../SValues/SObjects/SNormalObject";
 import type { SFunction } from "../SValues/SObjects/SFunction";
 import type { SNumberValue } from "../SValues/SPrimitiveValues/SNumberValue";
 import type { SValue } from "../SValues/SValue";
+
+/// Helpers
+const getArg: (sArgArray: SValue<any>[], index: number, sTable: SLocalSymbolTable<any>) => SValue<any> = (sArgArray, index, sTable) => {
+  return sArgArray[index] ?? new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
+}
 
 /// Main entry point for installing all generated bindings.
 export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootSymbolTable<any>) => {
@@ -82,19 +91,41 @@ function doFileWork(filePath: string) {
   const decls = file.getVariableDeclarations();
   for (const decl of decls) {
     const globalVariableName = decl.getStructure().name;
-    if (globalVariableName !== "Number") {
-      // skipping others for now
+    // if (globalVariableName !== "Number") {
+    //   // skipping others for now
+    //   continue;
+    // }
+    const declType = decl.getType();
+    if (declType.isNumber() || declType.isBoolean() || declType.isLiteral() || declType.isNull() || declType.isString() || declType.isUndefined() ) {
+      globalPrimitiveDeclaration(
+        globalVariableName,
+        declType,
+        appendToFile
+      );
       continue;
     }
-    const declType = decl.getType();
+    if (true as any) {
+      continue;
+    }
+    if (declType.isObject() === false) {
+      continue
+    }
+    const isNormalCallable = declType.getCallSignatures().length > 0;
+    const isConstructCallable = declType.getConstructSignatures().length > 0;
+    // if ((isNormalCallable || isConstructCallable) === false) {
+    // TODO: support creating bindings for things which are only normal callable or only construct callable
+    if ((isNormalCallable && isConstructCallable) === false) {
+      continue;
+    }
     const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
     const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
-      const returnType = signature.getReturnType()
+      const paramExtractionCodes: ParamExtraction[] = extractParameters(signature.getParameters());
+      const returnType = signature.getReturnType();
       const resultConversion: NativeToSValueConversionCode = convertTypeToSValue(returnType);
       swizzleOrWhiteListModel.push({
         kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
-        code_body: `
-const result: ${returnType.getText(undefined, TypeFormatFlags.UseFullyQualifiedType)} = ${isConstructor ? "new " : ""}${globalVariableName}();
+        code_body: `${paramExtractionCodes.map(v=>v.setupCode).join("\n")}
+const result: ${returnType.getText(undefined, TypeFormatFlags.UseFullyQualifiedType)} = ${isConstructor ? "new " : ""}${globalVariableName}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
 const sResult: ${resultConversion.resultingSType} = ${resultConversion.convert("result")};
 return sResult;
 `
@@ -102,17 +133,17 @@ return sResult;
     };
     const callSignatures = declType.getCallSignatures();
     if (callSignatures.length > 0) {
-      if (callSignatures.length > 1) {
-        throw new Error("Unexpectedly found more than 1 call signature.")
-      }
+      // if (callSignatures.length > 1) {
+      //   throw new Error(`Unexpectedly found more than 1 call signature. ${declType.getText()} ${callSignatures.map(v=>v.getDeclaration().getText())}`)
+      // }
       const callSignature = callSignatures[0];
       addCallOrConstructSigs(callSignature, false);
     }
     const constructSignatures = declType.getConstructSignatures();
     if (constructSignatures.length > 0) {
-      if (constructSignatures.length > 1) {
-        throw new Error("Unexpectedly found more than 1 construct signature.")
-      }
+      // if (constructSignatures.length > 1) {
+      //   throw new Error("Unexpectedly found more than 1 construct signature.")
+      // }
       const constructSignature = constructSignatures[0];
       addCallOrConstructSigs(constructSignature, true);
     }
@@ -149,13 +180,21 @@ return sResult;
     let swizzleOrWhiteListModelStr = "";
     const appendToSwizzleOrWhiteListModelStrWithIndentation = makeAppendToFileWithIndentationFunction((str)=>swizzleOrWhiteListModelStr+=str);
     const appendToSwizzleOrWhiteListModelStr = appendToSwizzleOrWhiteListModelStrWithIndentation(2);
+    // escapes if needed
+    const makeSwizzleOrWhitelistProperty = (propertyName: string) => {
+      if (isValidJsPropertyName(propertyName)) {
+        return propertyName;
+      } else {
+        return `["${propertyName.replaceAll('"','\\"')}"]`;
+      }
+    };
     for (const swizzleOrWhiteListEntry of swizzleOrWhiteListModel) {
       switch (swizzleOrWhiteListEntry.kind) {
       case "hardcoded":
         appendToSwizzleOrWhiteListModelStr(swizzleOrWhiteListEntry.code + ",");
         continue;
       case "whitelist":
-        appendToSwizzleOrWhiteListModelStr(`whitelist_${swizzleOrWhiteListEntry.property}: true,`);
+        appendToSwizzleOrWhiteListModelStr(`${makeSwizzleOrWhitelistProperty(`whitelist_${swizzleOrWhiteListEntry.property}`)}: true,`);
         continue;
       case "swizzled_raw_apply":
         appendToSwizzleOrWhiteListModelStr(`
