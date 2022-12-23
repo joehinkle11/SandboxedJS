@@ -42,9 +42,9 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     const sPrototype = new SValues.SNullValue(mProvider.newMetadataForRuntimeTimeEmergingValue()); // todo: sPrototype
     return new SFunction<M>(fixedAnySFunction, sPrototype, functionAsString, mProvider.newMetadataForObjectValue());
   }
-  static createFromNative<O extends UnknownConstructorFunction & UnknownFunction, M extends MaybeSValueMetadata>(
+  static createFromNative<O extends UnknownConstructorFunction | UnknownFunction, M extends MaybeSValueMetadata>(
     nativeJsFunction: O,
-    sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
+    sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O & UnknownConstructorFunction & UnknownFunction>,
     sPrototype: SPrototypeType,
     metadata: M
   ): SFunction<M> {

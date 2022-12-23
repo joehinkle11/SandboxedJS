@@ -14,7 +14,7 @@ export function collectVariables(
     for (const decl of decls) {
       const globalVariableName = decl.getStructure().name;
       const declType = decl.getType();
-      const implementationCode = createStaticBindingCodeForGlobalVar(globalVariableName, declType);
+      const implementationCode = createStaticBindingCodeForGlobalVar(globalVariableName, declType, builtInBindingStore);
       const builtInBinding = builtInBindingStore.getBindingForType(declType);
       const bindingEntry = new BindingEntry(
         "static",
@@ -28,9 +28,10 @@ export function collectVariables(
 }
 
 // static means that the value will never change during the course of the program execution
-function createStaticBindingCodeForGlobalVar(
+export function createStaticBindingCodeForGlobalVar(
   globalVariableName: string,
-  nativeType: Type<ts.Type>
+  nativeType: Type<ts.Type>,
+  builtInBindingStore: BuiltInBindingStore
 ): string {
   if (nativeType.isNumber() || nativeType.isBoolean() || nativeType.isLiteral() || nativeType.isNull() || nativeType.isString() || nativeType.isUndefined() ) {
     return makeSPrimitiveValueOfGlobalVariable(globalVariableName, nativeType);
@@ -40,12 +41,12 @@ function createStaticBindingCodeForGlobalVar(
       const isConstructor = nativeType.getConstructSignatures().length > 0;
       // todo: we need to make a distinction between callables and constructables
       if (isCallable || isConstructor) {
-        return makeSFunctionOfGlobalVariable(globalVariableName, nativeType);
+        return makeSFunctionOfGlobalVariable(globalVariableName, nativeType, builtInBindingStore);
       } else {
-        return "'obj " + globalVariableName + "'"; 
+        return "'obj " + globalVariableName + "' as any"; 
       }
     }
-    return "'todo " + globalVariableName + "'";
+    return "'todo " + globalVariableName + "' as any";
   }
 }
 

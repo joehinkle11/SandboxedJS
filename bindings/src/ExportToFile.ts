@@ -26,6 +26,7 @@ import type { SNullValue } from "../SValues/SPrimitiveValues/SNullValue";
 import type { SBigIntValue } from "../SValues/SPrimitiveValues/SBigIntValue";
 import type { SSymbolValue } from "../SValues/SPrimitiveValues/SSymbolValue";
 import type { SValue } from "../SValues/SValue";
+import SUserError from "../Models/SUserError";
 
 /// Helpers
 const getArg: (sArgArray: SValue<any>[], index: number, sTable: SLocalSymbolTable<any>) => SValue<any> = (sArgArray, index, sTable) => {
@@ -39,7 +40,11 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   const appendToInstallGeneratedBindings = makeAppendToFileWithIndentation(1);
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {
     for (const entry of builtInBinding.entries) {
-      appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${entry.implementationCode};`); 
+      if (entry.implementationCode !== undefined) {
+        appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${entry.implementationCode};`);
+      } else {
+        appendToInstallGeneratedBindings(`// Cannot make private binding for "${entry.privateName}: ${builtInBinding.sType}" as not implementation code was found.`);
+      }
     }
   }
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {

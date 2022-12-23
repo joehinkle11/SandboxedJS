@@ -21,7 +21,6 @@ export default class SUserError extends Error {
     super();
     this.userError = userError;
   }
-  
   static get corruptObjectPropertyFail(): SUserError {
     return new SUserError(new Error("Detected corrupt object property."));
   }
@@ -42,6 +41,9 @@ export default class SUserError extends Error {
   }
   static cannotCall(valueDescription: string): SUserError {
     return new SUserError(new Error(`Cannot call '${valueDescription}'.`));
+  }
+  static requiresNew(valueDescription: string): SUserError {
+    return new SUserError(new Error(`TypeError: Constructor ${valueDescription} requires 'new'.`));
   }
   static cannotConstruct(valueDescription: string): SUserError {
     return new SUserError(new Error(`Cannot construct '${valueDescription}'.`));

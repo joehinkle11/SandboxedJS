@@ -33,9 +33,8 @@ export function collectInterfaces(
       const primitiveBoxInternalName = getPrimitiveBoxInternalName(interfaceDeclTypeStr);
       if (primitiveBoxInternalName !== undefined) {
         const builtInBinding = builtInBindingStore.getBindingForType(interfaceDeclType);
-        const entry = new BindingEntry("static", "global_interface_" + interfaceDeclType.getText(), "'todo' as any");
+        const entry = builtInBinding.getOrCreateSingletonEntry(undefined);
         entry.internalName = primitiveBoxInternalName;
-        builtInBinding.entries.push(entry);
       }
     }
   }
