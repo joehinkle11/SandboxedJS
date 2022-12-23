@@ -1,5 +1,6 @@
 import { Signature, SyntaxKind, Type, TypeFormatFlags } from "ts-morph";
 import { createStaticBindingCodeForGlobalVar } from "../BindingsCollectors/CollectVariables";
+import { blackListProperties } from "../Blacklist";
 import { convertTypeToSValue, NativeToSValueConversionCode } from "../ConvertTypeToSValue";
 import { extractParameters, ParamExtraction } from "../ExtractParameters";
 import { makeAppendToFileWithIndentationFunction } from "../FileWriting";
@@ -10,18 +11,31 @@ import { isValidJsPropertyName } from "../Utils";
 export function makeSObjectOfGlobalVariable(
   globalVariableName: string,
   nativeType: Type<ts.Type>,
-  builtInBindingStore: BuiltInBindingStore
+  builtInBindingStore: BuiltInBindingStore,
+  ourOrder: number
 ): string {
   let sPrototype = "new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral())";
   const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
   const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
     const paramExtractionCodes: ParamExtraction[] = extractParameters(signature.getParameters());
     const returnType = signature.getReturnType();
-    const returnTypeStr = returnType.getText(undefined, TypeFormatFlags.UseFullyQualifiedType);
-    let safeReturnTypeStr = (returnType.getTargetType() ?? returnType).getText(undefined, TypeFormatFlags.UseFullyQualifiedType).replaceAll("T[]","any[]").replaceAll("<K, V>", "<any, any>").replaceAll("<T>", "<any>");
-    if (safeReturnTypeStr === "T") {
-      safeReturnTypeStr = "any";
+    function makeSafeTypeText(type: Type<ts.Type>): string {
+      if (type.getCallSignatures().length > 0) {
+        return "any"
+      } else if (type.isUnion() || type.isIntersection()) {
+        return "any"
+      } else if (type.isObject()) {
+        return "any"
+      }
+      let safeTypeStr = (type.getTargetType() ?? type).getText(undefined, TypeFormatFlags.UseFullyQualifiedType).replaceAll("T[]","any[]").replaceAll("<K, V>", "<any, any>").replaceAll("<T>", "<any>");
+      if (safeTypeStr === "T") {
+        return "any";
+      } else if (safeTypeStr === "this") {
+        return makeSafeTypeText(nativeType);
+      }
+      return safeTypeStr;
     }
+    const safeReturnTypeStr = makeSafeTypeText(returnType);
     const resultConversion: NativeToSValueConversionCode = convertTypeToSValue(returnType);
     swizzleOrWhiteListModel.push({
       kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
@@ -68,7 +82,11 @@ return sResult;
       const propertyName = typeProperty.getName();
       if (propertyName.includes("_@")) {
         // todo: probably a property with a symbol as a key
-        console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+        // console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+        continue;
+      }
+      if (blackListProperties.includes(propertyName)) {
+        console.log(`Skipping property ${propertyName} on ${nativeType.getText()} as it is on the blacklist.`);
         continue;
       }
       const propertyDeclarations = typeProperty.getDeclarations();
@@ -84,7 +102,8 @@ return sResult;
           createStaticBindingCodeForGlobalVar(
             globalVariableName + ".prototype",
             propertyType,
-            builtInBindingStore
+            builtInBindingStore,
+            ourOrder + 1
           )
         );
         sPrototype = singletonPrototype.privateName;
@@ -100,7 +119,26 @@ return sResult;
           });
           continue;
         } else {
-          // console.log(`Handle non-primitive whitelist/swizzling property ${propertyName} of type ${propertyType.getText()}`);
+          if (propertyType.getText() === nativeType.getText()) {
+            console.log("skipping",propertyName, propertyType.getText())
+            continue;
+          }
+          const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
+          const singletonProperty = bindingOfPrototype.getOrCreateSingletonEntry(
+            createStaticBindingCodeForGlobalVar(
+              globalVariableName + "." + propertyName,
+              propertyType,
+              builtInBindingStore,
+              ourOrder + 1
+            ),
+            globalVariableName + "." + propertyName,
+            ourOrder + 1
+          );
+          swizzleOrWhiteListModel.push({
+            kind: "swizzled_static_property",
+            property: propertyName,
+            code_body: singletonProperty.privateName
+          });
           continue;
         }
       }
@@ -136,6 +174,11 @@ swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTabl
   ${swizzleOrWhiteListEntry.code_body.trim().split("\n").join("\n  ")}
 },`);
       continue;
+    case "swizzled_static_property":
+      appendToSwizzleOrWhiteListModelStr(`
+${makeSwizzleOrWhitelistProperty(`swizzle_static_${swizzleOrWhiteListEntry.property}`)}: ${swizzleOrWhiteListEntry.code_body},
+`);
+      continue;
     default:
       console.log("TODO " + (swizzleOrWhiteListEntry as any).property);
     }
@@ -157,7 +200,7 @@ swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTabl
     ${swizzleOrWhiteListModelStr.trim()}
   },
   () => ${sPrototype},
-rootSTable.newMetadataForCompileTimeLiteral()
+  rootSTable.newMetadataForCompileTimeLiteral()
 )`;
   }
 }

@@ -15,17 +15,21 @@ export class BuiltInBinding {
     this.sType = nativeTypeToSType(type);
   }
 
-  getOrCreateSingletonEntry(implementationCode: string | undefined): BindingEntry {
-    const privateName = "global_interface_" + this.typeTextSafe;
+  getOrCreateSingletonEntry(implementationCode: string | undefined, privateNameOverride: string | undefined = undefined, sortOrder: number | undefined = undefined): BindingEntry {
+    const privateName = "global_interface_" + (privateNameOverride?.replaceAll(".","_dot_") ?? this.typeTextSafe);
     for (const entry of this.entries) {
       if (entry.privateNameMatch(privateName)) {
         if (entry.implementationCode === undefined) {
           entry.implementationCode = implementationCode;
         }
+        if (sortOrder !== undefined) {
+          entry.sortOrder = Math.max(sortOrder, entry.sortOrder);
+        }
         return entry;
       }
     }
-    const entry = new BindingEntry("static", privateName, implementationCode);
+    const entry = new BindingEntry(this, "static", privateName, implementationCode);
+    entry.sortOrder = sortOrder ?? 0;
     this.entries.push(entry);
     return entry;
   }
@@ -34,18 +38,23 @@ export class BuiltInBinding {
 export class BindingEntry {
   readonly kind: "static" | "dynamic" ;
   readonly privateName: string
+  readonly builtInBindingRef: WeakRef<BuiltInBinding>;
+  get builtInBinding(): BuiltInBinding { return this.builtInBindingRef.deref()! };
   implementationCode: string | undefined;
   globalVariableName?: string
   internalName?: string
+  sortOrder: number;
 
   privateNameMatch(anotherPrivateName: string): boolean {
     return "private_implementation_" + anotherPrivateName === this.privateName;
   }
 
-  constructor(kind: "static" | "dynamic", privateName: string, implementationCode: string | undefined)  {
+  constructor(builtInBinding: BuiltInBinding, kind: "static" | "dynamic", privateName: string, implementationCode: string | undefined)  {
     this.privateName = "private_implementation_" + privateName;
     this.kind = kind;
     this.implementationCode = implementationCode;
+    this.sortOrder = 0;
+    this.builtInBindingRef = new WeakRef(builtInBinding);
   }
 }
 
@@ -59,6 +68,13 @@ export class BuiltInBindingStore {
       builtInBindings.push(this.bindingsByType[k] as BuiltInBinding);
     }
     return builtInBindings;
+  }
+  getAllBindingEntries(): BindingEntry[] {
+    const builtInBindingEntries: BindingEntry[] = [];
+    for (const k in this.bindingsByType) {
+      builtInBindingEntries.push(...(this.bindingsByType[k] as BuiltInBinding).entries);
+    }
+    return builtInBindingEntries;
   }
 
   getBindingForType(type: Type<ts.Type>): BuiltInBinding {

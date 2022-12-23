@@ -35,7 +35,7 @@ export function convertTypeToSValue(
     return {
       resultingSType: "never",
       convert(nativeVariableName) {
-        return `(()=>{throw new Error("todo: convert return type '${type.getText()}'")})()`;
+        return `(()=>{throw new Error("todo: convert return type '${type.getText().replaceAll('"','\\"')}'")})()`;
       },
     }
   }

@@ -1,4 +1,5 @@
 import { SourceFile, Type } from "ts-morph";
+import { blackListTypes } from "../Blacklist";
 import { makeSObjectOfGlobalVariable } from "../CodeGen/MakeSObjectOfGlobalVariable";
 import { makeSPrimitiveValueOfGlobalVariable } from "../CodeGen/MakeSPrimitiveValueOfGlobalVariable";
 import { BindingEntry, BuiltInBinding, BuiltInBindingStore } from "../Models/BuiltInBinding";
@@ -13,10 +14,15 @@ export function collectVariables(
     const decls = file.getVariableDeclarations();
     for (const decl of decls) {
       const globalVariableName = decl.getStructure().name;
+      if (blackListTypes.includes(globalVariableName)) {
+        console.log(`Skipping ${globalVariableName} as it is on the blacklist.`);
+        continue;
+      }
       const declType = decl.getType();
-      const implementationCode = createStaticBindingCodeForGlobalVar(globalVariableName, declType, builtInBindingStore);
+      const implementationCode = createStaticBindingCodeForGlobalVar(globalVariableName, declType, builtInBindingStore, 0);
       const builtInBinding = builtInBindingStore.getBindingForType(declType);
       const bindingEntry = new BindingEntry(
+        builtInBinding,
         "static",
         "global_" + globalVariableName,
         implementationCode
@@ -31,13 +37,14 @@ export function collectVariables(
 export function createStaticBindingCodeForGlobalVar(
   globalVariableName: string,
   nativeType: Type<ts.Type>,
-  builtInBindingStore: BuiltInBindingStore
+  builtInBindingStore: BuiltInBindingStore,
+  ourOrder: number
 ): string {
   if (nativeType.isNumber() || nativeType.isBoolean() || nativeType.isLiteral() || nativeType.isNull() || nativeType.isString() || nativeType.isUndefined() ) {
     return makeSPrimitiveValueOfGlobalVariable(globalVariableName, nativeType);
   } else {
     if (nativeType.isObject()) {
-      return makeSObjectOfGlobalVariable(globalVariableName, nativeType, builtInBindingStore);
+      return makeSObjectOfGlobalVariable(globalVariableName, nativeType, builtInBindingStore, ourOrder);
     }
     return "'todo " + globalVariableName + "' as any";
   }

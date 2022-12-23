@@ -25,10 +25,11 @@ export function nativeTypeToSTypeSimple(
     return "SNullValue<any>";
   } else if (nativeType.isString()) {
     return "SStringValue<any, string>";
-  } else if (nativeType.isAny()) {
+  } else if (nativeType.isAny() || nativeType.isUnknown()) {
     return "SValue<any>";
   } else {
-    throw new Error("Todo nativeTypeToSType for: " + nativeType.getText())
+    // throw new Error("Todo nativeTypeToSType for: " + nativeType.getText())
+    return "SValue<any>";
   }
 }
 
