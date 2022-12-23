@@ -52,7 +52,7 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {
     for (const entry of builtInBinding.entries) {
       if (entry.internalName !== undefined) {
-        appendToInstallGeneratedBindings(`rootSTable.sGlobalProtocols.${entry.internalName} = ${entry.privateName};`); 
+        appendToInstallGeneratedBindings(`rootSTable.sGlobalProtocols.${entry.internalName} = ${entry.privateName} as SNormalObject<any>;`); 
       }
     }
   }

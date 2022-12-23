@@ -1,34 +1,42 @@
 import { SourceFile } from "ts-morph";
-import { BuiltInBindingStore } from "../Models/BuiltInBinding";
+import { BindingEntry, BuiltInBindingStore } from "../Models/BuiltInBinding";
 
-function getHiddenName(typeStr: string): string {
+function getPrimitiveBoxInternalName(typeStr: string): string | undefined {
   switch (typeStr) {
-  case "Symbol":
-    return "SymbolProtocol";
+  case "Number":
+    return "NumberProtocol";
+  case "Boolean":
+    return "BooleanProtocol";
+  // case "Symbol":
+  //   return "SymbolProtocol";
   default:
-    throw new Error(`Cannot get hidden name for ${typeStr}`);
+    return undefined;
   }
 }
 
-Object.getOwnPropertyDescriptor
 
 export function collectInterfaces(
   filesToDoWorkOn: SourceFile[],
   builtInBindingStore: BuiltInBindingStore
 ) {
+  const completedInterfaces: Record<string, true | undefined> = {};
   for (const file of filesToDoWorkOn) {
     const interfaceDecls = file.getInterfaces();
     for (const interfaceDecl of interfaceDecls) {
       const interfaceDeclType = interfaceDecl.getType();
-      const builtInBinding = builtInBindingStore.getBindingForType(interfaceDeclType);
-      // already added
+      const interfaceDeclTypeStr = interfaceDeclType.getText();
+      if (completedInterfaces[interfaceDeclTypeStr]) {
+        continue
+      }
+      completedInterfaces[interfaceDeclTypeStr] = true;
       // Determine if this is a primitive box type
-      // switch (interfaceDeclTypeStr) {
-      // case "Number":
-      //   builtInBinding.internalName = "NumberProtocol";
-      //   break;
-      // }
-      continue;
+      const primitiveBoxInternalName = getPrimitiveBoxInternalName(interfaceDeclTypeStr);
+      if (primitiveBoxInternalName !== undefined) {
+        const builtInBinding = builtInBindingStore.getBindingForType(interfaceDeclType);
+        const entry = new BindingEntry("static", "global_interface_" + interfaceDeclType.getText(), "'todo' as any");
+        entry.internalName = primitiveBoxInternalName;
+        builtInBinding.entries.push(entry);
+      }
     }
   }
 }

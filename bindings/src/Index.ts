@@ -17,8 +17,8 @@ const target = "lib.es5.d.ts";
 const filesToDoWorkOn = importTSLibFilesRecursively(target, project);
 
 let builtInBindingStore: BuiltInBindingStore = new BuiltInBindingStore();
-collectVariables(filesToDoWorkOn, builtInBindingStore);
 collectInterfaces(filesToDoWorkOn, builtInBindingStore);
+collectVariables(filesToDoWorkOn, builtInBindingStore);
 
 exportToFile(builtInBindingStore);
 

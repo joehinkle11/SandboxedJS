@@ -1,4 +1,5 @@
 import { SourceFile, Type } from "ts-morph";
+import { makeSFunctionOfGlobalVariable } from "../CodeGen/MakeSFunctionOfGlobalVariable";
 import { makeSPrimitiveValueOfGlobalVariable } from "../CodeGen/MakeSPrimitiveValueOfGlobalVariable";
 import { BindingEntry, BuiltInBinding, BuiltInBindingStore } from "../Models/BuiltInBinding";
 
@@ -29,11 +30,21 @@ export function collectVariables(
 // static means that the value will never change during the course of the program execution
 function createStaticBindingCodeForGlobalVar(
   globalVariableName: string,
-  declType: Type<ts.Type>
+  nativeType: Type<ts.Type>
 ): string {
-  if (declType.isNumber() || declType.isBoolean() || declType.isLiteral() || declType.isNull() || declType.isString() || declType.isUndefined() ) {
-    return makeSPrimitiveValueOfGlobalVariable(globalVariableName, declType);
+  if (nativeType.isNumber() || nativeType.isBoolean() || nativeType.isLiteral() || nativeType.isNull() || nativeType.isString() || nativeType.isUndefined() ) {
+    return makeSPrimitiveValueOfGlobalVariable(globalVariableName, nativeType);
   } else {
+    if (nativeType.isObject()) {
+      const isCallable = nativeType.getCallSignatures().length > 0;
+      const isConstructor = nativeType.getConstructSignatures().length > 0;
+      // todo: we need to make a distinction between callables and constructables
+      if (isCallable || isConstructor) {
+        return makeSFunctionOfGlobalVariable(globalVariableName, nativeType);
+      } else {
+        return "'obj " + globalVariableName + "'"; 
+      }
+    }
     return "'todo " + globalVariableName + "'";
   }
 }
