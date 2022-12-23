@@ -35,14 +35,27 @@ const getArg: (sArgArray: SValue<any>[], index: number, sTable: SLocalSymbolTabl
 export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootSymbolTable<any>) => {
 `);
 
-const appendToInstallGeneratedBindings = makeAppendToFileWithIndentation(1);
-  for (const builtInBindingKey in builtInBindingStore) {
-    const builtInBinding: BuiltInBinding = builtInBindingStore[builtInBindingKey]!;
-    appendToInstallGeneratedBindings(`
-/// ${builtInBindingKey}
-`);
+  const appendToInstallGeneratedBindings = makeAppendToFileWithIndentation(1);
+  for (const builtInBinding of builtInBindingStore.getAllBindings()) {
+    for (const entry of builtInBinding.entries) {
+      appendToInstallGeneratedBindings(`const ${entry.privateName} = ${entry.implementationCode};`); 
+    }
   }
- 
+  for (const builtInBinding of builtInBindingStore.getAllBindings()) {
+    for (const entry of builtInBinding.entries) {
+      if (entry.globalVariableName !== undefined) {
+        appendToInstallGeneratedBindings(`rootSTable.assign("${entry.globalVariableName}", ${entry.privateName} as SValue<any>, rootSTable.newMetadataForCompileTimeLiteral()), "const");`);
+      }
+    }
+  }
+  for (const builtInBinding of builtInBindingStore.getAllBindings()) {
+    for (const entry of builtInBinding.entries) {
+      if (entry.internalName !== undefined) {
+        appendToInstallGeneratedBindings(`rootSTable.sGlobalProtocols.${entry.internalName} = ${entry.privateName};`); 
+      }
+    }
+  }
+
   fileStream.write(`
 };`); 
 }

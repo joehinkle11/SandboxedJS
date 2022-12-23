@@ -19,6 +19,7 @@ interface SGlobalProtocols<M extends MaybeSValueMetadata> {
   NumberProtocol: SNormalObject<M>;
   BooleanProtocol: SNormalObject<M>;
   StringProtocol: SNormalObject<M>;
+  SymbolProtocol: SNormalObject<M>;
   ArrayProtocol: SNormalObject<M>;
   // BoxNumber: (number: number, metadata: M) => SNormalObject<M>;
 }
