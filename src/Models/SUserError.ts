@@ -45,6 +45,12 @@ export default class SUserError extends Error {
   static requiresNew(valueDescription: string): SUserError {
     return new SUserError(new Error(`TypeError: Constructor ${valueDescription} requires 'new'.`));
   }
+  static notAConstructor(valueDescription: string): SUserError {
+    return new SUserError(new Error(`TypeError: ${valueDescription} is not a constructor.`));
+  }
+  static cannotReadPropertiesOfNull(propName: string): SUserError {
+    return new SUserError(new Error(`TypeError: Cannot read properties of null (reading '${propName}')`));
+  }
   static cannotConstruct(valueDescription: string): SUserError {
     return new SUserError(new Error(`Cannot construct '${valueDescription}'.`));
   }

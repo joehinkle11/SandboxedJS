@@ -11,7 +11,7 @@ export class BuiltInBinding {
   constructor(type: Type<ts.Type>) {
     this.type = type;
     this.typeText = this.type.getText();
-    this.typeTextSafe = this.typeText.replaceAll("[]","_array")
+    this.typeTextSafe = this.typeText.replaceAll("[]","_array").replaceAll("<any>","_generic_any").replaceAll("<object>","_generic_object").replaceAll("<object, any>","_generic_object_or_any").replaceAll("<any, any>","_generic_any_or_any");
     this.sType = nativeTypeToSType(type);
   }
 

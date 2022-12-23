@@ -35,4 +35,11 @@ export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> ex
   ): SArrayObject<M, E> {
     return this.createWithMetadata(array, sTable.newMetadataForObjectValue(), sTable);
   }
+
+  // static createFromNative(
+  //   nativeObject: any,
+  //   sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<any>,
+  //   sPrototype: SPrototypeType,
+  //   metadata: MaybeSValueMetadata
+  // ): SObjectValue<any, any, any>;
 }

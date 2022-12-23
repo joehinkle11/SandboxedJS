@@ -5,6 +5,7 @@ import { SNumberValue } from "./SNumberValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import { SUndefinedValue } from "./SUndefinedValue";
+import SUserError from "../../Models/SUserError";
 
 
 export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
@@ -40,8 +41,8 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
   sLogicalOr<RSValue extends SValue<M>>(getRight: () => RSValue, sTable: SLocalSymbolTable<M>): RSValue {
     return getRight().addingMetadata(this, sTable);
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
-    throw Error("Todo: sGet on SNullValue prototype");
+  sGet(p: string | symbol): never {
+    throw SUserError.cannotReadPropertiesOfNull(p.toString());
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     if (sTable.valueMetadataSystem === null) {

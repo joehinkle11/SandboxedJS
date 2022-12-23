@@ -420,7 +420,7 @@ function resolveNewExpression(node: NewExpressionNode, transpileContext: Transpi
     return resolveAnyNode(arg, transpileContext);
   });
   const lookupCode: string = resolveAnyNode(node.callee, transpileContext);
-  return `${lookupCode}.sConstruct([${argumentsCode.join(",")}],sContext)`
+  return `${lookupCode}.sConstruct([${argumentsCode.join(",")}], "newTarget-todo", sContext)`
 }
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
   if (node.type === "Literal") {

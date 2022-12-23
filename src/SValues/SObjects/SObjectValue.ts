@@ -63,3 +63,12 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
     return this;
   }
 }
+
+// interface SObjectValueSupportingCreationFromNative {
+//   static createFromNative(
+//     nativeObject: any,
+//     sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<any>,
+//     sPrototype: SPrototypeType,
+//     metadata: MaybeSValueMetadata
+//   ): SObjectValue<any, any, any>;
+// }

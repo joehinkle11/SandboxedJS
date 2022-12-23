@@ -1,5 +1,5 @@
 import { SourceFile, Type } from "ts-morph";
-import { makeSFunctionOfGlobalVariable } from "../CodeGen/MakeSFunctionOfGlobalVariable";
+import { makeSObjectOfGlobalVariable } from "../CodeGen/MakeSObjectOfGlobalVariable";
 import { makeSPrimitiveValueOfGlobalVariable } from "../CodeGen/MakeSPrimitiveValueOfGlobalVariable";
 import { BindingEntry, BuiltInBinding, BuiltInBindingStore } from "../Models/BuiltInBinding";
 
@@ -37,14 +37,7 @@ export function createStaticBindingCodeForGlobalVar(
     return makeSPrimitiveValueOfGlobalVariable(globalVariableName, nativeType);
   } else {
     if (nativeType.isObject()) {
-      const isCallable = nativeType.getCallSignatures().length > 0;
-      const isConstructor = nativeType.getConstructSignatures().length > 0;
-      // todo: we need to make a distinction between callables and constructables
-      if (isCallable || isConstructor) {
-        return makeSFunctionOfGlobalVariable(globalVariableName, nativeType, builtInBindingStore);
-      } else {
-        return "'obj " + globalVariableName + "' as any"; 
-      }
+      return makeSObjectOfGlobalVariable(globalVariableName, nativeType, builtInBindingStore);
     }
     return "'todo " + globalVariableName + "' as any";
   }

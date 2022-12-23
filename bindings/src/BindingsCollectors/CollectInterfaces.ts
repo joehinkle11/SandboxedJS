@@ -5,8 +5,16 @@ function getPrimitiveBoxInternalName(typeStr: string): string | undefined {
   switch (typeStr) {
   case "Number":
     return "NumberProtocol";
+  case "Function":
+    return "FunctionProtocol";
   case "Boolean":
     return "BooleanProtocol";
+  case "String":
+    return "StringProtocol";
+  case "Array":
+    return "ArrayProtocol";
+  case "Object":
+    return "ObjectProtocol";
   // case "Symbol":
   //   return "SymbolProtocol";
   default:

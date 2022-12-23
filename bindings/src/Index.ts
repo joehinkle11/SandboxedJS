@@ -10,9 +10,9 @@ const project = new Project({
   tsConfigFilePath: "./src/target.tsconfig.json"
 });
 
-// const target = "lib.es2022.d.ts";
+const target = "lib.es2022.d.ts";
 // const target = "lib.d.ts";
-const target = "lib.es5.d.ts";
+// const target = "lib.es5.d.ts";
 
 const filesToDoWorkOn = importTSLibFilesRecursively(target, project);
 

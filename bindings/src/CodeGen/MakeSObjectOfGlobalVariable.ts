@@ -7,7 +7,7 @@ import { BuiltInBindingStore } from "../Models/BuiltInBinding";
 import { SwizzleOrWhiteListEntry } from "../Models/Misc";
 import { isValidJsPropertyName } from "../Utils";
 
-export function makeSFunctionOfGlobalVariable(
+export function makeSObjectOfGlobalVariable(
   globalVariableName: string,
   nativeType: Type<ts.Type>,
   builtInBindingStore: BuiltInBindingStore
@@ -17,45 +17,63 @@ export function makeSFunctionOfGlobalVariable(
   const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
     const paramExtractionCodes: ParamExtraction[] = extractParameters(signature.getParameters());
     const returnType = signature.getReturnType();
+    const returnTypeStr = returnType.getText(undefined, TypeFormatFlags.UseFullyQualifiedType);
+    let safeReturnTypeStr = (returnType.getTargetType() ?? returnType).getText(undefined, TypeFormatFlags.UseFullyQualifiedType).replaceAll("T[]","any[]").replaceAll("<K, V>", "<any, any>").replaceAll("<T>", "<any>");
+    if (safeReturnTypeStr === "T") {
+      safeReturnTypeStr = "any";
+    }
     const resultConversion: NativeToSValueConversionCode = convertTypeToSValue(returnType);
     swizzleOrWhiteListModel.push({
       kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
       code_body: `${paramExtractionCodes.map(v=>v.setupCode).join("\n")}
-const result: ${returnType.getText(undefined, TypeFormatFlags.UseFullyQualifiedType)} = ${isConstructor ? "new " : ""}${globalVariableName}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
+const result: ${safeReturnTypeStr} = ${isConstructor ? "new " : ""}${globalVariableName}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
 const sResult: ${resultConversion.resultingSType} = ${resultConversion.convert("result")};
 return sResult;
 `
     });
   };
+  let objectKind: "plain" | "function" | "array" = "plain";
   const callSignatures = nativeType.getCallSignatures();
   const constructSignatures = nativeType.getConstructSignatures();
   if (callSignatures.length > 0) {
+    objectKind = "function";
     // if (callSignatures.length > 1) {
     //   throw new Error(`Unexpectedly found more than 1 call signature. ${declType.getText()} ${callSignatures.map(v=>v.getDeclaration().getText())}`)
     // }
     const callSignature = callSignatures[0];
     addCallOrConstructSigs(callSignature, false);
-  } else {
-    if (constructSignatures.length > 0) {
+    if (constructSignatures.length === 0) {
       swizzleOrWhiteListModel.push({
-        kind: "swizzled_raw_apply",
+        kind: "swizzled_raw_construct",
         code_body: `throw SUserError.requiresNew("${globalVariableName}");`
       });
     }
   }
   if (constructSignatures.length > 0) {
+    objectKind = "function";
     // if (constructSignatures.length > 1) {
     //   throw new Error("Unexpectedly found more than 1 construct signature.")
     // }
     const constructSignature = constructSignatures[0];
     addCallOrConstructSigs(constructSignature, true);
+    if (callSignatures.length === 0) {
+      swizzleOrWhiteListModel.push({
+        kind: "swizzled_raw_apply",
+        code_body: `throw SUserError.notAConstructor("${globalVariableName}");`
+      });
+    }
   }
   const typeProperties = nativeType.getProperties();
     for (const typeProperty of typeProperties) {
       const propertyName = typeProperty.getName();
+      if (propertyName.includes("_@")) {
+        // todo: probably a property with a symbol as a key
+        console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+        continue;
+      }
       const propertyDeclarations = typeProperty.getDeclarations();
       if (propertyDeclarations.length !== 1) {
-        console.log(`Handle more than 1 (or 0?) property declarations for whitelist/swizzling property ${propertyName}`)
+        // console.log(`Handle more than 1 (or 0?) property declarations for whitelist/swizzling property ${propertyName}`)
         continue;
       }
       const propertyDeclaration = propertyDeclarations[0];
@@ -82,7 +100,7 @@ return sResult;
           });
           continue;
         } else {
-          console.log(`Handle non-primitive whitelist/swizzling property ${propertyName} of type ${propertyType.getText()}`);
+          // console.log(`Handle non-primitive whitelist/swizzling property ${propertyName} of type ${propertyType.getText()}`);
           continue;
         }
       }
@@ -122,8 +140,9 @@ swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTabl
       console.log("TODO " + (swizzleOrWhiteListEntry as any).property);
     }
   }
-
-  return `SValues.SFunction.createFromNative(
+  switch (objectKind) {
+  case "function":
+    return `SValues.SFunction.createFromNative(
   ${globalVariableName},
   {
     ${swizzleOrWhiteListModelStr.trim()}
@@ -131,4 +150,14 @@ swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTabl
   () => ${sPrototype},
   rootSTable.newMetadataForCompileTimeLiteral()
 )`;
+  case "plain":
+    return `SValues.SNormalObject.createFromNative(
+  ${globalVariableName},
+  {
+    ${swizzleOrWhiteListModelStr.trim()}
+  },
+  () => ${sPrototype},
+rootSTable.newMetadataForCompileTimeLiteral()
+)`;
+  }
 }

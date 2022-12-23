@@ -55,6 +55,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // auto-boxing
+    console.log("sGlobalProtocols.NumberProtocol", sTable.sGlobalProtocols.NumberProtocol)
     return sTable.sGlobalProtocols.NumberProtocol.sGet(p, receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
