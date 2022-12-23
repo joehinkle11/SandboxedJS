@@ -1,4 +1,5 @@
 import { Type } from "ts-morph";
+import { STypeString } from "./CodeGen/NativeTypeToSType";
 
 const specialObjectSupport: Record<string, ObjectSupport | undefined> = {
   Number: {
@@ -17,6 +18,20 @@ export function convertTypeToSValue(
       resultingSType: "SNumberValue<any, number>",
       convert(nativeVariableName) {
         return `new SValues.SNumberValue(${nativeVariableName}, ${mProviderVariableName}.newMetadataForRuntimeTimeEmergingValue())`;
+      },
+    }
+  } else if (type.isString()) {
+    return {
+      resultingSType: "SStringValue<any, string>",
+      convert(nativeVariableName) {
+        return `new SValues.SStringValue(${nativeVariableName}, ${mProviderVariableName}.newMetadataForRuntimeTimeEmergingValue())`;
+      },
+    }
+  } else if (type.isBoolean()) {
+    return {
+      resultingSType: "SBooleanValue<any, boolean>",
+      convert(nativeVariableName) {
+        return `new SValues.SBooleanValue(${nativeVariableName}, ${mProviderVariableName}.newMetadataForRuntimeTimeEmergingValue())`;
       },
     }
   } else {
@@ -42,11 +57,11 @@ export function convertTypeToSValue(
 }
 
 export interface NativeToSValueConversionCode {
-  resultingSType: string;
+  resultingSType: STypeString | "never";
   convert: (nativeVariableName: string) => string;
 }
 
 interface ObjectSupport {
-  sType: string
+  sType: STypeString
   nativeResultToSValueCode: string
 }
