@@ -34,12 +34,14 @@ export function sGet<M extends MaybeSValueMetadata>(
   } else {
     // check prototype
     if (this.sPrototype instanceof SValues.SObjectValue) {
-      return this.sPrototype.sGet(p, receiver, sTable);
+      return this.sPrototype.sGet(p, receiver, sTable)
     } else {
       // get prototype if needed
       if (typeof this.sPrototype === "function") {
         this.sPrototype = this.sPrototype();
-        return this.sPrototype.sGet(p, receiver, sTable);
+        if (this.sPrototype instanceof SValues.SObjectValue) {
+          return this.sPrototype.sGet(p, receiver, sTable);
+        }
       }
       return new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
     }
