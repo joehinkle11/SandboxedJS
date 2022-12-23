@@ -15,6 +15,7 @@ export function exportToFile(builtInBindingStore: BuiltInBindingStore) {
 import { SValues } from "../SValues/AllSValues";
 import type { InstallBuiltIn } from "../BuiltIns/InstallBuiltIn";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
+import type { SObjectValue } from "../SValues/SObjects/SObjectValue";
 import type { SNormalObject } from "../SValues/SObjects/SNormalObject";
 import type { SFunction } from "../SValues/SObjects/SFunction";
 import type { SNumberValue } from "../SValues/SPrimitiveValues/SNumberValue";
@@ -38,13 +39,13 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   const appendToInstallGeneratedBindings = makeAppendToFileWithIndentation(1);
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {
     for (const entry of builtInBinding.entries) {
-      appendToInstallGeneratedBindings(`const ${entry.privateName} = ${entry.implementationCode};`); 
+      appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${entry.implementationCode};`); 
     }
   }
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {
     for (const entry of builtInBinding.entries) {
       if (entry.globalVariableName !== undefined) {
-        appendToInstallGeneratedBindings(`rootSTable.assign("${entry.globalVariableName}", ${entry.privateName} as SValue<any>, rootSTable.newMetadataForCompileTimeLiteral()), "const");`);
+        appendToInstallGeneratedBindings(`rootSTable.assign("${entry.globalVariableName}", ${entry.privateName} as ${builtInBinding.sType} as SValue<any>, "const");`);
       }
     }
   }

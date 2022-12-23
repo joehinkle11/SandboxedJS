@@ -1,20 +1,23 @@
 import { Type } from "ts-morph";
+import { nativeTypeToSType } from "../CodeGen/NativeTypeToSType";
 
 export class BuiltInBinding {
   readonly type: Type<ts.Type>
+  readonly sType: string;
   entries: BindingEntry[] = [];
 
   constructor(type: Type<ts.Type>) {
     this.type = type;
+    this.sType = nativeTypeToSType(type);
   }
 }
 
 export class BindingEntry {
   readonly kind: "static" | "dynamic";
   readonly privateName: string
+  readonly implementationCode: string;
   globalVariableName?: string
   internalName?: string
-  implementationCode: string;
 
   constructor(kind: "static" | "dynamic", privateName: string, implementationCode: string)  {
     this.privateName = "private_implementation_" + privateName;
