@@ -37,10 +37,16 @@ export function makeSObjectOfGlobalVariable(
     }
     const safeReturnTypeStr = makeSafeTypeText(returnType);
     const resultConversion: NativeToSValueConversionCode = convertTypeToSValue(returnType);
+    let bindCode: string;
+    if (isConstructor) {
+      bindCode = "";
+    } else {
+      bindCode = ".bind(sThisArg?.getNativeJsValue(rootSTable))"
+    }
     swizzleOrWhiteListModel.push({
       kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
       code_body: `${paramExtractionCodes.map(v=>v.setupCode).join("\n")}
-const result: ${safeReturnTypeStr} = ${isConstructor ? "new " : ""}${globalVariableName}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
+const result: ${safeReturnTypeStr} = ${isConstructor ? "new " : ""}${globalVariableName}${bindCode}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
 const sResult: ${resultConversion.resultingSType} = ${resultConversion.convert("result")};
 return sResult;
 `
