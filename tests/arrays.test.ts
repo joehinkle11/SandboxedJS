@@ -26,3 +26,17 @@ describe('2d arrays', () => {
   testSafeEvalAgainstNative("[[1], [2]].length");
   testSafeEvalAgainstNative("[0, 'a', ['b']][[[1], [2]].length]");
 });
+
+describe('arrays toString', () => {
+  testSafeEvalAgainstNative("typeof [].toString");
+  testSafeEvalAgainstNative("[].toString()");
+  testSafeEvalAgainstNative("[1, 2, 3  ,5].toString()");
+});
+
+describe('arrays join', () => {
+  testSafeEvalAgainstNative("typeof [].join");
+  testSafeEvalAgainstNative("[].join()");
+  testSafeEvalAgainstNative("[].join(' - ')");
+  testSafeEvalAgainstNative("[1, 2, 3  ,5].join()");
+  testSafeEvalAgainstNative("[1, 2, 3  ,5].join(' - ')");
+});

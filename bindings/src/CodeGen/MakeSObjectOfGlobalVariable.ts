@@ -44,26 +44,31 @@ export function makeSObjectOfGlobalVariable(
       code = evenlyRemovingLeadingSpaces(override);
     } else {
       let callCode: string;
-      let nativeArgsSetupStrIndent = "";
-      let nativeArgsSetupStr: string = `const argsLength = sArgArray.length;
-const nativeArgs: any[] = [];`;
-      for (const paramExtractionCode of paramExtractionCodes) {
-        nativeArgsSetupStr += `
-if (argsLength > ${paramExtractionCode.i}) {
-  // add param "${paramExtractionCode.variableName}" to call
-  nativeArgs.push(${paramExtractionCode.setupCode});`.split("\n").join("\n" + nativeArgsSetupStrIndent);
-        nativeArgsSetupStrIndent += "  ";
-      }
-      for (const paramExtractionCode of paramExtractionCodes) {
-        nativeArgsSetupStrIndent = nativeArgsSetupStrIndent.replace("  ", "");
-        nativeArgsSetupStr += "\n" + nativeArgsSetupStrIndent + "}"
+      let nativeArgsSetupStr = "";
+      let nativeArgsStr = '[]';
+      if (paramExtractionCodes.length > 0) {
+        nativeArgsStr = 'nativeArgs';
+        let nativeArgsSetupStrIndent = "";
+        nativeArgsSetupStr = `const argsLength = sArgArray.length;
+  const nativeArgs: any[] = [];`;
+        for (const paramExtractionCode of paramExtractionCodes) {
+          nativeArgsSetupStr += `
+  if (argsLength > ${paramExtractionCode.i}) {
+    // add param "${paramExtractionCode.variableName}" to call
+    nativeArgs.push(${paramExtractionCode.setupCode});`.split("\n").join("\n" + nativeArgsSetupStrIndent);
+          nativeArgsSetupStrIndent += "  ";
+        }
+        for (const _ of paramExtractionCodes) {
+          nativeArgsSetupStrIndent = nativeArgsSetupStrIndent.replace("  ", "");
+          nativeArgsSetupStr += "\n" + nativeArgsSetupStrIndent + "}"
+        }
       }
       if (isConstructor) {
         // todo, third param "newTarget", see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect/construct
-        callCode = `Reflect.construct(${globalVariableName}, nativeArgs)`;
+        callCode = `Reflect.construct(${globalVariableName}, ${nativeArgsStr})`;
         // callCode = `new ${globalVariableName}(${paramExtractionCodes.map(v=>v.variableName).join(", ")})`;
       } else {
-        callCode = `Reflect.apply(${globalVariableName}, sThisArg?.getNativeJsValue(rootSTable), nativeArgs)`;
+        callCode = `Reflect.apply(${globalVariableName}, sThisArg?.getNativeJsValue(rootSTable), ${nativeArgsStr})`;
       }
       code = `${nativeArgsSetupStr}
 const result: ${safeReturnTypeStr} = ${callCode};

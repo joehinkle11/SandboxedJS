@@ -38,11 +38,11 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   });
   for (const entry of builtInBindingEntriesSorted) {
     const builtInBinding = entry.builtInBinding;
-    appendToInstallGeneratedBindings("// " + entry.sortOrder);
+    appendToInstallGeneratedBindings("// private implementation..." + entry.sortOrder);
     if (entry.implementationCode !== undefined) {
       appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${entry.implementationCode};`);
     } else {
-      appendToInstallGeneratedBindings(`// Cannot make private binding for "${entry.privateName}: ${builtInBinding.sType}" as not implementation code was found.`);
+      appendToInstallGeneratedBindings(`// Cannot make private binding for "${entry.privateName}: ${builtInBinding.sType}" as no implementation code was found.`);
     }
   }
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {

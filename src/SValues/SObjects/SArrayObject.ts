@@ -23,7 +23,7 @@ export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> ex
   ): SArrayObject<M, E> {
     const weakSArrayObject: {weakRef?: WeakRef<SArrayObject<M, E>>} = {};
     const proxiedArray = createProxiedNativeArray(array, weakSArrayObject);
-    const sPrototype = sTable.sGlobalProtocols.ArrayProtocol
+    const sPrototype = sTable.sGlobalProtocols.ArrayProtocol;
     const sArrayObj = new SArrayObject<M, E>(proxiedArray, sPrototype, metadata);
     weakSArrayObject.weakRef = new WeakRef(sArrayObj);
     return sArrayObj;
