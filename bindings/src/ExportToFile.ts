@@ -28,11 +28,6 @@ import type { SSymbolValue } from "../SValues/SPrimitiveValues/SSymbolValue";
 import type { SValue } from "../SValues/SValue";
 import SUserError from "../Models/SUserError";
 
-/// Helpers
-const getArg: (sArgArray: SValue<any>[], index: number, sTable: SLocalSymbolTable<any>) => SValue<any> = (sArgArray, index, sTable) => {
-  return sArgArray[index] ?? new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
-}
-
 /// Main entry point for installing all generated bindings.
 export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootSymbolTable<any>) => {
 `);

@@ -3,7 +3,7 @@ import { Symbol as TSMSymbol } from "ts-morph";
 export function extractParameters(parameterSymbols: TSMSymbol[]): ParamExtraction[] {
   const params: ParamExtraction[] = [];
   for (let i = 0; i < parameterSymbols.length; i++) {
-    const sArgValue = `getArg(sArgArray, ${i}, sTable)`;
+    const sArgValue = `sArgArray[${i}]`;
     const parameterSymbol = parameterSymbols[i];
     const parameterType = parameterSymbol.getDeclaredType();
     let nativeArgValue: string;
@@ -13,8 +13,9 @@ export function extractParameters(parameterSymbols: TSMSymbol[]): ParamExtractio
       throw new Error("todo, support param type " + parameterType.getText());
     }
     params.push({
-      setupCode: `const param_${parameterSymbol.getName()}: ${parameterType.getText()} = ${nativeArgValue};`,
-      variableName: `param_${parameterSymbol.getName()}`,
+      setupCode: `${nativeArgValue}`,
+      variableName: parameterSymbol.getName(),
+      i: i,
     });
   }
   return params;
@@ -24,4 +25,5 @@ export function extractParameters(parameterSymbols: TSMSymbol[]): ParamExtractio
 export interface ParamExtraction {
   setupCode: string
   variableName: string
+  i: number
 }

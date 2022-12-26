@@ -38,19 +38,35 @@ export function makeSObjectOfGlobalVariable(
     }
     const safeReturnTypeStr = makeSafeTypeText(returnType);
     const resultConversion: NativeToSValueConversionCode = convertTypeToSValue(returnType);
-    let bindCode: string;
-    if (isConstructor) {
-      bindCode = "";
-    } else {
-      bindCode = ".bind(sThisArg?.getNativeJsValue(rootSTable))"
-    }
     let code: string;
     const override = overrides[globalVariableName]?.swizzled_apply_raw;
     if (override) {
       code = evenlyRemovingLeadingSpaces(override);
     } else {
-      code = `${paramExtractionCodes.map(v=>v.setupCode).join("\n")}
-const result: ${safeReturnTypeStr} = ${isConstructor ? "new " : ""}${globalVariableName}${bindCode}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
+      let callCode: string;
+      let nativeArgsSetupStrIndent = "";
+      let nativeArgsSetupStr: string = `const argsLength = sArgArray.length;
+const nativeArgs: any[] = [];`;
+      for (const paramExtractionCode of paramExtractionCodes) {
+        nativeArgsSetupStr += `
+if (argsLength > ${paramExtractionCode.i}) {
+  // add param "${paramExtractionCode.variableName}" to call
+  nativeArgs.push(${paramExtractionCode.setupCode});`.split("\n").join("\n" + nativeArgsSetupStrIndent);
+        nativeArgsSetupStrIndent += "  ";
+      }
+      for (const paramExtractionCode of paramExtractionCodes) {
+        nativeArgsSetupStrIndent = nativeArgsSetupStrIndent.replace("  ", "");
+        nativeArgsSetupStr += "\n" + nativeArgsSetupStrIndent + "}"
+      }
+      if (isConstructor) {
+        // todo, third param "newTarget", see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect/construct
+        callCode = `Reflect.construct(${globalVariableName}, nativeArgs)`;
+        // callCode = `new ${globalVariableName}(${paramExtractionCodes.map(v=>v.variableName).join(", ")})`;
+      } else {
+        callCode = `Reflect.apply(${globalVariableName}, sThisArg?.getNativeJsValue(rootSTable), nativeArgs)`;
+      }
+      code = `${nativeArgsSetupStr}
+const result: ${safeReturnTypeStr} = ${callCode};
 const sResult: ${resultConversion.resultingSType} = ${resultConversion.convert("result")};
 return sResult;
 `;
