@@ -21,6 +21,9 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   get metadata(): M {
     return this.wrappedObject.metadata.mixWithReferencedMetadata(this.addedMetadata) as M;
   }
+  sConvertToObject(sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any> {
+    return this.wrappedObject.sConvertToObject();
+  }
   sOwnKeysNative(): (string | symbol)[] {
     throw new Error("Method not implemented.");
   }

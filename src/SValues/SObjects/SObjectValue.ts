@@ -34,6 +34,9 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   sOwnKeysNative(): (string | symbol)[] {
     return Reflect.ownKeys(this.sStorage);
   }
+  sConvertToObject(): this {
+    return this;
+  }
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
     (this.sStorage as Record<PropertyKey, SValue<any> | undefined>)[p] = newValue;
     return newValue;

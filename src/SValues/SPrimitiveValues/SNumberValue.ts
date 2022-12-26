@@ -1,6 +1,8 @@
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
+import { SValues } from "../AllSValues";
+import type { SNormalObject } from "../SObjects/SNormalObject";
 import type { SValue } from "../SValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
@@ -52,6 +54,9 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     } else {
       return this;
     }
+  }
+  sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
+    return SValues.SNormalObject.exposeNativeBuiltIn<Number, M>(new Number(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // auto-boxing

@@ -20,6 +20,9 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
     this.metadata = metadata;
     Object.freeze(this);
   }
+  sConvertToObject(): never {
+    throw SUserError.cannotConvertToObject;
+  }
   sUnaryNegate(): SNumberValue<M, -0> {
     return new SNumberValue(-0, this.metadata);
   };

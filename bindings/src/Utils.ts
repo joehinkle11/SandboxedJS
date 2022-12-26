@@ -14,3 +14,30 @@ export function isValidJsPropertyName(str: string): boolean {
   }
   return true;
 };
+
+
+export function evenlyRemovingLeadingSpaces(str: string): string {
+  const lines = str.split("\n");
+  let smallestLeadingSpacesAmt = Infinity;
+  for (const line of lines) {
+    if (line !== "") {
+      let count = 0;
+      for (const char of line) {
+        if (char === " ") {
+          count += 1;
+        }
+      }
+      if (count < smallestLeadingSpacesAmt) {
+        smallestLeadingSpacesAmt = count;
+      }
+    }
+  }
+  if (smallestLeadingSpacesAmt !== Infinity) {
+    let spacesStr = "";
+    for (let i = 0; i < smallestLeadingSpacesAmt; i++) {
+      spacesStr += " ";
+    }
+    return lines.map(l => l.replace(spacesStr, "")).join("\n");
+  }
+  return str;
+}

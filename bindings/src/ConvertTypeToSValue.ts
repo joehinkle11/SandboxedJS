@@ -4,7 +4,7 @@ import { STypeString } from "./CodeGen/NativeTypeToSType";
 const specialObjectSupport: Record<string, ObjectSupport | undefined> = {
   Number: {
     sType: "SNormalObject<any>",
-    nativeResultToSValueCode: "SValues.SNormalObject.exposeNativeBuiltIn<Number, any>(result, sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue());"
+    nativeResultToSValueCode: "SValues.SNormalObject.exposeNativeBuiltIn<Number, any>(result, sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())"
   },
 };
 
@@ -50,7 +50,7 @@ export function convertTypeToSValue(
     return {
       resultingSType: "never",
       convert(nativeVariableName) {
-        return `(()=>{throw new Error("todo: convert return type '${type.getText().replaceAll('"','\\"')}'")})()`;
+        return `(()=>{throw new Error("todo: convert return type '${type.getText().replaceAll('"','\\"')}' for '${nativeVariableName}'")})()`;
       },
     }
   }

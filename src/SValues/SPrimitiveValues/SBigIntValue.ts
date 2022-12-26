@@ -5,6 +5,8 @@ import type { SValue } from "../SValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
+import type { SNormalObject } from "../SObjects/SNormalObject";
+import { SValues } from "../AllSValues";
 
 
 export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
@@ -22,6 +24,9 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     this.nativeJsValue = nativeJsValue;
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
+    return SValues.SNormalObject.exposeNativeBuiltIn<BigInt, M>(Object(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
   }
   sUnaryNegate(): SBigIntValue<M, bigint> {
     const stringMadeNegative: bigint = -(this.nativeJsValue as bigint);

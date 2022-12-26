@@ -6,7 +6,8 @@ import { extractParameters, ParamExtraction } from "../ExtractParameters";
 import { makeAppendToFileWithIndentationFunction } from "../FileWriting";
 import { BuiltInBindingStore } from "../Models/BuiltInBinding";
 import { SwizzleOrWhiteListEntry } from "../Models/Misc";
-import { isValidJsPropertyName } from "../Utils";
+import { overrides } from "../Overrides";
+import { evenlyRemovingLeadingSpaces, isValidJsPropertyName } from "../Utils";
 
 export function makeSObjectOfGlobalVariable(
   globalVariableName: string,
@@ -43,13 +44,20 @@ export function makeSObjectOfGlobalVariable(
     } else {
       bindCode = ".bind(sThisArg?.getNativeJsValue(rootSTable))"
     }
-    swizzleOrWhiteListModel.push({
-      kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
-      code_body: `${paramExtractionCodes.map(v=>v.setupCode).join("\n")}
+    let code: string;
+    const override = overrides[globalVariableName]?.swizzled_apply_raw;
+    if (override) {
+      code = evenlyRemovingLeadingSpaces(override);
+    } else {
+      code = `${paramExtractionCodes.map(v=>v.setupCode).join("\n")}
 const result: ${safeReturnTypeStr} = ${isConstructor ? "new " : ""}${globalVariableName}${bindCode}(${paramExtractionCodes.map(v=>v.variableName).join(", ")});
 const sResult: ${resultConversion.resultingSType} = ${resultConversion.convert("result")};
 return sResult;
-`
+`;
+    }
+    swizzleOrWhiteListModel.push({
+      kind: isConstructor ? "swizzled_raw_construct" : "swizzled_raw_apply",
+      code_body: code
     });
   };
   let objectKind: "plain" | "function" | "array" = "plain";

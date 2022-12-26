@@ -1,10 +1,12 @@
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
-import { SNumberValue } from "./SNumberValue";
+import type { SNumberValue } from "./SNumberValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SUndefinedValue } from "./SUndefinedValue";
+import { SValues } from "../AllSValues";
+import type { SNormalObject } from "../SObjects/SNormalObject";
 
 export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> extends SPrimitiveValue<M, V> {
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
@@ -22,13 +24,16 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     this.metadata = metadata;
     Object.freeze(this);
   }
+  sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
+    return SValues.SNormalObject.exposeNativeBuiltIn<Boolean, M>(new Boolean(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
+  }
   sUnaryNegate(): SNumberValue<M, number> {
     const negatedBool = -this.nativeJsValue;
-    return new SNumberValue(negatedBool, this.metadata);
+    return new SValues.SNumberValue(negatedBool, this.metadata);
   };
   sUnaryMakePositive(): SNumberValue<M, number> {
     const boolMadePositive = +this.nativeJsValue;
-    return new SNumberValue(boolMadePositive, this.metadata);
+    return new SValues.SNumberValue(boolMadePositive, this.metadata);
   };
   sUnaryTypeOfAsNative(): "boolean" {
     return "boolean";

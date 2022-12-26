@@ -1,10 +1,11 @@
-import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
-import { SNumberValue } from "./SNumberValue";
+import type { SNumberValue } from "./SNumberValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
+import { SValues } from "../AllSValues";
+import type { SNormalObject } from "../SObjects/SNormalObject";
 
 export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
@@ -27,11 +28,11 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   }
   sUnaryNegate(): SNumberValue<M, number> {
     const stringMadeNegative = -this.nativeJsValue;
-    return new SNumberValue(stringMadeNegative, this.metadata);
+    return new SValues.SNumberValue(stringMadeNegative, this.metadata);
   };
   sUnaryMakePositive(): SNumberValue<M, number> {
     const stringMadePositive = +this.nativeJsValue;
-    return new SNumberValue(stringMadePositive, this.metadata);
+    return new SValues.SNumberValue(stringMadePositive, this.metadata);
   };
   sUnaryTypeOfAsNative(): "string" {
     return "string";
@@ -57,6 +58,9 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     } else {
       return this;
     }
+  }
+  sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
+    return SValues.SNormalObject.exposeNativeBuiltIn<String, M>(new String(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     if (typeof p === "string") {

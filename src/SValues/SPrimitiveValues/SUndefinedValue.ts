@@ -4,6 +4,7 @@ import type { SValue } from "../SValue";
 import { SNumberValue } from "./SNumberValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
+import SUserError from "../../Models/SUserError";
 
 export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, undefined> {
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
@@ -16,6 +17,9 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     super();
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sConvertToObject(): never {
+    throw SUserError.cannotConvertToObject;
   }
   sUnaryNegate(): SNumberValue<M, typeof NaN> {
     return new SNumberValue(NaN, this.metadata);

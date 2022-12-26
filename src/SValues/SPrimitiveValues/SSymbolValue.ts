@@ -5,6 +5,8 @@ import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SValue } from "../SValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import { SUndefinedValue } from "./SUndefinedValue";
+import { SValues } from "../AllSValues";
+import { SNormalObject } from "../SObjects/SNormalObject";
 
 export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> extends SPrimitiveValue<M, V> {
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
@@ -21,6 +23,9 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
     this.nativeJsValue = nativeJsValue;
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
+    return SValues.SNormalObject.exposeNativeBuiltIn<Symbol, M>(Object(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
   }
   sToPropertyKey: () => symbol = () => {
     return this.nativeJsValue;

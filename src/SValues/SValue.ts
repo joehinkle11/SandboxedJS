@@ -30,6 +30,7 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sChainExpression(p: string | symbol, sTable: SLocalSymbolTable<M>): SUndefinedValue<M> | SValue<M>;
   abstract sOwnKeysNative(): (string | symbol)[];
   sOwnKeys: (sTable: SLocalSymbolTable<M>) => SArrayObject<M, SStringValue<M, string> | SSymbolValue<M, symbol>> = sOwnKeys;
+  abstract sConvertToObject(sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any>;
   abstract sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
   abstract sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M>;
