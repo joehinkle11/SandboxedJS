@@ -8,7 +8,16 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
         return sThisAsObj;
       }
       throw SUserError.cannotConvertToObject;
-    `
+      `
+  },
+  "Object.getOwnPropertyNames": {
+    swizzled_apply_raw: `
+      const firstArgObj = sArgArray[0]?.sConvertToObject(sTable);
+      if (firstArgObj) {
+        return firstArgObj.sOwnKeys(sTable);
+      }
+      throw SUserError.cannotConvertToObject;
+      `
   },
 };
 
