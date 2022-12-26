@@ -34,10 +34,4 @@ import type { SNumberValue } from "../../SValues/SPrimitiveValues/SNumberValue";
 //     new SValues.SNullValue(sTable.newMetadataForCompileTimeLiteral()),
 //     sTable.newMetadataForCompileTimeLiteral()
 //   );
-//   sTable.sGlobalProtocols.ObjectProtocol.sUnaryMakePositiveInternal = (self) => {
-//     return new SValues.SNumberValue(NaN, self.metadata);
-//   }
-//   sTable.sGlobalProtocols.ObjectProtocol.sUnaryNegateInternal = (self) => {
-//     return new SValues.SNumberValue(NaN, self.metadata);
-//   }
 // }

@@ -1,19 +1,46 @@
-// import { SRootSymbolTable } from "../SLocalSymbolTable";
-// import { sBuiltInArrayConstructor } from "./ECMAScript/BuiltInArrayConstructor";
-// import { sBuiltInBooleanConstructor } from "./ECMAScript/BuiltInBooleanConstructor";
-// import { sBuiltInFunctionPrototype } from "./ECMAScript/BuiltInFunctionPrototype";
-// import { sBuiltInNumberConstructor } from "./ECMAScript/BuiltInNumberConstructor";
-// import { sBuiltInObjectConstructor } from "./ECMAScript/BuiltInObjectConstructor";
-// import { sBuiltInObjectPrototype } from "./ECMAScript/BuiltInObjectPrototype";
-// import { sBuiltInStringConstructor } from "./ECMAScript/BuiltInStringConstructor";
-// import { InstallBuiltIn } from "./InstallBuiltIn";
+import type { SValue } from "../SValues/SValue";
+import type { InstallBuiltIn } from "./InstallBuiltIn";
+import SUserError from "../Models/SUserError";
+import { SRootSymbolTable } from "../SLocalSymbolTable";
+import { SValues } from "../SValues/AllSValues";
 
-// export const installEcmaScript: InstallBuiltIn<any> = (sTable: SRootSymbolTable<any>) => {
-//   sBuiltInObjectPrototype(sTable);
-//   sBuiltInFunctionPrototype(sTable);
-//   sBuiltInObjectConstructor(sTable);
-//   sBuiltInNumberConstructor(sTable);
-//   sBuiltInBooleanConstructor(sTable);
-//   sBuiltInArrayConstructor(sTable);
-//   sBuiltInStringConstructor(sTable);
-// }
+export const installHardcodedEcmaScriptBindings: InstallBuiltIn<any> = (sTable: SRootSymbolTable<any>) => {
+  sTable.sGlobalProtocols.ObjectProtocol.sUnaryMakePositiveInternal = (self) => {
+    return new SValues.SNumberValue(NaN, self.metadata);
+  }
+  sTable.sGlobalProtocols.ObjectProtocol.sUnaryNegateInternal = (self) => {
+    return new SValues.SNumberValue(NaN, self.metadata);
+  }
+  sTable.sGlobalProtocols.ArrayProtocol.sUnaryMakePositiveInternal = (self) => {
+    if (self instanceof SValues.SArrayObject) {
+      const length: unknown = self.sStorage.length.nativeJsValue
+      if (typeof length === "number") {
+        if (length > 1) {
+          return new SValues.SNumberValue(NaN, self.metadata);
+        } else if (length === 1) {
+          const firstEl: SValue<any> = self.sStorage[0]
+          return firstEl.sUnaryMakePositive();
+        } else {
+          return new SValues.SNumberValue(0, self.metadata);
+        }
+      }
+    }
+    throw SUserError.cannotConvertObjectToPrimitive;
+  }
+  sTable.sGlobalProtocols.ArrayProtocol.sUnaryNegateInternal = (self) => {
+    if (self instanceof SValues.SArrayObject) {
+      const length: unknown = self.sStorage.length.nativeJsValue
+      if (typeof length === "number") {
+        if (length > 1) {
+          return new SValues.SNumberValue(NaN, self.metadata);
+        } else if (length === 1) {
+          const firstEl: SValue<any> = self.sStorage[0]
+          return firstEl.sUnaryNegate();
+        } else {
+          return new SValues.SNumberValue(-0, self.metadata);
+        }
+      }
+    }
+    throw SUserError.cannotConvertObjectToPrimitive;
+  }
+}
