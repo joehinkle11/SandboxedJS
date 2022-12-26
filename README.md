@@ -6,6 +6,10 @@ Sandbox untrusted/arbitrary JavaScript code and safely execute it in isolation.
 
 Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~20x** slower than native JS. However, if you don't count the time required to transpile the code, execution time can be between **~1.3x to ~20x** slower than native JS, depending on the kind of work being performed. The goal for the MVP is to just get this thing working in a secure manner (breaking out of sandbox should be impossible), and optimizations can come later.
 
+## Bindings to native and host JS APIs
+
+One of the main focuses of this project is to support as many APIs as possible, both native ECMAScript APIs and host APIs (i.e. browser's `window` version of `globalThis`, DOM and such). To accomplish this, there is a separate node project under [bindings](https://github.com/joehinkle11/SandboxedJS/tree/main/bindings) which is responsible for taking in typescript definitions (i.e. a `lib.d.ts`) and then generated binding code for the sandbox environment. Recently all the hardcoded bindings were replaced with this system and only about 2 of the old unit tests (of the more than 15,000 unit test) are not passing. The hope is to get this binding generation system working so well that it makes it trivial to expose a JS library to the sandbox environment provided you have a typescript definition file for it.
+
 ## Status
 
 Under active development. Looking for others to help out!
