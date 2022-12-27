@@ -64,11 +64,7 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
       const thingToBind = sArgArray[0];
       if (sThisArg instanceof SValues.SFunction) {
         const sFuncToCall = sThisArg;
-        const targetFuncName = "bound " + sFuncToCall.sFunctionNameNative;
-        const boundFunc: AnySFunction = {[targetFuncName]: ((_1, newSArgArray, _2, newSTable) => {
-          return sFuncToCall.sApply(thingToBind, newSArgArray, newSTable);
-        }) as AnySFunction}[targetFuncName];
-        return SValues.SFunction.create(boundFunc, sFuncToCall.functionAsString, sTable);
+        return SValues.SFunction.createBinding(sFuncToCall, thingToBind, sTable);
       }
       throw new Error("Expected 'this' to be a function.");
       `

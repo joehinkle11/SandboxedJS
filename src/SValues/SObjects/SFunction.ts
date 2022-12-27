@@ -7,7 +7,7 @@ import type { SValue } from "../SValue";
 import type { AnySFunction, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall, SandboxedFunctionCall, UnknownConstructorFunction, UnknownFunction } from "./SFunctionDef";
 import { sApply, sConstruct } from "./SFunctionImpl";
 import { SObjectValue } from "./SObjectValue";
-import type { SObjectSwizzleAndWhiteList, SBuiltInFunctionObjectKind, SPrototypeType } from "./SObjectValueDef";
+import type { SObjectSwizzleAndWhiteList, SBuiltInFunctionObjectKind, SPrototypeType, SPrototypeDeterminedType } from "./SObjectValueDef";
 import { applySwizzleToObj, convertAllPropertiesToSValues } from "./SObjectValueImpl";
 
 // todo: remove this class and just represent constructors, functions and arrow functions the same way...?
@@ -27,8 +27,13 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     const result: unknown = Reflect.get(this.sStorage, "prototype", receiver);
     if (result instanceof SValues.SValue) {
       return result;
+    } else if (result !== null && typeof result === "object" && "binding_pointing_to" in result) {
+      const bindingPointingTo = result.binding_pointing_to;
+      if (bindingPointingTo instanceof SValues.SFunction) {
+        return bindingPointingTo.getSFunctionPrototypeProperty(receiver);
+      }
     }
-    throw new Error(`Unexpectedly found non-s-value for function prototype property.`);
+    throw new Error(`Unexpectedly found non-s-value for function prototype property. Found '${result}'.`);
   }
 
   private constructor(
@@ -56,6 +61,27 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, sTable);
     const sPrototype = sTable.sGlobalProtocols.FunctionProtocol;
     return new SFunction<M>(fixedAnySFunction, sPrototype, sFunctionNameNative, functionAsString, sTable.newMetadataForObjectValue());
+  }
+  static createBinding<M extends MaybeSValueMetadata>(
+    sFunctionToBind: SFunction<M>,
+    thingToBind: SValue<M>,
+    sTable: SLocalSymbolTable<M>
+  ): SFunction<M> {
+    const boundSFunctionNameNative = "bound " + sFunctionToBind.sFunctionNameNative;
+    const actualFunction: AnySFunction = {[boundSFunctionNameNative]: ((_1, newSArgArray, _2, newSTable) => {
+      return sFunctionToBind.sApply(thingToBind, newSArgArray, newSTable);
+    }) as AnySFunction}[boundSFunctionNameNative];
+    actualFunction.prototype = {
+      binding_pointing_to: sFunctionToBind
+    }
+    let sPrototype: SPrototypeDeterminedType;
+    const sFunctionToBindSPrototype = sFunctionToBind.determinedSPrototype;
+    if (sFunctionToBindSPrototype instanceof SValues.SObjectValue) {
+      sPrototype = sFunctionToBindSPrototype;
+    } else {
+      sPrototype = sTable.sGlobalProtocols.FunctionProtocol;
+    }
+    return new SFunction<M>(actualFunction, sPrototype, boundSFunctionNameNative, "function () { [native code] }", sTable.newMetadataForObjectValue());
   }
   static createFromNative<O extends UnknownConstructorFunction | UnknownFunction, M extends MaybeSValueMetadata>(
     nativeJsFunction: O,
