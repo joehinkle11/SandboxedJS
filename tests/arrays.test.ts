@@ -40,3 +40,6 @@ describe('arrays join', () => {
   testSafeEvalAgainstNative("[1, 2, 3  ,5].join()");
   testSafeEvalAgainstNative("[1, 2, 3  ,5].join(' - ')");
 });
+describe('array spread', () => {
+  testSafeEvalAgainstNative("[...[1],...[2]]");
+});

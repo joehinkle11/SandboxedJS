@@ -131,8 +131,9 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
 
   spawnChild(
     sThis: SValue<M>,
-    sArguments: any[] | undefined,
-    argNames: string[] | undefined
+    sArguments: SValue<M>[] | undefined,
+    argNames: string[] | undefined,
+    restArgName: string | undefined,
   ): SLocalSymbolTable<M> {
     const symbolsInChild: SymbolsRecord<M> = {};
     if (sArguments !== undefined) {
@@ -150,6 +151,14 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
           symbolsInChild[argName] = {
             kind: "const",
             value: sValue
+          };
+        }
+        if (restArgName !== undefined) {
+          sArguments.splice(0, argNames.length);
+          const sRestArrayValue = SValues.SArrayObject.create(sArguments, this);
+          symbolsInChild[restArgName] = {
+            kind: "const",
+            value: sRestArrayValue
           };
         }
       }

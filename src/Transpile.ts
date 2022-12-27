@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, BlockStatementNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, BlockStatementNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, RestElementNode, ReturnStatementNode, SpreadElementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -185,6 +185,9 @@ function resolveArrayExpression(node: ArrayExpressionNode, transpileContext: Tra
   for (const el of node.elements) {
     if (el === null) {
       allElementsCode += ",";
+    } else if (el.type === "SpreadElement") {
+      throw new Error("todo spread elements");
+      // return resolveSpreadElement(node as SpreadElementNode, transpileContext);
     } else {
       allElementsCode += resolveAnyNode(el, transpileContext) + ",";
     }
@@ -392,15 +395,27 @@ function resolveFunctionExpression(node: FunctionExpressionNode, willBeSetToVari
     argNames = "";
   } else {
     let names: string[] = [];
+    let restArgName: string | undefined;
     for (const param of node.params) {
       if (param.type === "Identifier") {
         const identifierParam = param as IdentifierNode;
-        names.push("'" + identifierParam.name + "'");
+        names.push(encodeUnsafeStringAsJSLiteralString(identifierParam.name));
+      } else if (param.type === "RestElement") {
+        const restParamArg = (param as RestElementNode).argument;
+        if (restParamArg.type === "Identifier") {
+          const identifierRestParam = restParamArg as IdentifierNode;
+          restArgName = identifierRestParam.name;
+        } else {
+          throw new Error("Todo: function rest argument parameter node type " + param.type);
+        }
       } else {
         throw new Error("Todo: function argument parameter node type " + param.type);
       }
     }
-    argNames = `,[${names.join(",")}]`
+    argNames = `,[${names.join(",")}]`;
+    if (restArgName !== undefined) {
+      argNames += "," + encodeUnsafeStringAsJSLiteralString(restArgName);
+    }
   }
   const functionBodyCleanup = `})(sContext.spawnChild(sThisArg,sArgArray${argNames}));`
   const functionBody = functionBodySetup + resolveCodeBody(node.body.body, false, transpileContext) + functionBodyCleanup;

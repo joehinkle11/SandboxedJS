@@ -37,6 +37,12 @@ export interface IdentifierNode extends acorn.Node {
   type: 'Identifier'
   name: string
 }
+export interface RestElementNode extends acorn.Node {
+  type: 'RestElement'
+  name: string
+  argument: acorn.Node
+}
+
 export interface TemplateElementNode extends acorn.Node {
   type: 'TemplateElement'
   value: {
@@ -131,6 +137,10 @@ export interface VariableDeclaratorNode extends acorn.Node {
 export interface BlockStatementNode extends acorn.Node {
   type: 'BlockStatement'
   body: acorn.Node[]
+}
+export interface SpreadElementNode extends acorn.Node {
+  type: 'SpreadElement'
+  argument: ArrayExpressionNode
 }
 
 export interface ProgramNode extends acorn.Node {
