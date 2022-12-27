@@ -12,7 +12,7 @@ export function exportToFile(builtInBindingStore: BuiltInBindingStore, extraHard
 ///
 
 // Extra hardcoded type defs
-${extraHardcodedTypeDefs}
+${extraHardcodedTypeDefs.trim()}
 
 /// Imports
 import { SValues } from "../SValues/AllSValues";

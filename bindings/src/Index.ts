@@ -14,16 +14,19 @@ const target = "lib.es2022.d.ts";
 // const target = "lib.d.ts";
 // const target = "lib.es5.d.ts";
 
-// It seems some of typescript's default definitions missed some things, add them here to get auto-generated bindings.
-const extraHardcodedTypeDefs = `
-declare global {
-  interface Boolean {
-    toString(): string;
-  }
-}
+// If you need to generate both global and local definitions
+const globalAndLocalExtraHardcodedTypeDefs = `
 interface Boolean {
   toString(): string;
 }
+`;
+
+// It seems some of typescript's default definitions missed some things, add them here to get auto-generated bindings.
+const extraHardcodedTypeDefs = `
+declare global {
+  ${globalAndLocalExtraHardcodedTypeDefs.split("\n").join("\n  ").trim()}
+}
+${globalAndLocalExtraHardcodedTypeDefs.trim()}
 `;
 
 const filesToDoWorkOn = importTSLibFilesRecursively(target, project);

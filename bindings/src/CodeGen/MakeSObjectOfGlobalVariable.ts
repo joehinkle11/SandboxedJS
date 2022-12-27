@@ -134,57 +134,43 @@ return sResult;
       }
       const propertyDeclaration = propertyDeclarations[0];
       const propertyType = propertyDeclaration.getType();
-      // if (propertyName === "prototype") {
-      //   const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
-      //   const singletonPrototype = bindingOfPrototype.getOrCreateSingletonEntry(
-      //     createStaticBindingCodeForGlobalVar(
-      //       globalVariableName + ".prototype",
-      //       propertyType,
-      //       builtInBindingStore,
-      //       ourOrder + 1
-      //     )
-      //   );
-      //   sPrototype = singletonPrototype.privateName;
-      //   continue;
-      // } else {
-        // is a primitive
-        if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
-          // whitelist it!
-          // todo: force the user who is generating the bindings to opt-in to white listing for safety
-          swizzleOrWhiteListModel.push({
-            kind: "whitelist",
-            property: propertyName
-          });
-          continue;
-        } else {
-          if (propertyType.getText() === nativeType.getText()) {
-            console.log("skipping",propertyName, propertyType.getText())
-            continue;
-          }
-          const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
-          const singletonProperty = bindingOfPrototype.getOrCreateSingletonEntry(
-            createStaticBindingCodeForGlobalVar(
-              globalVariableName + "." + propertyName,
-              propertyType,
-              builtInBindingStore,
-              ourOrder + 1
-            ),
-            globalVariableName + "." + propertyName,
-            ourOrder + 1
-          );
-          if (propertyName === "prototype") {
-            if (builtInBoxedPrimitiveTypes.includes(globalVariableName)) {
-              singletonProperty.internalName = globalVariableName + "Protocol";
-            }
-          }
-          swizzleOrWhiteListModel.push({
-            kind: "swizzled_static_property",
-            property: propertyName,
-            code_body: singletonProperty.privateName
-          });
+      // is a primitive
+      if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
+        // whitelist it!
+        // todo: force the user who is generating the bindings to opt-in to white listing for safety
+        swizzleOrWhiteListModel.push({
+          kind: "whitelist",
+          property: propertyName
+        });
+        continue;
+      } else {
+        if (propertyType.getText() === nativeType.getText()) {
+          console.log("skipping",propertyName, propertyType.getText())
           continue;
         }
-      // }
+        const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
+        const singletonProperty = bindingOfPrototype.getOrCreateSingletonEntry(
+          createStaticBindingCodeForGlobalVar(
+            globalVariableName + "." + propertyName,
+            propertyType,
+            builtInBindingStore,
+            ourOrder + 1
+          ),
+          globalVariableName + "." + propertyName,
+          ourOrder + 1
+        );
+        if (propertyName === "prototype") {
+          if (builtInBoxedPrimitiveTypes.includes(globalVariableName)) {
+            singletonProperty.internalName = globalVariableName + "Protocol";
+          }
+        }
+        swizzleOrWhiteListModel.push({
+          kind: "swizzled_static_property",
+          property: propertyName,
+          code_body: singletonProperty.privateName
+        });
+        continue;
+      }
     }
   let swizzleOrWhiteListModelStr = "";
   const appendToSwizzleOrWhiteListModelStrWithIndentation = makeAppendToFileWithIndentationFunction((str)=>swizzleOrWhiteListModelStr+=str);
