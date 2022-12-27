@@ -43,7 +43,7 @@ ${makeSwizzleOrWhitelistProperty(`swizzle_static_${swizzleOrWhiteListEntry.prope
       continue;
     case "swizzled_dynamic_property":
       appendToSwizzleOrWhiteListModelStr(`
-${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.property}`)}: () => ${swizzleOrWhiteListEntry.code_body},
+${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.property}`)}: (sValueWhichHoldsProperty: SValue<any>) => ${swizzleOrWhiteListEntry.code_body},
 `);
       continue;
     default:

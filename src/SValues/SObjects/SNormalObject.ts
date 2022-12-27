@@ -1,6 +1,7 @@
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
+import { SValues } from "../AllSValues";
 import { SNonFunctionObjectValue } from "./SNonFunctionObjectValue";
 import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList, SPrototypeDeterminedType, SPrototypeType } from "./SObjectValueDef";
 import { applySwizzleToObj } from "./SObjectValueImpl";
@@ -32,8 +33,11 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
     metadata: M
   ): SNormalObject<M> {
     let safeObject: any = {}; 
-    applySwizzleToObj(safeObject, nativeJsObject, sSwizzleAndWhiteList);
-    return new SNormalObject<M>(safeObject, sPrototype, metadata, false);
+    const weakRefToSValue = new SValues.WeakRefToSValue();
+    applySwizzleToObj(safeObject, nativeJsObject, sSwizzleAndWhiteList, weakRefToSValue);
+    const newObj = new SNormalObject<M>(safeObject, sPrototype, metadata, false);
+    weakRefToSValue.setSValue(newObj);
+    return newObj;
   }
   // not properties are allowed, mainly for build-in objects like [object Number]
   static exposeNativeBuiltIn<O extends object, M extends MaybeSValueMetadata>(
@@ -44,6 +48,6 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
     if (Reflect.ownKeys(nativeJsObjectToExpose).length > 0) {
       throw new Error(`You cannot expose a native object which contains any properties, see exposeNativeBuiltIn in SNormalObject.`)
     }
-    return new SNormalObject<M>(nativeJsObjectToExpose, sPrototype, metadata, true);
+    return new SNormalObject<M>(nativeJsObjectToExpose as any, sPrototype, metadata, true);
   }
 }

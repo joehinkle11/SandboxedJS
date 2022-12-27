@@ -4,6 +4,7 @@ import type { UnknownFunction, UnknownConstructorFunction, AnySFunction, Sandbox
 import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValueDef";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SObjectValue } from "./SObjectValue";
+import type { SValue } from "../SValue";
 
 
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
@@ -21,7 +22,7 @@ export type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> 
 
 export type SWhiteListEntry = true;
 export type SSwizzleEntry<V> = MapNativeValueTypeToSType<V>;
-export type SDynamicSwizzleEntry<V> = (nativeValue: V) => MapNativeValueTypeToSType<V>;
+export type SDynamicSwizzleEntry<V> = (sValueWhichHoldsProperty: SValue<any>) => MapNativeValueTypeToSType<V>;
 export type SSwizzleOrWhiteListEntry<V> = V extends SPrimitiveValueType ? SWhiteListEntry | SSwizzleEntry<V> : SSwizzleEntry<V>;
 export type SObjectSwizzleAndWhiteList<O extends object> = {
   [P in keyof O as O[P] extends SPrimitiveValueType ? `whitelist_${string & P}` : never]?: SWhiteListEntry;

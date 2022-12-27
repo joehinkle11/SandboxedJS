@@ -3,13 +3,14 @@ import { SValues } from "../AllSValues";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
-import { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
-import { SValue } from "../SValue";
+import type { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
+import type { SValue } from "../SValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SDynamicSwizzleEntry, SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import SUserError from "../../Models/SUserError";
+import type { WeakRefToSValue } from "../WeakRefToSValue";
 
 export function sGet<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>,
@@ -20,12 +21,12 @@ export function sGet<M extends MaybeSValueMetadata>(
   if (Reflect.has(this.sStorage, p)) {
     // we have this property
     const result: unknown = Reflect.get(this.sStorage, p, receiver);
-    if (result instanceof SValue) {
+    if (result instanceof SValues.SValue) {
       return result;
     } else {
       // todo: make sure this is a whitelisted property
       // must be a primitive or we fail
-      const sPrimitive = SPrimitiveValue.newPrimitiveFromJSValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
+      const sPrimitive = SValues.SPrimitiveValue.newPrimitiveFromJSValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
       if (sPrimitive === null) {
         throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
       }
@@ -101,10 +102,10 @@ export function convertAllPropertiesToSValues<O extends SObjectProperties, R ext
       // data descriptor
       const value = propDescriptor.value;
       let sValue: SValue<any>;
-      if (value instanceof SValue) {
+      if (value instanceof SValues.SValue) {
         sValue = value;
       } else {
-        const primitiveValue = SPrimitiveValue.newPrimitiveFromJSValue(
+        const primitiveValue = SValues.SPrimitiveValue.newPrimitiveFromJSValue(
           value,
           mProvider.newMetadataForRuntimeTimeEmergingValue()
         );
@@ -260,6 +261,7 @@ export function applySwizzleToObj<O extends object>(
   safeObject: O,
   nativeObject: any,
   sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
+  weakRefToSValue: WeakRefToSValue
 ) {
   const swizzleOrWhitelistKeys = Reflect.ownKeys(sSwizzleAndWhiteList);
   for (const swizzleOrWhitelistKey of swizzleOrWhitelistKeys) {
@@ -285,7 +287,11 @@ export function applySwizzleToObj<O extends object>(
         const staticSwizzledValue: SDynamicSwizzleEntry<any> = (sSwizzleAndWhiteList as any)[swizzleOrWhitelistKey];
         Object.defineProperty(safeObject, swizzledKey, {
           get() {
-            return staticSwizzledValue(nativeObject[swizzledKey]);
+            const sValue = weakRefToSValue.deref();
+            if (sValue === undefined) {
+              throw new Error("Object no longer exits...");
+            }
+            return staticSwizzledValue(sValue);
           },
         });
         continue;

@@ -36,6 +36,9 @@ export default class SUserError extends Error {
   static get cannotConvertObjectToPrimitive(): SUserError {
     return new SUserError(new Error(`Cannot convert object to primitive value.`));
   }
+  static requiredThisType(requiredTypeName: string): SUserError {
+    return new SUserError(new Error(`Requires that 'this' be a ${requiredTypeName}`));
+  }
   static symbolNotDefined(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: ${symbolName} is not defined.`));
   }

@@ -52,7 +52,8 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
     return this;
   }
   sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
-    throw Error("Todo: sGet on SSymbolValue prototype");
+    // auto-boxing
+    return sTable.sGlobalProtocols.SymbolProtocol.sGet(p, receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     if (sTable.valueMetadataSystem === null) {

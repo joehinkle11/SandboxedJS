@@ -48,12 +48,3 @@ export function sConstruct<M extends MaybeSValueMetadata>(
     return newSThis;
   }
 }
-
-// creating new `this` logic for constructor call
-// let newThisPrototype: SObjectValue<M, any, any>;
-// if (this.sPrototype instanceof SValues.SObjectValue) {
-//   newThisPrototype = this.sPrototype;
-// } else {
-//   newThisPrototype = sTable.sGlobalProtocols.ObjectProtocol;
-// }
-// const newThis = SValues.SNormalObject.create({}, newThisPrototype, sTable);

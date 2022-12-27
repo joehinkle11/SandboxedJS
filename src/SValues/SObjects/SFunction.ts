@@ -105,7 +105,7 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
       } else {
         const swizzledConstructRaw: SandboxedConstructorFunctionCallAsNormalCall = sSwizzleAndWhiteList.swizzled_construct_raw;
         safeFunction = {[sFunctionNameNative]: function(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: SFunction<any> | undefined, sTable: SLocalSymbolTable<any>): SValue<any> {
-          if (new.target === undefined) {
+          if (newTarget === undefined) {
             return swizzledApplyRaw.call(undefined, sThisArg, sArgArray, undefined, sTable);
           } else {
             return swizzledConstructRaw.call(undefined, undefined, sArgArray, newTarget!, sTable);
@@ -113,7 +113,10 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
         }}[sFunctionNameNative] as AnySFunction 
       }
     }
-    applySwizzleToObj(safeFunction, nativeJsFunction, sSwizzleAndWhiteList);
-    return new SFunction<M>(safeFunction, sPrototype, sFunctionNameNative, functionAsString, metadata);
+    const weakRefToSValue = new SValues.WeakRefToSValue();
+    applySwizzleToObj(safeFunction, nativeJsFunction, sSwizzleAndWhiteList, weakRefToSValue);
+    const newFunc = new SFunction<M>(safeFunction, sPrototype, sFunctionNameNative, functionAsString, metadata);
+    weakRefToSValue.setSValue(newFunc);
+    return newFunc;
   }
 }

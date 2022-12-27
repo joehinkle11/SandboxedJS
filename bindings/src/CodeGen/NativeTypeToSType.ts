@@ -59,7 +59,7 @@ export function nativeTypeToSType(
   }
 }
 
-export type STypeStringSimple = "SNormalObject<any>" | "SValue<any>" | "SBooleanValue<any, boolean>" | "SUndefinedValue<any>" | "SBooleanValue<any, number>" | "SNumberValue<any, number>" | "SObjectValue<any, any, any>" | "SFunction<any>" | "SNullValue<any>" | "SStringValue<any, string>";
+export type STypeStringSimple = "SNormalObject<any>" | "SValue<any>" | "SBooleanValue<any, boolean>" | "SUndefinedValue<any>" | "SBooleanValue<any, number>" | "SNumberValue<any, number>" | "SObjectValue<any, any, any>" | "SFunction<any>" | "SNullValue<any>" | "SStringValue<any, string>" | "SSymbolValue<any, symbol>";
 export type STypeStringUnion = `${STypeStringSimple} | ${STypeStringSimple}`;
 export type STypeStringIntersection = `${STypeStringSimple} & ${STypeStringSimple}`;
 export type STypeString = STypeStringSimple | STypeStringUnion | STypeStringIntersection;

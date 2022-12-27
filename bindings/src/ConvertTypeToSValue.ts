@@ -13,6 +13,7 @@ export function convertTypeToSValue(
   type: Type<ts.Type>,
   mProviderVariableName: string = "sTable"
 ): NativeToSValueConversionCode {
+  const typeStr = type.getText();
   if (type.isNumber()) {
     return {
       resultingSType: "SNumberValue<any, number>",
@@ -32,6 +33,13 @@ export function convertTypeToSValue(
       resultingSType: "SBooleanValue<any, boolean>",
       convert(nativeVariableName) {
         return `new SValues.SBooleanValue(${nativeVariableName}, ${mProviderVariableName}.newMetadataForRuntimeTimeEmergingValue())`;
+      },
+    }
+  } else if (typeStr === "symbol") {
+    return {
+      resultingSType: "SSymbolValue<any, symbol>",
+      convert(nativeVariableName) {
+        return `new SValues.SSymbolValue(${nativeVariableName}, ${mProviderVariableName}.newMetadataForRuntimeTimeEmergingValue())`;
       },
     }
   } else {

@@ -11,7 +11,7 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
       `
   },
   "Object.prototype.constructor": {
-    swizzled_lookup_private_var_name: "private_implementation_global_Object"
+    swizzled_lookup_global_var_on_root: "Object"
   },
   "Object.getOwnPropertyNames": {
     swizzled_apply_raw: `
@@ -69,10 +69,21 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
       throw new Error("Expected 'this' to be a function.");
       `
   },
+  "Symbol.prototype.description": {
+    swizzled_dynamic_property: `
+      {
+        if (sValueWhichHoldsProperty instanceof SValues.SSymbolValue) {
+          throw SUserError.requiredThisType("Symbol2");  
+        }
+        throw SUserError.requiredThisType("Symbol" + sValueWhichHoldsProperty.sValueKind);
+      }
+      `
+  }
 };
 
 type OverrideEntry = {
   swizzled_apply_raw?: string;
-  swizzled_lookup_private_var_name?: string;
-  prototype_internal_builtin?: `${Capitalize<string>}Protocol`
+  swizzled_lookup_global_var_on_root?: string;
+  prototype_internal_builtin?: `${Capitalize<string>}Protocol`;
+  swizzled_dynamic_property?: string;
 }

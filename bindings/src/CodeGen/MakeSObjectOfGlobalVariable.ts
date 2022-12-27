@@ -103,7 +103,7 @@ return sResult;
     if (constructSignatures.length === 0) {
       swizzleOrWhiteListModel.push({
         kind: "swizzled_raw_construct",
-        code_body: `throw SUserError.requiresNew("${globalVariableName}");`
+        code_body: `throw SUserError.notAConstructor("${globalVariableName}");`
       });
     }
   }
@@ -117,7 +117,7 @@ return sResult;
     if (callSignatures.length === 0) {
       swizzleOrWhiteListModel.push({
         kind: "swizzled_raw_apply",
-        code_body: `throw SUserError.notAConstructor("${globalVariableName}");`
+        code_body: `throw SUserError.requiresNew("${globalVariableName}");`
       });
     }
   }
@@ -130,14 +130,24 @@ return sResult;
       console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
       continue;
     }
-    const override = overrides[globalRefToProperty]?.swizzled_lookup_private_var_name;
-    if (override !== undefined) {
-      swizzleOrWhiteListModel.push({
-        kind: "swizzled_dynamic_property",
-        code_body: 'rootSTable.sGet("Object", "todo" as any, rootSTable)',
-        property: propertyName
-      });
-      continue;
+    const overrideInfo = overrides[globalRefToProperty]
+    if (overrideInfo) {
+      if (overrideInfo.swizzled_lookup_global_var_on_root) {
+        swizzleOrWhiteListModel.push({
+          kind: "swizzled_dynamic_property",
+          code_body: `rootSTable.sGet("${overrideInfo.swizzled_lookup_global_var_on_root}", "todo" as any, rootSTable)`,
+          property: propertyName
+        });
+        continue;
+      }
+      if (overrideInfo.swizzled_dynamic_property) {
+        swizzleOrWhiteListModel.push({
+          kind: "swizzled_dynamic_property",
+          code_body: evenlyRemovingLeadingSpaces(overrideInfo.swizzled_dynamic_property).trim(),
+          property: propertyName
+        });
+        continue;
+      }
     }
     if (blackListVars.includes(globalRefToProperty)) {
       console.log(`Skipping property ${propertyName} on ${nativeTypeStr} as it is on the blacklist.`);
