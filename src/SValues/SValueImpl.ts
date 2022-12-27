@@ -15,6 +15,7 @@ import { JSTypeOfString } from "./SValueDef";
 import type { SArrayObject } from "./SObjects/SArrayObject";
 import type { SLocalSymbolTable } from "../SLocalSymbolTable";
 import type { ValueMetadataSystem } from "../TranspileContext";
+import type { SObjectValue } from "./SObjects/SObjectValue";
 
 export function sToString<M extends MaybeSValueMetadata>(
   this: SValue<M>,
@@ -188,4 +189,22 @@ export function sCompGreaterThanOrEqualTo<M extends MaybeSValueMetadata>(right: 
 // @ts-expect-error
 export function sCompLessThanOrEqualTo<M extends MaybeSValueMetadata>(right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
   $sComparisonOpOnPrimitive!("<=")
+}
+
+export function sInstanceof<M extends MaybeSValueMetadata>(this: SValue<M>, right: SValue<M>, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
+  if (right instanceof SValues.SFunction) {
+    if (this instanceof SValues.SObjectValue) {
+      const rightPrototypeProperty = right.getSFunctionPrototypeProperty();
+      let currentProto = this.determinedSPrototype;
+      while (currentProto instanceof SValues.SObjectValue) {
+        if (Object.is(currentProto, rightPrototypeProperty)) {
+          return new SValues.SBooleanValue(true, sTable.newMetadataForRuntimeTimeEmergingValue());
+        }
+        currentProto = currentProto.determinedSPrototype;
+      }
+    }
+    return new SValues.SBooleanValue(false, sTable.newMetadataForRuntimeTimeEmergingValue());
+  } else {
+    throw SUserError.cannotConvertToObject;
+  }
 }

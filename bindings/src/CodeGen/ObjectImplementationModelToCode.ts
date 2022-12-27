@@ -32,7 +32,7 @@ swizzled_apply_raw(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], 
       continue;
     case "swizzled_raw_construct":
       appendToSwizzleOrWhiteListModelStr(`
-swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) {
+swizzled_construct_raw(_: undefined, sArgArray: SValue<any>[], newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) {
   ${swizzleOrWhiteListEntry.code_body.trim().split("\n").join("\n  ")}
 },`);
       continue;
@@ -41,12 +41,23 @@ swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTabl
 ${makeSwizzleOrWhitelistProperty(`swizzle_static_${swizzleOrWhiteListEntry.property}`)}: ${swizzleOrWhiteListEntry.code_body},
 `);
       continue;
+    case "swizzled_dynamic_property":
+      appendToSwizzleOrWhiteListModelStr(`
+${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.property}`)}: () => ${swizzleOrWhiteListEntry.code_body},
+`);
+      continue;
     default:
       console.log("TODO " + (swizzleOrWhiteListEntry as any).property);
     }
   }
   let proxiedValueCode: string = objectImplementationModal.mainRefGlobalVariableName;
-  const sPrototype: string = objectImplementationModal.sPrototype ?? "new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral())";
+  let resolvedSPrototype: string | undefined = objectImplementationModal.sPrototype;
+  if (resolvedSPrototype === undefined) {
+    if (objectImplementationModal.objectKind === "function") {
+      resolvedSPrototype = "rootSTable.sGlobalProtocols.FunctionProtocol"
+    }
+  }
+  const sPrototype: string = resolvedSPrototype ?? "new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral())";
   switch (objectImplementationModal.objectKind) {
   case "function":
     return `SValues.SFunction.createFromNative(

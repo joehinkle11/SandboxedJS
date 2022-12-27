@@ -33,12 +33,19 @@ export function sConstruct<M extends MaybeSValueMetadata>(
   newTarget: SFunction<any>,
   sTable: SLocalSymbolTable<M>
 ): SObjectValue<M, any, any> {
-  const result = new (this.sStorage as SandboxedConstructorFunctionCall)(undefined, args, newTarget, sTable);
+  const prototypeProperty = this.getSFunctionPrototypeProperty();
+  let newSThisProto: SObjectValue<M, any, any>
+  if (prototypeProperty instanceof SValues.SObjectValue) {
+    newSThisProto = prototypeProperty;
+  } else {
+    newSThisProto = sTable.sGlobalProtocols.ObjectProtocol;
+  }
+  const newSThis = SValues.SNormalObject.create({}, newSThisProto, sTable);
+  const result = (this.sStorage as SandboxedConstructorFunctionCall)(newSThis, args, newTarget, sTable);
   if (result instanceof SValues.SObjectValue) {
     return result;
   } else {
-    throw new Error("todo return the newly created this")
-    // return newThis;
+    return newSThis;
   }
 }
 

@@ -1,7 +1,7 @@
 import { Signature, Type, TypeFormatFlags } from "ts-morph";
-import { createStaticBindingCodeForGlobalVar } from "../BindingsCollectors/CollectVariables";
+import { createStaticBindingCodeForGlobalVar } from "../BindingsCollectors/CollectGlobals";
 // import type { RefKind } from "../BindingsCollectors/CollectVariables";
-import { blackListProperties } from "../Blacklist";
+import { blackListProperties, blackListVars } from "../Blacklist";
 import { convertTypeToSValue, NativeToSValueConversionCode } from "../ConvertTypeToSValue";
 import { extractParameters, ParamExtraction } from "../ExtractParameters";
 import { ifIsIdenticalReferenceReturnMainRef } from "../IdenticalValueReferences";
@@ -21,6 +21,10 @@ export function makeSObjectOfGlobalVariable(
 ): ObjectImplementationModal {
   const nativeTypeStr = nativeType.getText();
   let sPrototype: string | undefined = undefined;
+  const prototypeInternalBuiltIn = overrides[globalVariableName]?.prototype_internal_builtin;
+  if (prototypeInternalBuiltIn !== undefined) {
+    sPrototype = `rootSTable.sGlobalProtocols.${prototypeInternalBuiltIn}`;
+  }
   const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
   const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
     const paramExtractionCodes: ParamExtraction[] = extractParameters(signature.getParameters());
@@ -123,7 +127,20 @@ return sResult;
     const globalRefToProperty = globalVariableName + "." + propertyName;
     if (propertyName.includes("_@")) {
       // todo: probably a property with a symbol as a key
-      // console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+      console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+      continue;
+    }
+    const override = overrides[globalRefToProperty]?.swizzled_lookup_private_var_name;
+    if (override !== undefined) {
+      swizzleOrWhiteListModel.push({
+        kind: "swizzled_dynamic_property",
+        code_body: 'rootSTable.sGet("Object", "todo" as any, rootSTable)',
+        property: propertyName
+      });
+      continue;
+    }
+    if (blackListVars.includes(globalRefToProperty)) {
+      console.log(`Skipping property ${propertyName} on ${nativeTypeStr} as it is on the blacklist.`);
       continue;
     }
     if (blackListProperties.includes(propertyName)) {
@@ -131,11 +148,17 @@ return sResult;
       continue;
     }
     const propertyDeclarations = typeProperty.getDeclarations();
+    let propertyDeclaration = propertyDeclarations[0];
+    let propertyDeclarationLen = propertyDeclaration.getText().length;
     if (propertyDeclarations.length !== 1) {
-      // console.log(`Handle more than 1 (or 0?) property declarations for whitelist/swizzling property ${propertyName}`)
-      continue;
+      for (const aPropertyDeclaration of propertyDeclarations) {
+        const len = aPropertyDeclaration.getText().length;
+        if (len > propertyDeclarationLen) {
+          propertyDeclarationLen = len;
+          propertyDeclaration = aPropertyDeclaration;
+        }
+      }
     }
-    const propertyDeclaration = propertyDeclarations[0];
     const propertyType = propertyDeclaration.getType();
     // is a primitive
     if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
@@ -151,12 +174,11 @@ return sResult;
         console.log("skipping",propertyName, propertyType.getText())
         continue;
       }
-      const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
       let singletonProperty: BindingEntry;
       const mainRefToProperty = ifIsIdenticalReferenceReturnMainRef(globalRefToProperty);
       if (mainRefToProperty !== undefined) {
         console.log(`For property '${propertyName}' on ${globalVariableName}...implementation for ${globalRefToProperty} is skipped as it is just a duplicated reference to ${mainRefToProperty}.`); 
-        singletonProperty = bindingOfPrototype.getOrCreateVariableEntry(mainRefToProperty, createStaticBindingCodeForGlobalVar(
+        singletonProperty = builtInBindingStore.getOrCreateVariableEntry(mainRefToProperty, createStaticBindingCodeForGlobalVar(
           globalRefToProperty,
           mainRefToProperty,
           propertyType,
@@ -164,7 +186,7 @@ return sResult;
           ourOrder + 1
         ));
       } else {
-        singletonProperty = bindingOfPrototype.getOrCreateSingletonEntry(
+        singletonProperty = builtInBindingStore.getOrCreateSingletonEntry(
           createStaticBindingCodeForGlobalVar(
             globalRefToProperty,
             globalRefToProperty,

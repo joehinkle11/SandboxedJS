@@ -1,8 +1,8 @@
-import type { SRootSymbolTable } from "../../SLocalSymbolTable";
+import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SNonFunctionObjectValue } from "./SNonFunctionObjectValue";
-import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList, SPrototypeType } from "./SObjectValueDef";
+import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList, SPrototypeDeterminedType, SPrototypeType } from "./SObjectValueDef";
 import { applySwizzleToObj } from "./SObjectValueImpl";
 
 export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionObjectValue<M, "normal", BaseSObjectStorage> {
@@ -20,10 +20,10 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
 
   static create<M extends MaybeSValueMetadata>(
     anySObject: BaseSObjectStorage,
-    sPrototype: SPrototypeType,
-    mProvider: SMetadataProvider<M>
+    sPrototype: SPrototypeDeterminedType,
+    sTable: SLocalSymbolTable<M>
   ): SNormalObject<M> {
-    return new SNormalObject<M>(anySObject, sPrototype, mProvider.newMetadataForObjectValue(), false);
+    return new SNormalObject<M>(anySObject, sPrototype, sTable.newMetadataForObjectValue(), false);
   }
   static createFromNative<O extends object, M extends MaybeSValueMetadata>(
     nativeJsObject: O,

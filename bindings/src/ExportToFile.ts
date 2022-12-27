@@ -1,5 +1,5 @@
 import { fileStream, makeAppendToFileWithIndentationFunction } from "./FileWriting";
-import { BuiltInBinding, BuiltInBindingStore } from "./Models/BuiltInBinding";
+import { BuiltInBindingStore } from "./Models/BuiltInBinding";
 
 const makeAppendToFileWithIndentation = makeAppendToFileWithIndentationFunction((str)=>fileStream.write(str));
 
@@ -28,42 +28,38 @@ import type { SUndefinedValue } from "../SValues/SPrimitiveValues/SUndefinedValu
 import type { SNullValue } from "../SValues/SPrimitiveValues/SNullValue";
 import type { SBigIntValue } from "../SValues/SPrimitiveValues/SBigIntValue";
 import type { SSymbolValue } from "../SValues/SPrimitiveValues/SSymbolValue";
-import type { SValue } from "../SValues/SValue";
+import type { SValue } from "../SValues/SValue";;
+import type { AnySFunction } from "../SValues/SObjects/SFunctionDef";
 import SUserError from "../Models/SUserError";
+import { encodeUnsafeStringAsJSLiteralString } from "../EncodeString";
 
 /// Main entry point for installing all generated bindings.
 export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootSymbolTable<any>) => {
 `);
 
   const appendToInstallGeneratedBindings = makeAppendToFileWithIndentation(1);
-  const builtInBindingEntriesSorted = builtInBindingStore.getAllBindingEntries().sort((a, b) => {
+  const builtInBindingEntriesSorted = builtInBindingStore.entries.sort((a, b) => {
     return b.sortOrder - a.sortOrder;
   });
   for (const entry of builtInBindingEntriesSorted) {
-    const builtInBinding = entry.builtInBinding;
-    appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
+    // appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
     appendToInstallGeneratedBindings("// private implementation..." + entry.sortOrder);
     if (entry.implementationModal !== undefined) {
       const implementationCode = entry.generatedImplementationCode();
-      appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${implementationCode};`);
+      // appendToInstallGeneratedBindings(`const ${entry.privateName}: ${entry.sType} = ${implementationCode};`);
+      appendToInstallGeneratedBindings(`const ${entry.privateName} = ${implementationCode};`);
     } else {
-      appendToInstallGeneratedBindings(`// Cannot make private binding for "${entry.privateName}: ${builtInBinding.sType}" as no implementation code was found.`);
+      appendToInstallGeneratedBindings(`// Cannot make private binding for "${entry.privateName} as no implementation code was found.`);
     }
   }
-  for (const builtInBinding of builtInBindingStore.getAllBindings()) {
-    for (const entry of builtInBinding.entries) {
-      if (entry.globalVariableName !== undefined) {
-        appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
-        appendToInstallGeneratedBindings(`rootSTable.assign("${entry.globalVariableName}", ${entry.privateName} as ${builtInBinding.sType} as SValue<any>, "const");`);
-      }
+  for (const entry of builtInBindingEntriesSorted) {
+    if (entry.globalVariableName !== undefined) {
+      appendToInstallGeneratedBindings(`rootSTable.assign("${entry.globalVariableName}", ${entry.privateName} as SValue<any>, "const");`);
     }
   }
-  for (const builtInBinding of builtInBindingStore.getAllBindings()) {
-    for (const entry of builtInBinding.entries) {
-      if (entry.internalName !== undefined) {
-        appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
-        appendToInstallGeneratedBindings(`rootSTable.sGlobalProtocols.${entry.internalName} = ${entry.privateName} as SNormalObject<any>;`); 
-      }
+  for (const entry of builtInBindingEntriesSorted) {
+    if (entry.internalName !== undefined) {
+      appendToInstallGeneratedBindings(`rootSTable.sGlobalProtocols.${entry.internalName} = ${entry.privateName} as SNormalObject<any>;`); 
     }
   }
 

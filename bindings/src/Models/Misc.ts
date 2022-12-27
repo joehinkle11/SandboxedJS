@@ -1,6 +1,6 @@
 
 
-export type SwizzleOrWhiteListEntry = (HardCodedSwizzleOrWhiteListEntry | WhiteListEntry | SwizzledRawApply | SwizzledRawConstruct | SwizzledStaticProperty) & {
+export type SwizzleOrWhiteListEntry = (HardCodedSwizzleOrWhiteListEntry | WhiteListEntry | SwizzledRawApply | SwizzledDynamicProperty | SwizzledRawConstruct | SwizzledStaticProperty) & {
   kind: string
 };
 interface SwizzledRawApply {
@@ -21,6 +21,11 @@ interface WhiteListEntry {
 }
 interface SwizzledStaticProperty {
   kind: "swizzled_static_property"
+  property: string
+  code_body: string
+}
+interface SwizzledDynamicProperty {
+  kind: "swizzled_dynamic_property"
   property: string
   code_body: string
 }

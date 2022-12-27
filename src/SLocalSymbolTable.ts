@@ -2,9 +2,11 @@ import SUserError from "./Models/SUserError";
 import type { SMetadataProvider } from "./SMetadataProvider";
 import type { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SValues } from "./SValues/AllSValues";
-import { SNormalObject } from "./SValues/SObjects/SNormalObject";
+// import type { SMergedObjects } from "./SValues/SObjects/SMergedObjects";
+import type { SNormalObject } from "./SValues/SObjects/SNormalObject";
+import type { SObjectValue } from "./SValues/SObjects/SObjectValue";
 import { convertAllPropertiesToSValues } from "./SValues/SObjects/SObjectValueImpl";
-import { SUndefinedValue } from "./SValues/SPrimitiveValues/SUndefinedValue";
+import type { SUndefinedValue } from "./SValues/SPrimitiveValues/SUndefinedValue";
 import type { SValue } from "./SValues/SValue";
 import type { TranspileContext, ValueMetadataSystem } from "./TranspileContext";
 
@@ -14,7 +16,8 @@ type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
 } | undefined>;
 
 interface SGlobalProtocols<M extends MaybeSValueMetadata> {
-  ObjectProtocol: SNormalObject<M>;
+  // ObjectProtocol: SMergedObjects<M>;
+  ObjectProtocol: SObjectValue<M, any, any>;
   FunctionProtocol: SNormalObject<M>;
   NumberProtocol: SNormalObject<M>;
   BooleanProtocol: SNormalObject<M>;
@@ -73,7 +76,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
           kind: kind,
           value: newValue
         };
-        return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
+        return new SValues.SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
       case "update":
         this.symbols[key] = {
           kind: "var",
@@ -90,7 +93,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
           kind: kind,
           value: newValue
         };
-        return new SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
+        return new SValues.SUndefinedValue(this.transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue());
       case "update":
         this.symbols[key] = {
           kind: "var",
@@ -135,7 +138,7 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
     if (sArguments !== undefined) {
       const arrayOfSValues = convertAllPropertiesToSValues({}, sArguments, this);
       const sPrototype = new SValues.SNullValue(this.newMetadataForRuntimeTimeEmergingValue()); // todo! should be object prototype?
-      const args: SNormalObject<M> = SNormalObject.create(arrayOfSValues, sPrototype, this);
+      const args: SNormalObject<M> = SValues.SNormalObject.create(arrayOfSValues, sPrototype, this);
       symbolsInChild.arguments = {
         kind: "const",
         value: args
@@ -164,6 +167,6 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
     return new SLocalSymbolTable<M>(this.sThis, this.symbols, this, this.transpileContext);
   }
   static createGlobal<M extends MaybeSValueMetadata>(transpileContext: TranspileContext<M>): SRootSymbolTable<M> {
-    return new SLocalSymbolTable<M>(new SUndefinedValue(transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue()), {}, null, transpileContext) as SRootSymbolTable<M>;
+    return new SLocalSymbolTable<M>(new SValues.SUndefinedValue(transpileContext.valueMetadataSystem?.newMetadataForRuntimeTimeEmergingValue()), {}, null, transpileContext) as SRootSymbolTable<M>;
   }
 }

@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, BlockStatementNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, ReturnStatementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -57,16 +57,16 @@ function resolveLookupIdentifierByName(identifierName: string, transpileContext:
 function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileContext<any>): string {
   // Check if it is a restricted identifier first
   const name = node.name;
-  switch (name) {
-  case "undefined":
-    return `new SValues.SUndefinedValue(${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
-  // case "NaN":
-  //   return `new SValues.SNumberValue(NaN${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
-  // case "Infinity":
-  //   return `new SValues.SNumberValue(Infinity${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
-  default:
+  // switch (name) {
+  // // case "undefined":
+  // //   return `new SValues.SUndefinedValue(${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+  // // case "NaN":
+  // //   return `new SValues.SNumberValue(NaN${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+  // // case "Infinity":
+  // //   return `new SValues.SNumberValue(Infinity${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
+  // default:
     return resolveLookupIdentifierByName(name, transpileContext, resolveLookup);
-  }
+  // }
 };
 function resolveStringLiteral(unsafeString: string, transpileContext: TranspileContext<any>): string {
   const safeJSStringLiteral = encodeUnsafeStringAsJSLiteralString(unsafeString);
@@ -127,6 +127,8 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
     operatorCode = "sCompGreaterThanOrEqualTo";
   } else if (operator === "<=") {
     operatorCode = "sCompLessThanOrEqualTo";
+  } else if (operator === "instanceof") {
+    operatorCode = "sInstanceof";
   } else {
     throw new Error(`Unsupported operator in BinaryExpression "${operator}"`);
   }
@@ -465,6 +467,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveChainExpression(node as ChainExpressionNode, transpileContext);
   } else if (node.type === "NewExpression") {
     return resolveNewExpression(node as NewExpressionNode, transpileContext);
+  } else if (node.type === "BlockStatement") {
+    return resolveCodeBody((node as BlockStatementNode).body, false, transpileContext);
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

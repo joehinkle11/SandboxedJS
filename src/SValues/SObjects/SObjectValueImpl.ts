@@ -6,7 +6,7 @@ import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
 import { SValue } from "../SValue";
 import type { SObjectValue } from "./SObjectValue";
-import type { SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
+import type { SDynamicSwizzleEntry, SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import SUserError from "../../Models/SUserError";
@@ -57,7 +57,11 @@ export function sUnaryNegate<M extends MaybeSValueMetadata>(
     if (sUnaryNegateInternal !== undefined) {
       return sUnaryNegateInternal(this);
     }
-    p = p.sPrototype;
+    if (typeof p.sPrototype === "function") {
+      p = p.sPrototype();
+    } else {
+      p = p.sPrototype;
+    }
   }
   throw SUserError.cannotConvertObjectToPrimitive;
 };
@@ -70,7 +74,11 @@ export function sUnaryMakePositive<M extends MaybeSValueMetadata>(
     if (sUnaryMakePositiveInternal !== undefined) {
       return sUnaryMakePositiveInternal(this);
     }
-    p = p.sPrototype;
+    if (typeof p.sPrototype === "function") {
+      p = p.sPrototype();
+    } else {
+      p = p.sPrototype;
+    }
   }
   throw SUserError.cannotConvertObjectToPrimitive;
 };
@@ -222,6 +230,9 @@ export function buildNativeJsValueForSObject<S extends object, O extends SObject
   // Built-In objects cannot be put into a proxy without changing some of their special behavior
   if (sObject.exportNativeJsValueAsCopiedBuiltIn) {
     const copy = structuredClone(startingElement);
+    if (typeof sObject.sPrototype === "function") {
+      sObject.sPrototype = sObject.sPrototype();
+    }
     const nativePrototype = sObject.sPrototype.getNativeJsValue(rootSTable);
     if (nativePrototype !== null) {
       Object.setPrototypeOf(copy, proxy);  
@@ -258,26 +269,25 @@ export function applySwizzleToObj<O extends object>(
     } else if (typeof swizzleOrWhitelistKey === "string") {
       if (swizzleOrWhitelistKey.startsWith("whitelist_")) {
         const whitelistKey = swizzleOrWhitelistKey.slice("whitelist_".length)
-        // if (whitelistKey === "name") {
-        //   // set by declaration
-        //   // sanity check
-        //   if (nativeObject.name === safeObject.name) {
-        //     continue
-        //   } else {
-        //     throw new Error(`SFunction.createFromNative failed to create function with name ${nativeObject.name} found ${safeFunction.name}.`)
-        //   }
-        // } else {
-          Object.defineProperty(safeObject, whitelistKey, {
-            get() {
-              return Reflect.get(nativeObject, whitelistKey);
-            },
-          })
-          continue;
-        // }
+        Object.defineProperty(safeObject, whitelistKey, {
+          get() {
+            return Reflect.get(nativeObject, whitelistKey);
+          },
+        })
+        continue;
       } else if (swizzleOrWhitelistKey.startsWith("swizzle_static_")) {
         const swizzledKey = swizzleOrWhitelistKey.slice("swizzle_static_".length)
         const staticSwizzledValue: SValue<any> = (sSwizzleAndWhiteList as any)[swizzleOrWhitelistKey];
         (safeObject as any)[swizzledKey] = staticSwizzledValue;
+        continue;
+      } else if (swizzleOrWhitelistKey.startsWith("swizzle_dynamic_")) {
+        const swizzledKey = swizzleOrWhitelistKey.slice("swizzle_dynamic_".length)
+        const staticSwizzledValue: SDynamicSwizzleEntry<any> = (sSwizzleAndWhiteList as any)[swizzleOrWhitelistKey];
+        Object.defineProperty(safeObject, swizzledKey, {
+          get() {
+            return staticSwizzledValue(nativeObject[swizzledKey]);
+          },
+        });
         continue;
       }
     }

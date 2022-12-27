@@ -14,6 +14,7 @@ export const SValues = {
   SNormalObject: undefined as any as typeof SNormalObject,
   SArrayObject: undefined as any as typeof SArrayObject,
   SFunction: undefined as any as typeof SFunction,
+  // SMergedObjects: undefined as any as typeof SMergedObjects,
 }
 
 // Base
@@ -35,6 +36,7 @@ import { SObjectValue } from "./SObjects/SObjectValue";
 import { SNormalObject } from "./SObjects/SNormalObject";
 import { SArrayObject } from "./SObjects/SArrayObject";
 import { SFunction } from "./SObjects/SFunction";
+// import { SMergedObjects } from "./SObjects/SMergedObjects";
 
 SValues.SValue = SValue;
 SValues.SPrimitiveValue = SPrimitiveValue;
@@ -50,3 +52,5 @@ SValues.SObjectValue = SObjectValue;
 SValues.SNormalObject = SNormalObject;
 SValues.SArrayObject = SArrayObject;
 SValues.SFunction = SFunction;
+// SValues.SMergedObjects = SMergedObjects;
+Object.freeze(SValue);

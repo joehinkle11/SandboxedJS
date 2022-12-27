@@ -1,3 +1,4 @@
+import SUserError from "../../Models/SUserError";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
@@ -20,27 +21,41 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
   declare getNativeJsValue: (rootSTable: SRootSymbolTable<M>) => () => {};
   declare readonly sStorage: AnySFunction & SandboxedConstructorFunctionCall;
   readonly functionAsString: string;
+  readonly sFunctionNameNative: string;
+
+  getSFunctionPrototypeProperty(receiver: SValue<M> = this): SValue<M> {
+    const result: unknown = Reflect.get(this.sStorage, "prototype", receiver);
+    if (result instanceof SValues.SValue) {
+      return result;
+    }
+    throw new Error(`Unexpectedly found non-s-value for function prototype property.`);
+  }
 
   private constructor(
     sStorage: AnySFunction,
     sPrototype: SPrototypeType,
+    sFunctionNameNative: string,
     functionAsString: string,
     metadata: M
   ) {
     super(sStorage, sPrototype, metadata, false);
+    this.sFunctionNameNative = sFunctionNameNative;
     this.functionAsString = functionAsString;
   }
 
   sConstruct: (args: SValue<M>[], newTarget: SFunction<any>, sTable: SLocalSymbolTable<M>) => SObjectValue<M, any, any> = sConstruct;
 
+  /// the provided anySFunction.protocol will be discard
   static create<M extends MaybeSValueMetadata>(
     anySFunction: AnySFunction,
     functionAsString: string,
-    mProvider: SMetadataProvider<M>
+    sTable: SLocalSymbolTable<M>
   ): SFunction<M> {
-    const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, mProvider);
-    const sPrototype = new SValues.SNullValue(mProvider.newMetadataForRuntimeTimeEmergingValue()); // todo: sPrototype
-    return new SFunction<M>(fixedAnySFunction, sPrototype, functionAsString, mProvider.newMetadataForObjectValue());
+    const sFunctionNameNative = anySFunction.name;
+    anySFunction.prototype = SValues.SNormalObject.create({}, sTable.sGlobalProtocols.ObjectProtocol, sTable);
+    const fixedAnySFunction = convertAllPropertiesToSValues(anySFunction, anySFunction, sTable);
+    const sPrototype = sTable.sGlobalProtocols.FunctionProtocol;
+    return new SFunction<M>(fixedAnySFunction, sPrototype, sFunctionNameNative, functionAsString, sTable.newMetadataForObjectValue());
   }
   static createFromNative<O extends UnknownConstructorFunction | UnknownFunction, M extends MaybeSValueMetadata>(
     nativeJsFunction: O,
@@ -48,30 +63,31 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     sPrototype: SPrototypeType,
     metadata: M
   ): SFunction<M> {
+    const sFunctionNameNative = nativeJsFunction.name;
     const functionAsString = Function.bind(nativeJsFunction).toString();
     let safeFunction: AnySFunction; 
     if (sSwizzleAndWhiteList.swizzled_apply_raw === undefined) {
       // const swizzledApplyProxied: UnknownFunction = sSwizzleAndWhiteList.swizzled_apply_proxied;
-      // safeFunction = {[nativeJsFunction.name]: function() {
+      // safeFunction = {[sFunctionNameNative]: function() {
       //   // return swizzledApplyProxied.apply(undefined, arguments as any);
         throw new Error("todo swizzledApplyProxied");
-      // }}[nativeJsFunction.name] as AnySFunction
+      // }}[sFunctionNameNative] as AnySFunction
     } else {
       const swizzledApplyRaw: SandboxedFunctionCall = sSwizzleAndWhiteList.swizzled_apply_raw;
       if (sSwizzleAndWhiteList.swizzled_construct_raw === undefined) {
         throw new Error("todo swizzled_construct_raw");
       } else {
         const swizzledConstructRaw: SandboxedConstructorFunctionCallAsNormalCall = sSwizzleAndWhiteList.swizzled_construct_raw;
-        safeFunction = {[nativeJsFunction.name]: function(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: SFunction<any> | undefined, sTable: SLocalSymbolTable<any>): SValue<any> {
+        safeFunction = {[sFunctionNameNative]: function(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: SFunction<any> | undefined, sTable: SLocalSymbolTable<any>): SValue<any> {
           if (new.target === undefined) {
             return swizzledApplyRaw.call(undefined, sThisArg, sArgArray, undefined, sTable);
           } else {
             return swizzledConstructRaw.call(undefined, undefined, sArgArray, newTarget!, sTable);
           }
-        }}[nativeJsFunction.name] as AnySFunction 
+        }}[sFunctionNameNative] as AnySFunction 
       }
     }
     applySwizzleToObj(safeFunction, nativeJsFunction, sSwizzleAndWhiteList);
-    return new SFunction<M>(safeFunction, sPrototype, functionAsString, metadata);
+    return new SFunction<M>(safeFunction, sPrototype, sFunctionNameNative, functionAsString, metadata);
   }
 }

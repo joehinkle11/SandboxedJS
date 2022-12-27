@@ -1,7 +1,7 @@
 
 import { Project } from "ts-morph";
 import { BuiltInBindingStore } from "./Models/BuiltInBinding";
-import { collectVariables } from "./BindingsCollectors/CollectVariables";
+import { collectGlobals } from "./BindingsCollectors/CollectGlobals";
 // import { collectInterfaces } from "./BindingsCollectors/CollectVariables";
 import { exportToFile } from "./ExportToFile";
 import { importTSLibFilesRecursively } from "./ImportTSLibFilesRecursively";
@@ -19,6 +19,7 @@ const globalAndLocalExtraHardcodedTypeDefs = `
 interface Boolean {
   toString(): string;
 }
+interface ObjectConstructor extends Function {}
 `;
 
 // It seems some of typescript's default definitions missed some things, add them here to get auto-generated bindings.
@@ -35,7 +36,7 @@ filesToDoWorkOn.push(project.createSourceFile("extra_hardcoded_type_defs.d.ts", 
 
 let builtInBindingStore: BuiltInBindingStore = new BuiltInBindingStore();
 // collectInterfaces(filesToDoWorkOn, builtInBindingStore);
-collectVariables(filesToDoWorkOn, builtInBindingStore);
+collectGlobals(filesToDoWorkOn, builtInBindingStore);
 
 exportToFile(builtInBindingStore, extraHardcodedTypeDefs);
 

@@ -16,40 +16,86 @@ const cleanTypeTextAndRemoveGenerics = (typeTxt: string) => {
   return removeGenericsInTypeStr("_" + cleanTypeText(typeTxt)!);
 }
 
-export class BuiltInBinding {
-  readonly type: Type<ts.Type>
-  readonly typeText: string;
-  readonly typeTextSafe: string;
-  readonly sType: string;
-  readonly id: string = (Math.round(Math.random() * 100000)).toString();
-  entries: BindingEntry[] = [];
 
-  constructor(type: Type<ts.Type>) {
-    this.type = type;
-    this.typeText = this.type.getText();
-    this.typeTextSafe = cleanTypeText(this.typeText)!;
-    this.sType = nativeTypeToSType(type);
+export class BindingEntry {
+  readonly kind: "static" | "dynamic" ;
+  readonly privateName: string
+  implementationModal: ImplementationModal | undefined;
+  globalVariableName?: string
+  identicalGlobalVariableNames: string[] = [];
+  internalName?: string
+  sortOrder: number;
+
+  generatedImplementationCode(): string {
+    const implementationModal = this.implementationModal!;
+    switch (implementationModal.implementation_kind) {
+    case "hardcoded":
+      return implementationModal.code;
+    case "todo":
+      return "undefined; // todo";
+    case "object":
+      return objectImplementationModelToCode(implementationModal);
+    }
   }
+
+  privateNameMatch(anotherPrivateName: string): boolean {
+    return "private_implementation_" + anotherPrivateName === this.privateName;
+  }
+
+  constructor(kind: "static" | "dynamic", privateName: string, implementationModal: ImplementationModal | undefined)  {
+    this.privateName = "private_implementation_" + privateName;
+    this.kind = kind;
+    this.implementationModal = implementationModal;
+    this.sortOrder = 0;
+  }
+}
+
+export class BuiltInBindingStore {
+  entries: BindingEntry[] = [];
 
   getOrCreateVariableEntry(globalVariableName: string, implementationModal: ImplementationModal): BindingEntry {
     for (const entry of this.entries) {
       if (entry.globalVariableName === globalVariableName) {
         if (entry.implementationModal === undefined) {
           entry.implementationModal = implementationModal;
+          return entry;
         } else {
-          throw new Error("MERGE")
+          if (entry.implementationModal.implementation_kind === "object") {
+            if (implementationModal.implementation_kind === "object") {
+              const main = entry.implementationModal.mainRefGlobalVariableName;
+              const main2 = implementationModal.mainRefGlobalVariableName;
+              if (main !== main2) {
+                throw new Error("Expected mains to match.")
+              }
+              let objectKind = implementationModal.objectKind;
+              if (objectKind === "plain") {
+                if (entry.implementationModal.objectKind === "function") {
+                  objectKind = "function";
+                }
+              }
+              entry.implementationModal = {
+                implementation_kind: "object",
+                mainRefGlobalVariableName: main,
+                identicalValueRefVariableNames: Array.from(new Set([...entry.implementationModal.identicalValueRefVariableNames, ...implementationModal.identicalValueRefVariableNames])),
+                objectKind: objectKind,
+                sPrototype: implementationModal.sPrototype ?? entry.implementationModal.sPrototype,
+                swizzleOrWhiteListModel: [...implementationModal.swizzleOrWhiteListModel, ...entry.implementationModal.swizzleOrWhiteListModel]
+              }
+              return entry;
+            } 
+          }
+          throw new Error("Expected both implementation kinds to be object")
         }
-        return entry;
       }
     }
-    const entry = new BindingEntry(this, "static", "global_" + globalVariableName, implementationModal);
+    const entry = new BindingEntry("static", "global_" + globalVariableName, implementationModal);
     entry.globalVariableName = globalVariableName;
     this.entries.push(entry);
     return entry;
   }
 
-  getOrCreateSingletonEntry(implementationModal: ImplementationModal | undefined, privateNameOverride: string | undefined = undefined, sortOrder: number | undefined = undefined): BindingEntry {
-    const privateNameWithGenerics = "global_interface_" + (cleanTypeText(privateNameOverride) ?? this.typeTextSafe);
+  getOrCreateSingletonEntry(implementationModal: ImplementationModal | undefined, privateNameIn: string, sortOrder: number | undefined = undefined): BindingEntry {
+    const privateNameWithGenerics = "global_interface_" + (cleanTypeText(privateNameIn));
     const privateName = removeGenericsInTypeStr(privateNameWithGenerics);
     for (const entry of this.entries) {
       if (entry.privateNameMatch(privateName)) {
@@ -62,88 +108,23 @@ export class BuiltInBinding {
         return entry;
       }
     }
-    const entry = new BindingEntry(this, "static", privateName, implementationModal);
+    const entry = new BindingEntry("static", privateName, implementationModal);
     entry.sortOrder = sortOrder ?? 0;
     this.entries.push(entry);
     return entry;
   }
-}
-
-export class BindingEntry {
-  readonly kind: "static" | "dynamic" ;
-  readonly privateName: string
-  readonly builtInBindingRef: WeakRef<BuiltInBinding>;
-  get builtInBinding(): BuiltInBinding { return this.builtInBindingRef.deref()! };
-  implementationModal: ImplementationModal | undefined;
-  globalVariableName?: string
-  identicalGlobalVariableNames: string[] = [];
-  internalName?: string
-  sortOrder: number;
-
-  generatedImplementationCode(): string {
-    const implementationModal = this.implementationModal!;
-    switch (implementationModal.implementation_kind) {
-    case "hardcoded":
-      return implementationModal.code;
-    case "object":
-      return objectImplementationModelToCode(implementationModal);
-    }
-  }
-
-  privateNameMatch(anotherPrivateName: string): boolean {
-    return "private_implementation_" + anotherPrivateName === this.privateName;
-  }
-
-  constructor(builtInBinding: BuiltInBinding, kind: "static" | "dynamic", privateName: string, implementationModal: ImplementationModal | undefined)  {
-    this.privateName = "private_implementation_" + privateName;
-    this.kind = kind;
-    this.implementationModal = implementationModal;
-    this.sortOrder = 0;
-    this.builtInBindingRef = new WeakRef(builtInBinding);
-  }
-}
-
-export class BuiltInBindingStore {
-  protected bindingsByType: Partial<Record<string, BuiltInBinding>>
-
-  getAllBindings(): BuiltInBinding[] {
-    const builtInBindings: BuiltInBinding[] = [];
-    for (const k in this.bindingsByType) {
-      builtInBindings.push(this.bindingsByType[k] as BuiltInBinding);
-    }
-    return builtInBindings;
-  }
-  getAllBindingEntries(): BindingEntry[] {
-    const builtInBindingEntries: BindingEntry[] = [];
-    for (const k in this.bindingsByType) {
-      builtInBindingEntries.push(...(this.bindingsByType[k] as BuiltInBinding).entries);
-    }
-    return builtInBindingEntries;
-  }
-
-  getBindingForType(type: Type<ts.Type>): BuiltInBinding {
-    const typeStr = cleanTypeTextAndRemoveGenerics(type.getText());
-    const existing = this.bindingsByType[typeStr];
-    if (existing) {
-      return existing;
-    }
-    const newBinding = new BuiltInBinding(type);
-    this.bindingsByType[typeStr] = newBinding;
-    return newBinding;
-  }
-
-  constructor() {
-    this.bindingsByType = {};
-  }
 };
 
-export type ImplementationModal = (HardcodedImplementationModal | ObjectImplementationModal) & {
+export type ImplementationModal = (HardcodedImplementationModal | ObjectImplementationModal | TodoImplementationModal) & {
   implementation_kind: string
 };
 
 export type HardcodedImplementationModal = {
   implementation_kind: "hardcoded"
   code: string
+}
+export type TodoImplementationModal = {
+  implementation_kind: "todo"
 }
 
 export type ObjectImplementationModal = {

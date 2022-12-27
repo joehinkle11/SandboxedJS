@@ -60,7 +60,11 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
       throw [e, new Error("Transpiled code:\n\n" + transpiledJsCode)];
     }
     if (asNativeJs) {
-      return sResult.getNativeJsValue(this.sTable);
+      try {
+        return sResult.getNativeJsValue(this.sTable);
+      } catch (e) {
+        throw [e, new Error("Failed to convert s-value to native js value.")];
+      }
     } else {
       return sResult;
     }

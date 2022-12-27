@@ -1,5 +1,5 @@
 import { SourceFile, Type } from "ts-morph";
-import { blackListTypes } from "../Blacklist";
+import { blackListTypes, blackListVars } from "../Blacklist";
 import { makeSObjectOfGlobalVariable } from "../CodeGen/MakeSObjectOfGlobalVariable";
 import { makeSPrimitiveValueOfGlobalVariable } from "../CodeGen/MakeSPrimitiveValueOfGlobalVariable";
 import { ifIsIdenticalReferenceReturnMainRef } from "../IdenticalValueReferences";
@@ -7,34 +7,38 @@ import { BuiltInBindingStore, ImplementationModal } from "../Models/BuiltInBindi
 
 
 
-export function collectVariables(
+export function collectGlobals(
   filesToDoWorkOn: SourceFile[],
   builtInBindingStore: BuiltInBindingStore
 ) {
   for (const file of filesToDoWorkOn) {
-    const decls = file.getVariableDeclarations();
-    for (const decl of decls) {
-      const globalVariableName = decl.getStructure().name;
-      if (blackListTypes.includes(globalVariableName)) {
+    function processGlobal(globalVariableName: string, declType: Type<ts.Type>) {
+      if (blackListTypes.includes(globalVariableName) || blackListVars.includes(globalVariableName)) {
         console.log(`Skipping ${globalVariableName} as it is on the blacklist.`);
-        continue;
+        return;
       }
-      const declType = decl.getType();
-      const builtInBinding = builtInBindingStore.getBindingForType(declType);
       const mainRef = ifIsIdenticalReferenceReturnMainRef(globalVariableName);
       if (mainRef !== undefined) {
         console.log(`Implementation for ${globalVariableName} is skipped as it is just a duplicated reference to ${mainRef}.`);
-        const identicalVarRef = builtInBinding.getOrCreateVariableEntry(
+        const identicalVarRef = builtInBindingStore.getOrCreateVariableEntry(
           mainRef,
           createStaticBindingCodeForGlobalVar(globalVariableName, globalVariableName, declType, builtInBindingStore, 0)
         );
         identicalVarRef.identicalGlobalVariableNames.push(globalVariableName);
-        continue;
+        return;
       }
-      builtInBinding.getOrCreateVariableEntry(
+      builtInBindingStore.getOrCreateVariableEntry(
         globalVariableName,
         createStaticBindingCodeForGlobalVar(globalVariableName, globalVariableName, declType, builtInBindingStore, 0)
       );
+    }
+    const varDecls = file.getVariableDeclarations();
+    for (const decl of varDecls) {
+      processGlobal(decl.getStructure().name, decl.getType());
+    }
+    const funcDecls = file.getFunctions();
+    for (const decl of funcDecls) {
+      processGlobal(decl.getName()!, decl.getType());
     }
   }
 }
@@ -54,8 +58,7 @@ export function createStaticBindingCodeForGlobalVar(
       return makeSObjectOfGlobalVariable(globalVariableName, mainGlobalVariableName, nativeType, builtInBindingStore, ourOrder);
     }
     return {
-      implementation_kind: "hardcoded",
-      code: "'todo " + globalVariableName + "' as any"
+      implementation_kind: "todo"
     };
   }
 }

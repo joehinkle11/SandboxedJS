@@ -2,6 +2,9 @@
 import type { MapNativeValueTypeToSType } from "../SValueDef";
 import type { UnknownFunction, UnknownConstructorFunction, AnySFunction, SandboxedFunctionCall, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall } from "./SFunctionDef";
 import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValueDef";
+import type { SNullValue } from "../SPrimitiveValues/SNullValue";
+import type { SObjectValue } from "./SObjectValue";
+
 
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
 export type SBuiltInNonFunctionObjectKind = "normal" | "array";

@@ -7,6 +7,11 @@
 
 
 const identicalValueReferences: Partial<Record<string, string[]>> = {
+  // "Object": ["Object.prototype.constructor"],
+};
+
+// new solution attempt
+export const identicalValueReferences2: Partial<Record<string, string[]>> = {
   "Object": ["Object.prototype.constructor"],
 };
 

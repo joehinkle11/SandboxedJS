@@ -4,14 +4,14 @@ import SUserError from "../Models/SUserError";
 import { SRootSymbolTable } from "../SLocalSymbolTable";
 import { SValues } from "../SValues/AllSValues";
 
-export const installHardcodedEcmaScriptBindings: InstallBuiltIn<any> = (sTable: SRootSymbolTable<any>) => {
-  sTable.sGlobalProtocols.ObjectProtocol.sUnaryMakePositiveInternal = (self) => {
+export const installHardcodedEcmaScriptBindings: InstallBuiltIn<any> = (rootTable: SRootSymbolTable<any>) => {
+  rootTable.sGlobalProtocols.ObjectProtocol.sUnaryMakePositiveInternal = (self) => {
     return new SValues.SNumberValue(NaN, self.metadata);
   }
-  sTable.sGlobalProtocols.ObjectProtocol.sUnaryNegateInternal = (self) => {
+  rootTable.sGlobalProtocols.ObjectProtocol.sUnaryNegateInternal = (self) => {
     return new SValues.SNumberValue(NaN, self.metadata);
   }
-  sTable.sGlobalProtocols.ArrayProtocol.sUnaryMakePositiveInternal = (self) => {
+  rootTable.sGlobalProtocols.ArrayProtocol.sUnaryMakePositiveInternal = (self) => {
     if (self instanceof SValues.SArrayObject) {
       const length: unknown = self.sStorage.length.nativeJsValue
       if (typeof length === "number") {
@@ -27,7 +27,7 @@ export const installHardcodedEcmaScriptBindings: InstallBuiltIn<any> = (sTable: 
     }
     throw SUserError.cannotConvertObjectToPrimitive;
   }
-  sTable.sGlobalProtocols.ArrayProtocol.sUnaryNegateInternal = (self) => {
+  rootTable.sGlobalProtocols.ArrayProtocol.sUnaryNegateInternal = (self) => {
     if (self instanceof SValues.SArrayObject) {
       const length: unknown = self.sStorage.length.nativeJsValue
       if (typeof length === "number") {
@@ -43,4 +43,5 @@ export const installHardcodedEcmaScriptBindings: InstallBuiltIn<any> = (sTable: 
     }
     throw SUserError.cannotConvertObjectToPrimitive;
   }
+  rootTable.assign("undefined", new SValues.SUndefinedValue(rootTable.newMetadataForCompileTimeLiteral()), "const");
 }
