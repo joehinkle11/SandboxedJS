@@ -2,7 +2,7 @@
 import { Project } from "ts-morph";
 import { BuiltInBindingStore } from "./Models/BuiltInBinding";
 import { collectVariables } from "./BindingsCollectors/CollectVariables";
-import { collectInterfaces } from "./BindingsCollectors/CollectInterfaces";
+// import { collectInterfaces } from "./BindingsCollectors/CollectVariables";
 import { exportToFile } from "./ExportToFile";
 import { importTSLibFilesRecursively } from "./ImportTSLibFilesRecursively";
 

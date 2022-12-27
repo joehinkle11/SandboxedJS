@@ -1,24 +1,26 @@
-import { Signature, SyntaxKind, Type, TypeFormatFlags } from "ts-morph";
+import { Signature, Type, TypeFormatFlags } from "ts-morph";
 import { createStaticBindingCodeForGlobalVar } from "../BindingsCollectors/CollectVariables";
+// import type { RefKind } from "../BindingsCollectors/CollectVariables";
 import { blackListProperties } from "../Blacklist";
 import { convertTypeToSValue, NativeToSValueConversionCode } from "../ConvertTypeToSValue";
 import { extractParameters, ParamExtraction } from "../ExtractParameters";
-import { makeAppendToFileWithIndentationFunction } from "../FileWriting";
-import { BuiltInBindingStore } from "../Models/BuiltInBinding";
+import { ifIsIdenticalReferenceReturnMainRef } from "../IdenticalValueReferences";
+import { BindingEntry, BuiltInBindingStore, ObjectImplementationModal } from "../Models/BuiltInBinding";
 import { SwizzleOrWhiteListEntry } from "../Models/Misc";
 import { overrides } from "../Overrides";
-import { evenlyRemovingLeadingSpaces, isValidJsPropertyName } from "../Utils";
+import { evenlyRemovingLeadingSpaces } from "../Utils";
 
 const builtInBoxedPrimitiveTypes = ["Number", "Function", "Boolean", "String", "Object", "Symbol", "Array"];
 
 export function makeSObjectOfGlobalVariable(
   globalVariableName: string,
+  mainGlobalVariableName: string,
   nativeType: Type<ts.Type>,
   builtInBindingStore: BuiltInBindingStore,
   ourOrder: number
-): string {
+): ObjectImplementationModal {
   const nativeTypeStr = nativeType.getText();
-  let sPrototype = "new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral())";
+  let sPrototype: string | undefined = undefined;
   const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
   const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
     const paramExtractionCodes: ParamExtraction[] = extractParameters(signature.getParameters());
@@ -116,47 +118,61 @@ return sResult;
     }
   }
   const typeProperties = nativeType.getProperties();
-    for (const typeProperty of typeProperties) {
-      const propertyName = typeProperty.getName();
-      if (propertyName.includes("_@")) {
-        // todo: probably a property with a symbol as a key
-        // console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+  for (const typeProperty of typeProperties) {
+    const propertyName = typeProperty.getName();
+    const globalRefToProperty = globalVariableName + "." + propertyName;
+    if (propertyName.includes("_@")) {
+      // todo: probably a property with a symbol as a key
+      // console.log(`Skipping property '${propertyName}' as it is probably a symbol.`);
+      continue;
+    }
+    if (blackListProperties.includes(propertyName)) {
+      console.log(`Skipping property ${propertyName} on ${nativeTypeStr} as it is on the blacklist.`);
+      continue;
+    }
+    const propertyDeclarations = typeProperty.getDeclarations();
+    if (propertyDeclarations.length !== 1) {
+      // console.log(`Handle more than 1 (or 0?) property declarations for whitelist/swizzling property ${propertyName}`)
+      continue;
+    }
+    const propertyDeclaration = propertyDeclarations[0];
+    const propertyType = propertyDeclaration.getType();
+    // is a primitive
+    if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
+      // whitelist it!
+      // todo: force the user who is generating the bindings to opt-in to white listing for safety
+      swizzleOrWhiteListModel.push({
+        kind: "whitelist",
+        property: propertyName
+      });
+      continue;
+    } else {
+      if (propertyType.getText() === nativeTypeStr) {
+        console.log("skipping",propertyName, propertyType.getText())
         continue;
       }
-      if (blackListProperties.includes(propertyName)) {
-        console.log(`Skipping property ${propertyName} on ${nativeType.getText()} as it is on the blacklist.`);
-        continue;
-      }
-      const propertyDeclarations = typeProperty.getDeclarations();
-      if (propertyDeclarations.length !== 1) {
-        // console.log(`Handle more than 1 (or 0?) property declarations for whitelist/swizzling property ${propertyName}`)
-        continue;
-      }
-      const propertyDeclaration = propertyDeclarations[0];
-      const propertyType = propertyDeclaration.getType();
-      // is a primitive
-      if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
-        // whitelist it!
-        // todo: force the user who is generating the bindings to opt-in to white listing for safety
-        swizzleOrWhiteListModel.push({
-          kind: "whitelist",
-          property: propertyName
-        });
-        continue;
+      const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
+      let singletonProperty: BindingEntry;
+      const mainRefToProperty = ifIsIdenticalReferenceReturnMainRef(globalRefToProperty);
+      if (mainRefToProperty !== undefined) {
+        console.log(`For property '${propertyName}' on ${globalVariableName}...implementation for ${globalRefToProperty} is skipped as it is just a duplicated reference to ${mainRefToProperty}.`); 
+        singletonProperty = bindingOfPrototype.getOrCreateVariableEntry(mainRefToProperty, createStaticBindingCodeForGlobalVar(
+          globalRefToProperty,
+          mainRefToProperty,
+          propertyType,
+          builtInBindingStore,
+          ourOrder + 1
+        ));
       } else {
-        if (propertyType.getText() === nativeType.getText()) {
-          console.log("skipping",propertyName, propertyType.getText())
-          continue;
-        }
-        const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
-        const singletonProperty = bindingOfPrototype.getOrCreateSingletonEntry(
+        singletonProperty = bindingOfPrototype.getOrCreateSingletonEntry(
           createStaticBindingCodeForGlobalVar(
-            globalVariableName + "." + propertyName,
+            globalRefToProperty,
+            globalRefToProperty,
             propertyType,
             builtInBindingStore,
             ourOrder + 1
           ),
-          globalVariableName + "." + propertyName,
+          globalRefToProperty,
           ourOrder + 1
         );
         if (propertyName === "prototype") {
@@ -164,72 +180,32 @@ return sResult;
             singletonProperty.internalName = globalVariableName + "Protocol";
           }
         }
-        swizzleOrWhiteListModel.push({
-          kind: "swizzled_static_property",
-          property: propertyName,
-          code_body: singletonProperty.privateName
-        });
-        continue;
       }
-    }
-  let swizzleOrWhiteListModelStr = "";
-  const appendToSwizzleOrWhiteListModelStrWithIndentation = makeAppendToFileWithIndentationFunction((str)=>swizzleOrWhiteListModelStr+=str);
-  const appendToSwizzleOrWhiteListModelStr = appendToSwizzleOrWhiteListModelStrWithIndentation(2);
-  // escapes if needed
-  const makeSwizzleOrWhitelistProperty = (propertyName: string) => {
-    if (isValidJsPropertyName(propertyName)) {
-      return propertyName;
-    } else {
-      return `["${propertyName.replaceAll('"','\\"')}"]`;
-    }
-  };
-  for (const swizzleOrWhiteListEntry of swizzleOrWhiteListModel) {
-    switch (swizzleOrWhiteListEntry.kind) {
-    case "hardcoded":
-      appendToSwizzleOrWhiteListModelStr(swizzleOrWhiteListEntry.code + ",");
+      swizzleOrWhiteListModel.push({
+        kind: "swizzled_static_property",
+        property: propertyName,
+        code_body: singletonProperty.privateName
+      });
       continue;
-    case "whitelist":
-      appendToSwizzleOrWhiteListModelStr(`${makeSwizzleOrWhitelistProperty(`whitelist_${swizzleOrWhiteListEntry.property}`)}: true,`);
-      continue;
-    case "swizzled_raw_apply":
-      appendToSwizzleOrWhiteListModelStr(`
-swizzled_apply_raw(sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: undefined, sTable: SLocalSymbolTable<any>) {
-  ${swizzleOrWhiteListEntry.code_body.trim().split("\n").join("\n  ")}
-},`);
-      continue;
-    case "swizzled_raw_construct":
-      appendToSwizzleOrWhiteListModelStr(`
-swizzled_construct_raw(_: undefined, sArgArray, newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) {
-  ${swizzleOrWhiteListEntry.code_body.trim().split("\n").join("\n  ")}
-},`);
-      continue;
-    case "swizzled_static_property":
-      appendToSwizzleOrWhiteListModelStr(`
-${makeSwizzleOrWhitelistProperty(`swizzle_static_${swizzleOrWhiteListEntry.property}`)}: ${swizzleOrWhiteListEntry.code_body},
-`);
-      continue;
-    default:
-      console.log("TODO " + (swizzleOrWhiteListEntry as any).property);
     }
   }
-  switch (objectKind) {
-  case "function":
-    return `SValues.SFunction.createFromNative(
-  ${globalVariableName},
-  {
-    ${swizzleOrWhiteListModelStr.trim()}
-  },
-  () => ${sPrototype},
-  rootSTable.newMetadataForCompileTimeLiteral()
-)`;
-  case "plain":
-    return `SValues.SNormalObject.createFromNative(
-  ${globalVariableName},
-  {
-    ${swizzleOrWhiteListModelStr.trim()}
-  },
-  () => ${sPrototype},
-  rootSTable.newMetadataForCompileTimeLiteral()
-)`;
+  if (globalVariableName === mainGlobalVariableName) {
+    return {
+      implementation_kind: "object",
+      objectKind: objectKind,
+      swizzleOrWhiteListModel: swizzleOrWhiteListModel,
+      mainRefGlobalVariableName: globalVariableName,
+      identicalValueRefVariableNames: [],
+      sPrototype: sPrototype
+    };
+  } else {
+    return {
+      implementation_kind: "object",
+      objectKind: objectKind,
+      swizzleOrWhiteListModel: swizzleOrWhiteListModel,
+      mainRefGlobalVariableName: mainGlobalVariableName,
+      identicalValueRefVariableNames: [globalVariableName],
+      sPrototype: sPrototype
+    };
   }
 }

@@ -9,3 +9,17 @@
 const identicalValueReferences: Partial<Record<string, string[]>> = {
   "Object": ["Object.prototype.constructor"],
 };
+
+export function ifIsIdenticalReferenceReturnMainRef(varName: string): string | undefined {
+  for(const mainRef of Object.keys(identicalValueReferences)) {
+    const otherRefs = identicalValueReferences[mainRef]!;
+    if (otherRefs.includes(varName)) {
+      return mainRef;
+    }
+  }
+  return undefined;
+}
+
+export function getIdenticalReferencesFor(varName: string): string[] {
+  return identicalValueReferences[varName] ?? [];
+}

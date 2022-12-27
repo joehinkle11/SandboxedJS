@@ -1,9 +1,10 @@
 import { Type } from "ts-morph";
+import { ImplementationModal } from "../Models/BuiltInBinding";
 
 export function makeSPrimitiveValueOfGlobalVariable(
   globalVariableName: string,
   nativeType: Type<ts.Type>
-): string {
+): ImplementationModal {
   const primitiveTypeString = nativeType.getText();
   let sPrimitiveClass: string;
   switch (primitiveTypeString) {
@@ -19,5 +20,8 @@ export function makeSPrimitiveValueOfGlobalVariable(
   default:
     throw new Error(`Unsupported primitive type ${primitiveTypeString}.`);
   }
-  return `new SValues.${sPrimitiveClass}(${globalVariableName}, rootSTable.newMetadataForCompileTimeLiteral())`;
+  return {
+    implementation_kind: "hardcoded",
+    code: `new SValues.${sPrimitiveClass}(${globalVariableName}, rootSTable.newMetadataForCompileTimeLiteral())`
+  };
 }

@@ -2,7 +2,8 @@ import { SourceFile, Type } from "ts-morph";
 import { blackListTypes } from "../Blacklist";
 import { makeSObjectOfGlobalVariable } from "../CodeGen/MakeSObjectOfGlobalVariable";
 import { makeSPrimitiveValueOfGlobalVariable } from "../CodeGen/MakeSPrimitiveValueOfGlobalVariable";
-import { BindingEntry, BuiltInBinding, BuiltInBindingStore } from "../Models/BuiltInBinding";
+import { ifIsIdenticalReferenceReturnMainRef } from "../IdenticalValueReferences";
+import { BuiltInBindingStore, ImplementationModal } from "../Models/BuiltInBinding";
 
 
 
@@ -19,16 +20,21 @@ export function collectVariables(
         continue;
       }
       const declType = decl.getType();
-      const implementationCode = createStaticBindingCodeForGlobalVar(globalVariableName, declType, builtInBindingStore, 0);
       const builtInBinding = builtInBindingStore.getBindingForType(declType);
-      const bindingEntry = new BindingEntry(
-        builtInBinding,
-        "static",
-        "global_" + globalVariableName,
-        implementationCode
+      const mainRef = ifIsIdenticalReferenceReturnMainRef(globalVariableName);
+      if (mainRef !== undefined) {
+        console.log(`Implementation for ${globalVariableName} is skipped as it is just a duplicated reference to ${mainRef}.`);
+        const identicalVarRef = builtInBinding.getOrCreateVariableEntry(
+          mainRef,
+          createStaticBindingCodeForGlobalVar(globalVariableName, globalVariableName, declType, builtInBindingStore, 0)
+        );
+        identicalVarRef.identicalGlobalVariableNames.push(globalVariableName);
+        continue;
+      }
+      builtInBinding.getOrCreateVariableEntry(
+        globalVariableName,
+        createStaticBindingCodeForGlobalVar(globalVariableName, globalVariableName, declType, builtInBindingStore, 0)
       );
-      bindingEntry.globalVariableName = globalVariableName;
-      builtInBinding.entries.push(bindingEntry);
     }
   }
 }
@@ -36,17 +42,21 @@ export function collectVariables(
 // static means that the value will never change during the course of the program execution
 export function createStaticBindingCodeForGlobalVar(
   globalVariableName: string,
+  mainGlobalVariableName: string,
   nativeType: Type<ts.Type>,
   builtInBindingStore: BuiltInBindingStore,
   ourOrder: number
-): string {
+): ImplementationModal {
   if (nativeType.isNumber() || nativeType.isBoolean() || nativeType.isLiteral() || nativeType.isNull() || nativeType.isString() || nativeType.isUndefined() ) {
     return makeSPrimitiveValueOfGlobalVariable(globalVariableName, nativeType);
   } else {
     if (nativeType.isObject()) {
-      return makeSObjectOfGlobalVariable(globalVariableName, nativeType, builtInBindingStore, ourOrder);
+      return makeSObjectOfGlobalVariable(globalVariableName, mainGlobalVariableName, nativeType, builtInBindingStore, ourOrder);
     }
-    return "'todo " + globalVariableName + "' as any";
+    return {
+      implementation_kind: "hardcoded",
+      code: "'todo " + globalVariableName + "' as any"
+    };
   }
 }
 

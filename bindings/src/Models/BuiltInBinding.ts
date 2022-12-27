@@ -1,5 +1,7 @@
-import { Type } from "ts-morph";
+import type { Type } from "ts-morph";
 import { nativeTypeToSType } from "../CodeGen/NativeTypeToSType";
+import { objectImplementationModelToCode } from "../CodeGen/ObjectImplementationModelToCode";
+import type { SwizzleOrWhiteListEntry } from "./Misc";
 
 const cleanTypeText = (dirtyTypeTxt: string | undefined) => {
   if (dirtyTypeTxt === undefined) {
@@ -29,13 +31,30 @@ export class BuiltInBinding {
     this.sType = nativeTypeToSType(type);
   }
 
-  getOrCreateSingletonEntry(implementationCode: string | undefined, privateNameOverride: string | undefined = undefined, sortOrder: number | undefined = undefined): BindingEntry {
+  getOrCreateVariableEntry(globalVariableName: string, implementationModal: ImplementationModal): BindingEntry {
+    for (const entry of this.entries) {
+      if (entry.globalVariableName === globalVariableName) {
+        if (entry.implementationModal === undefined) {
+          entry.implementationModal = implementationModal;
+        } else {
+          throw new Error("MERGE")
+        }
+        return entry;
+      }
+    }
+    const entry = new BindingEntry(this, "static", "global_" + globalVariableName, implementationModal);
+    entry.globalVariableName = globalVariableName;
+    this.entries.push(entry);
+    return entry;
+  }
+
+  getOrCreateSingletonEntry(implementationModal: ImplementationModal | undefined, privateNameOverride: string | undefined = undefined, sortOrder: number | undefined = undefined): BindingEntry {
     const privateNameWithGenerics = "global_interface_" + (cleanTypeText(privateNameOverride) ?? this.typeTextSafe);
     const privateName = removeGenericsInTypeStr(privateNameWithGenerics);
     for (const entry of this.entries) {
       if (entry.privateNameMatch(privateName)) {
-        if (entry.implementationCode === undefined) {
-          entry.implementationCode = implementationCode;
+        if (entry.implementationModal === undefined) {
+          entry.implementationModal = implementationModal;
         }
         if (sortOrder !== undefined) {
           entry.sortOrder = Math.max(sortOrder, entry.sortOrder);
@@ -43,7 +62,7 @@ export class BuiltInBinding {
         return entry;
       }
     }
-    const entry = new BindingEntry(this, "static", privateName, implementationCode);
+    const entry = new BindingEntry(this, "static", privateName, implementationModal);
     entry.sortOrder = sortOrder ?? 0;
     this.entries.push(entry);
     return entry;
@@ -55,19 +74,30 @@ export class BindingEntry {
   readonly privateName: string
   readonly builtInBindingRef: WeakRef<BuiltInBinding>;
   get builtInBinding(): BuiltInBinding { return this.builtInBindingRef.deref()! };
-  implementationCode: string | undefined;
+  implementationModal: ImplementationModal | undefined;
   globalVariableName?: string
+  identicalGlobalVariableNames: string[] = [];
   internalName?: string
   sortOrder: number;
+
+  generatedImplementationCode(): string {
+    const implementationModal = this.implementationModal!;
+    switch (implementationModal.implementation_kind) {
+    case "hardcoded":
+      return implementationModal.code;
+    case "object":
+      return objectImplementationModelToCode(implementationModal);
+    }
+  }
 
   privateNameMatch(anotherPrivateName: string): boolean {
     return "private_implementation_" + anotherPrivateName === this.privateName;
   }
 
-  constructor(builtInBinding: BuiltInBinding, kind: "static" | "dynamic", privateName: string, implementationCode: string | undefined)  {
+  constructor(builtInBinding: BuiltInBinding, kind: "static" | "dynamic", privateName: string, implementationModal: ImplementationModal | undefined)  {
     this.privateName = "private_implementation_" + privateName;
     this.kind = kind;
-    this.implementationCode = implementationCode;
+    this.implementationModal = implementationModal;
     this.sortOrder = 0;
     this.builtInBindingRef = new WeakRef(builtInBinding);
   }
@@ -106,3 +136,21 @@ export class BuiltInBindingStore {
     this.bindingsByType = {};
   }
 };
+
+export type ImplementationModal = (HardcodedImplementationModal | ObjectImplementationModal) & {
+  implementation_kind: string
+};
+
+export type HardcodedImplementationModal = {
+  implementation_kind: "hardcoded"
+  code: string
+}
+
+export type ObjectImplementationModal = {
+  implementation_kind: "object"
+  swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[]
+  objectKind: "plain" | "function"
+  mainRefGlobalVariableName: string
+  identicalValueRefVariableNames: string[]
+  sPrototype: string | undefined
+}

@@ -43,8 +43,9 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
     const builtInBinding = entry.builtInBinding;
     appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
     appendToInstallGeneratedBindings("// private implementation..." + entry.sortOrder);
-    if (entry.implementationCode !== undefined) {
-      appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${entry.implementationCode};`);
+    if (entry.implementationModal !== undefined) {
+      const implementationCode = entry.generatedImplementationCode();
+      appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${implementationCode};`);
     } else {
       appendToInstallGeneratedBindings(`// Cannot make private binding for "${entry.privateName}: ${builtInBinding.sType}" as no implementation code was found.`);
     }
