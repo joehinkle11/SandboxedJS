@@ -19,6 +19,7 @@ export class BuiltInBinding {
   readonly typeText: string;
   readonly typeTextSafe: string;
   readonly sType: string;
+  readonly id: string = (Math.round(Math.random() * 100000)).toString();
   entries: BindingEntry[] = [];
 
   constructor(type: Type<ts.Type>) {

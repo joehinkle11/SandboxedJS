@@ -9,12 +9,15 @@ import { SwizzleOrWhiteListEntry } from "../Models/Misc";
 import { overrides } from "../Overrides";
 import { evenlyRemovingLeadingSpaces, isValidJsPropertyName } from "../Utils";
 
+const builtInBoxedPrimitiveTypes = ["Number", "Function", "Boolean", "String", "Object", "Symbol", "Array"];
+
 export function makeSObjectOfGlobalVariable(
   globalVariableName: string,
   nativeType: Type<ts.Type>,
   builtInBindingStore: BuiltInBindingStore,
   ourOrder: number
 ): string {
+  const nativeTypeStr = nativeType.getText();
   let sPrototype = "new SValues.SNullValue(rootSTable.newMetadataForCompileTimeLiteral())";
   const swizzleOrWhiteListModel: SwizzleOrWhiteListEntry[] = [];
   const addCallOrConstructSigs = (signature: Signature, isConstructor: boolean) => {
@@ -131,19 +134,19 @@ return sResult;
       }
       const propertyDeclaration = propertyDeclarations[0];
       const propertyType = propertyDeclaration.getType();
-      if (propertyName === "prototype") {
-        const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
-        const singletonPrototype = bindingOfPrototype.getOrCreateSingletonEntry(
-          createStaticBindingCodeForGlobalVar(
-            globalVariableName + ".prototype",
-            propertyType,
-            builtInBindingStore,
-            ourOrder + 1
-          )
-        );
-        sPrototype = singletonPrototype.privateName;
-        continue;
-      } else {
+      // if (propertyName === "prototype") {
+      //   const bindingOfPrototype = builtInBindingStore.getBindingForType(propertyType);
+      //   const singletonPrototype = bindingOfPrototype.getOrCreateSingletonEntry(
+      //     createStaticBindingCodeForGlobalVar(
+      //       globalVariableName + ".prototype",
+      //       propertyType,
+      //       builtInBindingStore,
+      //       ourOrder + 1
+      //     )
+      //   );
+      //   sPrototype = singletonPrototype.privateName;
+      //   continue;
+      // } else {
         // is a primitive
         if (propertyType.isBoolean() || propertyType.isNumber() || propertyType.isUndefined() || propertyType.isNull() || propertyType.isString()) {
           // whitelist it!
@@ -169,6 +172,11 @@ return sResult;
             globalVariableName + "." + propertyName,
             ourOrder + 1
           );
+          if (propertyName === "prototype") {
+            if (builtInBoxedPrimitiveTypes.includes(globalVariableName)) {
+              singletonProperty.internalName = globalVariableName + "Protocol";
+            }
+          }
           swizzleOrWhiteListModel.push({
             kind: "swizzled_static_property",
             property: propertyName,
@@ -176,7 +184,7 @@ return sResult;
           });
           continue;
         }
-      }
+      // }
     }
   let swizzleOrWhiteListModelStr = "";
   const appendToSwizzleOrWhiteListModelStrWithIndentation = makeAppendToFileWithIndentationFunction((str)=>swizzleOrWhiteListModelStr+=str);

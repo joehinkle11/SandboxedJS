@@ -41,6 +41,7 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   });
   for (const entry of builtInBindingEntriesSorted) {
     const builtInBinding = entry.builtInBinding;
+    appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
     appendToInstallGeneratedBindings("// private implementation..." + entry.sortOrder);
     if (entry.implementationCode !== undefined) {
       appendToInstallGeneratedBindings(`const ${entry.privateName}: ${builtInBinding.sType} = ${entry.implementationCode};`);
@@ -51,6 +52,7 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {
     for (const entry of builtInBinding.entries) {
       if (entry.globalVariableName !== undefined) {
+        appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
         appendToInstallGeneratedBindings(`rootSTable.assign("${entry.globalVariableName}", ${entry.privateName} as ${builtInBinding.sType} as SValue<any>, "const");`);
       }
     }
@@ -58,6 +60,7 @@ export const installGeneratedBindings: InstallBuiltIn<any> = (rootSTable: SRootS
   for (const builtInBinding of builtInBindingStore.getAllBindings()) {
     for (const entry of builtInBinding.entries) {
       if (entry.internalName !== undefined) {
+        appendToInstallGeneratedBindings(`// builtInBinding id: ${builtInBinding.id}`);
         appendToInstallGeneratedBindings(`rootSTable.sGlobalProtocols.${entry.internalName} = ${entry.privateName} as SNormalObject<any>;`); 
       }
     }

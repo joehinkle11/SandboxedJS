@@ -31,7 +31,7 @@ filesToDoWorkOn.push(project.createSourceFile("extra_hardcoded_type_defs.d.ts", 
 
 
 let builtInBindingStore: BuiltInBindingStore = new BuiltInBindingStore();
-collectInterfaces(filesToDoWorkOn, builtInBindingStore);
+// collectInterfaces(filesToDoWorkOn, builtInBindingStore);
 collectVariables(filesToDoWorkOn, builtInBindingStore);
 
 exportToFile(builtInBindingStore, extraHardcodedTypeDefs);
