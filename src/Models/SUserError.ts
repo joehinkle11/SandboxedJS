@@ -45,6 +45,9 @@ export default class SUserError extends Error {
   static get invalidPropertyDescriptor(): SUserError {
     return new SUserError(new Error(`Invalid property descriptor. Cannot both specify accessors and a value or writable attribute`));
   }
+  static failedToSetProperty(propertyName: string): SUserError {
+    return new SUserError(new Error(`Could not set property '${propertyName}'.`));
+  }
   static unexpectedType(requiredTypeName: string): SUserError {
     return new SUserError(new Error(`Unexpected non-${requiredTypeName} type found.`));
   }

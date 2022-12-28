@@ -77,9 +77,9 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
     // todo: add proper metadata
     return this.wrappedObject.sGet(p, receiver, sTable);
   }
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): T {
     // todo: add proper metadata
-    return this.wrappedObject.sSet(p, newValue, receiver);
+    return this.wrappedObject.sSet(p, newValue, receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     throw new Error("Method not implemented.");

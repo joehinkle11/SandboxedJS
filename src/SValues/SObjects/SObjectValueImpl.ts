@@ -13,6 +13,24 @@ import SUserError from "../../Models/SUserError";
 import type { WeakRefToSValue } from "../WeakRefToSValue";
 import type { SReceiver, SReceiverOrTarget } from "../SValueDef";
 
+export function sSet<M extends MaybeSValueMetadata, T extends SValue<M>>(
+  this: SObjectValue<M, any, any>,
+  p: string | symbol,
+  newValue: T,
+  receiver: SReceiverOrTarget<M>,
+  sTable: SLocalSymbolTable<M>
+): T {
+  const actualReceiver: SReceiver<M> = receiver === "target" ? this : receiver;
+  const sObjectPropertyAccessThis: SObjectPropertyAccessThis = {
+    sReceiver: actualReceiver,
+    sTable: sTable
+  };
+  if (Reflect.set(this.sStorage, p, newValue, sObjectPropertyAccessThis) === false) {
+    throw SUserError.failedToSetProperty(p.toString());
+  }
+  return newValue;
+}
+
 export function sGetOwn<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>,
   p: string | symbol,

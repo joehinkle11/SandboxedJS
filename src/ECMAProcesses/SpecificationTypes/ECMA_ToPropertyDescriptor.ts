@@ -1,5 +1,5 @@
 import type { ECMA_PropertyDescriptor } from "../../ECMAModels/ECMA_PropertyDescriptor";
-import { makeSGetter } from "../../GetterSetterSupport";
+import { makeSGetter, makeSSetter } from "../../GetterSetterSupport";
 import SUserError from "../../Models/SUserError";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import { SValues } from "../../SValues/AllSValues";
@@ -81,7 +81,7 @@ export function ECMA_ToPropertyDescriptor(
     // b. If IsCallable(getter) is false and getter is not undefined, throw a TypeError exception.
     if (getter instanceof SValues.SFunction) {
       // c. Set desc.[[Get]] to getter.
-      desc.get = makeSGetter(obj, getter)
+      desc.get = makeSGetter(getter)
 
     } else if (getter instanceof SValues.SUndefinedValue === false) {
       throw SUserError.expectedCallable("get");
@@ -99,8 +99,7 @@ export function ECMA_ToPropertyDescriptor(
     // b. If IsCallable(setter) is false and setter is not undefined, throw a TypeError exception.
     if (setter instanceof SValues.SFunction) {
       // c. Set desc.[[Set]] to setter.
-      // desc.set = setter;
-      throw new Error("todo setter");
+      desc.set = makeSSetter(setter)
 
     } else if (setter instanceof SValues.SUndefinedValue === false) {
       throw SUserError.expectedCallable("set");

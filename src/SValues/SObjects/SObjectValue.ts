@@ -13,7 +13,7 @@ import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import { SValue } from "../SValue";
 import type { SReceiverOrTarget } from "../SValueDef";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage, SObjectSwizzleAndWhiteList, BaseSObjectStorage, SPrototypeType, SPrototypeDeterminedType } from "./SObjectValueDef";
-import { buildNativeJsValueForSObject, sGet, sGetOwn, sUnaryLogicalNot, sUnaryMakePositive, sUnaryNegate } from "./SObjectValueImpl";
+import { buildNativeJsValueForSObject, sGet, sGetOwn, sSet, sUnaryLogicalNot, sUnaryMakePositive, sUnaryNegate } from "./SObjectValueImpl";
 
 export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
   get sValueKind(): "s-object" { return "s-object" };
@@ -122,10 +122,7 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   sOwnKeysNative(): (string | symbol)[] {
     return Reflect.ownKeys(this.sStorage);
   }
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
-    (this.sStorage as Record<PropertyKey, SValue<any> | undefined>)[p] = newValue;
-    return newValue;
-  }
+  sSet:<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>) => T = sSet;
   sGetOwn:(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>) => SValue<M> = sGetOwn;
   sGet:(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>) => SValue<M> = sGet;
   sGetNativeAsBoolean(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): boolean {
