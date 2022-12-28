@@ -55,7 +55,12 @@ export type SPrototypeDeterminedType = SObjectValue<M, any, any> | SNullValue<M>
 //   getSThis: () => SObjectValue<any, any, any> | undefined
 // }
 
-export type SObjectPropertyAccessThis = {
+export type SObjectPropertyGetterAccessThis = {
+  sReceiver: SReceiver<any>
+  sTable: SLocalSymbolTable<any>
+}
+export type SObjectPropertySetterAccessInfo = {
+  newValue: SValue<any>
   sReceiver: SReceiver<any>
   sTable: SLocalSymbolTable<any>
 }

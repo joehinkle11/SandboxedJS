@@ -6,7 +6,7 @@ import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import type { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
 import type { SValue } from "../SValue";
 import type { SObjectValue } from "./SObjectValue";
-import type { SDynamicSwizzleEntry, SObjectProperties, SObjectPropertyAccessThis, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
+import type { SDynamicSwizzleEntry, SObjectProperties, SObjectPropertyGetterAccessThis, SObjectPropertySetterAccessInfo, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import SUserError from "../../Models/SUserError";
@@ -20,13 +20,20 @@ export function sSet<M extends MaybeSValueMetadata, T extends SValue<M>>(
   receiver: SReceiverOrTarget<M>,
   sTable: SLocalSymbolTable<M>
 ): T {
-  const actualReceiver: SReceiver<M> = receiver === "target" ? this : receiver;
-  const sObjectPropertyAccessThis: SObjectPropertyAccessThis = {
-    sReceiver: actualReceiver,
-    sTable: sTable
-  };
-  if (Reflect.set(this.sStorage, p, newValue, sObjectPropertyAccessThis) === false) {
-    throw SUserError.failedToSetProperty(p.toString());
+  const setter = Object.getOwnPropertyDescriptor(this.sStorage, p)?.set;
+  if (setter !== undefined) {
+    const actualReceiver: SReceiver<M> = receiver === "target" ? this : receiver;
+    const sObjectPropertySetterAccessInfo: SObjectPropertySetterAccessInfo = {
+      sReceiver: actualReceiver,
+      sTable: sTable,
+      newValue: newValue
+    };
+    const success = Reflect.set(this.sStorage, p, sObjectPropertySetterAccessInfo);
+    if (success === false) {
+      throw SUserError.failedToSetProperty(p.toString());
+    }
+  } else {
+    this.sStorage[p] = newValue;
   }
   return newValue;
 }
@@ -38,11 +45,11 @@ export function sGetOwn<M extends MaybeSValueMetadata>(
   sTable: SLocalSymbolTable<M>
 ): SValue<M> {
   const actualReceiver: SReceiver<M> = receiver === "target" ? this : receiver;
-  const sObjectPropertyAccessThis: SObjectPropertyAccessThis = {
+  const sObjectPropertyGetterAccessThis: SObjectPropertyGetterAccessThis = {
     sReceiver: actualReceiver,
     sTable: sTable
   };
-  const result: unknown = Reflect.get(this.sStorage, p, sObjectPropertyAccessThis);
+  const result: unknown = Reflect.get(this.sStorage, p, sObjectPropertyGetterAccessThis);
   if (result instanceof SValues.SValue) {
     return result;
   } else {

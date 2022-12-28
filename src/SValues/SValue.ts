@@ -12,7 +12,6 @@ import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
 import type { SFunction } from "./SObjects/SFunction";
 import { combineMetadata, sBinaryAdd, sBinaryDiv, sBinaryExpo, sBinaryMod, sBinaryMult, sBinarySubtract, sBitwiseAND, sBitwiseLeftShift, sBitwiseNOT, sBitwiseOR, sBitwiseRightShift, sBitwiseUnsignedRight, sBitwiseXOR, sCompEqualValue, sCompEqualValueAndEqualType, sCompGreaterThan, sCompGreaterThanOrEqualTo, sCompLessThan, sCompLessThanOrEqualTo, sCompNotEqualValue, sCompNotEqualValueAndEqualType, sInstanceof, sOwnKeys, sToPropertyKey, sToString, sUnaryTypeOf } from "./SValueImpl";
 import { SValues } from "./AllSValues";
-import type { ECMA_PropertyDescriptor } from "../ECMAModels/ECMA_PropertyDescriptor";
 
 export abstract class SValue<M extends MaybeSValueMetadata> {
   get sContext(): this { return this }

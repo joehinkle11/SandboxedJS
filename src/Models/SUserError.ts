@@ -57,6 +57,9 @@ export default class SUserError extends Error {
   static symbolNotDefined(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: ${symbolName} is not defined.`));
   }
+  static cannotUpdateUndefinedSymbol(symbolName: string): SUserError {
+    return new SUserError(new Error(`ReferenceError: Cannot update undefined symbol '${symbolName}'.`));
+  }
   static cannotCall(valueDescription: string): SUserError {
     return new SUserError(new Error(`Cannot call '${valueDescription}'.`));
   }

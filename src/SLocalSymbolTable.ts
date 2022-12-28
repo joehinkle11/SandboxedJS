@@ -104,8 +104,20 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
     }
   }
   sSet<T extends SValue<M>>(p: string, newValue: T, receiver: undefined): T {
-    this.assign(p, newValue, "update");
-    return newValue;
+    let tbl: SLocalSymbolTable<M> = this;
+    while (true) {
+      const entry = tbl.symbols[p];
+      if (entry !== undefined) {
+        tbl.assign(p, newValue, "update");
+        return newValue;
+      }
+      if (tbl.parent === null) {
+        tbl.assign(p, newValue, "update");
+        return newValue;
+      } else {
+        tbl = tbl.parent;
+      }
+    }
   }
   sGet(p: string, receiver: undefined, sTable: SLocalSymbolTable<M>): SValue<M> {
     const entry = this.symbols[p];

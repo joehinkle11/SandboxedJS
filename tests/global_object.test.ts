@@ -47,6 +47,32 @@ describe('global Object tests', () => {
     o.y;
   `);
   testSafeEvalAgainstNative(`
+    const outside = "hi";
+    const o = {};
+    Object.defineProperty(o, "y", {get: function(){return outside}});
+    o.y;
+  `);
+  testSafeEvalAgainstNative(`
+    let outside = "hi";
+    const o = {};
+    Object.defineProperty(o, "y", {get: function(){return outside += "more"}});
+    const y = o.y;
+    [outside, y];
+  `);
+  testSafeEvalAgainstNative(`
+    let outside = "hi";
+    const o = {};
+    Object.defineProperty(o, "y", {get: function(){return outside += "more"}});
+    o.y;
+    o.y;
+  `);
+  testSafeEvalAgainstNative(`
+    const o = {};
+    Object.defineProperty(o, "y", {set: function(v){this.x = v}});
+    o.y = 5;
+    o.x;
+  `);
+  testSafeEvalAgainstNative(`
     let num = 0;
     const o = {};
     Object.defineProperty(o, "y", {set: function(v){num += v}});

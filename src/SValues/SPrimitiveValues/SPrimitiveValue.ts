@@ -29,8 +29,6 @@ export abstract class SPrimitiveValue<
     throw Error("todo sOwnKeysNative on primitive")
   }
   sApply(): never {
-    console.log("sApply(): never {");
-    console.trace();
     throw Error(`todo sApply on primitive type ${this.sValueKind}`)
   }
   sConstruct(): never {
