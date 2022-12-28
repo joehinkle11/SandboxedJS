@@ -1,10 +1,11 @@
-
-import type { MapNativeValueTypeToSType } from "../SValueDef";
+// import { hiddenSObjectStorageSymbol } from "../../HiddenSymbols";
+import type { MapNativeValueTypeToSType, SReceiver } from "../SValueDef";
 import type { UnknownFunction, UnknownConstructorFunction, AnySFunction, SandboxedFunctionCall, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall } from "./SFunctionDef";
 import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValueDef";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SValue } from "../SValue";
+import { SLocalSymbolTable } from "../../SLocalSymbolTable";
 
 
 export type SBuiltInFunctionObjectKind = "function" | "arrow-function";
@@ -49,3 +50,12 @@ export type AnySObjectSwizzleAndWhiteList = SObjectSwizzleAndWhiteList<any>;
 
 export type SPrototypeType = (SPrototypeDeterminedType) | (() => SPrototypeDeterminedType)
 export type SPrototypeDeterminedType = SObjectValue<M, any, any> | SNullValue<M>
+
+// export type SObjectHiddenFromUserData = {
+//   getSThis: () => SObjectValue<any, any, any> | undefined
+// }
+
+export type SObjectPropertyAccessThis = {
+  sReceiver: SReceiver<any>
+  sTable: SLocalSymbolTable<any>
+}

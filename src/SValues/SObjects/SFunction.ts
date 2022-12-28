@@ -4,6 +4,7 @@ import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../AllSValues";
 import type { SValue } from "../SValue";
+import type { SReceiverOrTarget } from "../SValueDef";
 import type { AnySFunction, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall, SandboxedFunctionCall, UnknownConstructorFunction, UnknownFunction } from "./SFunctionDef";
 import { sApply, sConstruct } from "./SFunctionImpl";
 import { SObjectValue } from "./SObjectValue";
@@ -23,7 +24,11 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
   readonly functionAsString: string;
   readonly sFunctionNameNative: string;
 
-  getSFunctionPrototypeProperty(receiver: SValue<M> = this): SValue<M> {
+  // sIsCallableNative(): boolean {
+  //   return true;
+  // }
+
+  getSFunctionPrototypeProperty(receiver: SReceiverOrTarget<M> = this): SValue<M> {
     const result: unknown = Reflect.get(this.sStorage, "prototype", receiver);
     if (result instanceof SValues.SValue) {
       return result;

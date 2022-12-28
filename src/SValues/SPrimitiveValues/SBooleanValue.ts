@@ -7,9 +7,10 @@ import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { SUndefinedValue } from "./SUndefinedValue";
 import { SValues } from "../AllSValues";
 import type { SNormalObject } from "../SObjects/SNormalObject";
+import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> extends SPrimitiveValue<M, V> {
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-boolean" { return "s-boolean" };
@@ -23,6 +24,9 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
     this.nativeJsValue = nativeJsValue;
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sToBooleanNative(): boolean {
+    return this.nativeJsValue;
   }
   sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
     return SValues.SNormalObject.exposeNativeBuiltIn<Boolean, M>(new Boolean(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
@@ -60,7 +64,7 @@ export class SBooleanValue<M extends MaybeSValueMetadata, V extends boolean> ext
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // auto-boxing
     return sTable.sGlobalProtocols.BooleanProtocol.sGet(p, receiver, sTable);
   }

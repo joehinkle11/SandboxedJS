@@ -6,9 +6,10 @@ import type { SNormalObject } from "../SObjects/SNormalObject";
 import type { SValue } from "../SValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
+import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SNumberValue<M extends MaybeSValueMetadata, V extends number> extends SPrimitiveValue<M, V> {
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-number" { return "s-number" };
@@ -22,6 +23,12 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
     this.nativeJsValue = nativeJsValue;
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sToBooleanNative(): boolean {
+    return Boolean(this.nativeJsValue);
+  }
+  sToPropertyKey: () => string = () => {
+    return String(this.nativeJsValue);
   }
   sUnaryTypeOfAsNative(): "number" {
     return "number";
@@ -58,7 +65,7 @@ export class SNumberValue<M extends MaybeSValueMetadata, V extends number> exten
   sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
     return SValues.SNormalObject.exposeNativeBuiltIn<Number, M>(new Number(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // auto-boxing
     return sTable.sGlobalProtocols.NumberProtocol.sGet(p, receiver, sTable);
   }

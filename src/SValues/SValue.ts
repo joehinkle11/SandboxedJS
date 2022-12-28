@@ -1,5 +1,5 @@
 import type { MaybeSValueMetadata } from "../SValueMetadata";
-import type { JSTypeOfString, SValueKind } from "./SValueDef";
+import type { JSTypeOfString, SReceiverOrTarget, SValueKind } from "./SValueDef";
 import type { SNumberValue } from "./SPrimitiveValues/SNumberValue";
 import type { SPrimitiveValue } from "./SPrimitiveValues/SPrimitiveValue";
 import type { SArrayObject } from "./SObjects/SArrayObject";
@@ -12,6 +12,7 @@ import type { SLocalSymbolTable, SRootSymbolTable } from "../SLocalSymbolTable";
 import type { SFunction } from "./SObjects/SFunction";
 import { combineMetadata, sBinaryAdd, sBinaryDiv, sBinaryExpo, sBinaryMod, sBinaryMult, sBinarySubtract, sBitwiseAND, sBitwiseLeftShift, sBitwiseNOT, sBitwiseOR, sBitwiseRightShift, sBitwiseUnsignedRight, sBitwiseXOR, sCompEqualValue, sCompEqualValueAndEqualType, sCompGreaterThan, sCompGreaterThanOrEqualTo, sCompLessThan, sCompLessThanOrEqualTo, sCompNotEqualValue, sCompNotEqualValueAndEqualType, sInstanceof, sOwnKeys, sToPropertyKey, sToString, sUnaryTypeOf } from "./SValueImpl";
 import { SValues } from "./AllSValues";
+import type { ECMA_PropertyDescriptor } from "../ECMAModels/ECMA_PropertyDescriptor";
 
 export abstract class SValue<M extends MaybeSValueMetadata> {
   get sContext(): this { return this }
@@ -32,12 +33,24 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   abstract sOwnKeysNative(): (string | symbol)[];
   sOwnKeys: (sTable: SLocalSymbolTable<M>) => SArrayObject<M, SStringValue<M, string> | SSymbolValue<M, symbol>> = sOwnKeys;
   abstract sConvertToObject(sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any>;
-  // abstract sHasNative(p: string | symbol): boolean;
-  // sHas(p: string | symbol, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
-  //   return new SValues.SBooleanValue(this.sHasNative(p), sTable.newMetadataForRuntimeTimeEmergingValue());
-  // };
-  abstract sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
-  abstract sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T;
+  abstract sHasNative(p: string | symbol): boolean;
+  sHas(p: string | symbol, sTable: SLocalSymbolTable<M>): SBooleanValue<M, boolean> {
+    return new SValues.SBooleanValue(this.sHasNative(p), sTable.newMetadataForRuntimeTimeEmergingValue());
+  };
+  // abstract sDefineOwnPropertyNative(p: string | symbol, desc: ECMA_PropertyDescriptor, sTable: SLocalSymbolTable<any>): boolean;
+  // sDefineOwnProperty(p: string | symbol, desc: ECMA_PropertyDescriptor, sTable: SLocalSymbolTable<any>): SBooleanValue<M, boolean> {
+  //   return new SValues.SBooleanValue(this.sDefineOwnPropertyNative(p, desc, sTable), this.metadata);
+  // }
+  // abstract sIsCallableNative(): boolean;
+  // sIsCallable(): SBooleanValue<M, boolean> {
+  //   return new SValues.SBooleanValue(this.sIsCallableNative(), this.metadata);
+  // }
+  abstract sToBooleanNative(): boolean;
+  sToBoolean(): SBooleanValue<M, boolean> {
+    return new SValues.SBooleanValue(this.sToBooleanNative(), this.metadata);
+  }
+  abstract sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
+  abstract sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T;
   abstract sApply(thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>): SValue<M>;
   abstract sConstruct(args: SValue<M>[], newTarget: SFunction<any>, sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any>;
   combineMetadata: (anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>) => M = combineMetadata;

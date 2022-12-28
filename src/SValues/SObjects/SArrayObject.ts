@@ -15,6 +15,9 @@ export class SArrayObject<M extends MaybeSValueMetadata, E extends SValue<M>> ex
   private constructor(sStorage: SProxiedNativeArray<E, M>, sPrototype: SPrototypeType, metadata: M) {
     super(sStorage, sPrototype, metadata, false);
   }
+  // sIsCallableNative(): boolean {
+  //   return false;
+  // }
 
   static createWithMetadata<M extends MaybeSValueMetadata, E extends SValue<M>>(
     array: E[],

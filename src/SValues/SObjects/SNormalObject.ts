@@ -10,6 +10,10 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
   declare getNativeJsValue: (rootSTable: SRootSymbolTable<M>) => any;
   declare readonly sStorage: BaseSObjectStorage;
 
+  // sIsCallableNative(): boolean {
+  //   return false;
+  // }
+  
   private constructor(
     properties: SObjectProperties,
     sPrototype: SPrototypeType,

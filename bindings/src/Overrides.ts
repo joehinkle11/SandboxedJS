@@ -22,8 +22,49 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
       throw SUserError.cannotConvertToObject;
       `
   },
+  "Object.defineProperty": {
+    swizzled_apply_raw: `
+      const firstArg = sArgArray[0];
+      if (firstArg) {
+        const firstArgObj = firstArg.sConvertToObject(sTable);
+        const secondArg = sArgArray[1];
+        if (secondArg) {
+          const propertyKey = secondArg.sToPropertyKey(sTable);
+          const thirdArg = sArgArray[2];
+          if (thirdArg) {
+            const thirdArgObj = thirdArg.sConvertToObject(sTable)
+            return firstArgObj.sDefineProperty(propertyKey, thirdArgObj, sTable);
+          } else {
+            throw SUserError.cannotConvertToObject;
+          }
+        }
+      }
+      throw SUserError.missingRequiredArgument;
+      `
+  },
   "Object": {
     prototype_internal_builtin: "FunctionProtocol",
+  },
+  "Reflect": {
+    prototype_internal_builtin: "ObjectProtocol",
+  },
+  "Reflect.get": {
+    swizzled_apply_raw: `
+      const firstArg = sArgArray[0];
+      if (firstArg) {
+        const secondArg = sArgArray[1];
+        if (secondArg instanceof SValues.SStringValue || secondArg instanceof SValues.SSymbolValue) {
+          const propertyKey: string | symbol = secondArg.nativeJsValue;
+          const thirdArg = sArgArray[2];
+          if (thirdArg) {
+            return firstArg.sGet(propertyKey, thirdArg, sTable);
+          } else {
+            return firstArg.sGet(propertyKey, firstArg, sTable);
+          }
+        }
+      }
+      throw SUserError.missingRequiredArgument;
+      `
   },
   "Function.prototype": {
     prototype_internal_builtin: "ObjectProtocol",

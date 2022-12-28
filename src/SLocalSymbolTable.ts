@@ -103,16 +103,16 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
       }
     }
   }
-  sSet<T extends SValue<M>>(p: string, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string, newValue: T, receiver: undefined): T {
     this.assign(p, newValue, "update");
     return newValue;
   }
-  sGet(p: string, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string, receiver: undefined, sTable: SLocalSymbolTable<M>): SValue<M> {
     const entry = this.symbols[p];
     if (entry !== undefined) {
       return entry.value;
     } else if (this.parent !== null) {
-      return this.parent.sGet(p, receiver, sTable);
+      return this.parent.sGet(p, undefined, sTable);
     } else {
       throw SUserError.symbolNotDefined(p);
     }

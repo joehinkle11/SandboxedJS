@@ -3,7 +3,10 @@ import { testSafeEvalAgainstNative } from './helpers';
 
 describe('__proto__ tests', () => {
   // testSafeEvalAgainstNative("({}).__proto__");
-  testSafeEvalAgainstNative("4 // todo");
+  testSafeEvalAgainstNative(`
+    const p = {value: 5}
+    Object.create(p).value;
+  `);
 });
 
 

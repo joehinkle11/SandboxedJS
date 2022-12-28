@@ -29,5 +29,34 @@ describe('global Object tests', () => {
   testSafeEvalAgainstNative("const o = {};Object.getPrototypeOf(Object.create(o)) === o");
   testSafeEvalAgainstNative("const o = {};const o2 = Object.create(o); Object.getPrototypeOf(o2) === o");
   testSafeEvalAgainstNative("const o = {};const o2 = Object.create(o); Object.setPrototypeOf(o2, null);Object.getPrototypeOf(o2) !== o");
+  testSafeEvalAgainstNative(`
+    const o = {};
+    Object.defineProperty(o, "y", {value: 5});
+    o.y;
+  `);
+  testSafeEvalAgainstNative(`
+    const o = {};
+    const p = {value: 5}
+    const setup = Object.create(p);
+    Object.defineProperty(o, "y", setup);
+    o.y;
+  `);
+  testSafeEvalAgainstNative(`
+    const o = {};
+    Object.defineProperty(o, "y", {get: function(){return 5}});
+    o.y;
+  `);
+  testSafeEvalAgainstNative(`
+    const o = {x:true};
+    Object.defineProperty(o, "y", {get: function(){return this.x}});
+    o.y;
+  `);
+  testSafeEvalAgainstNative(`
+    const p = {};
+    Object.defineProperty(p, "y", {get: function(){return this.x}});
+    const o = Object.create(p);
+    o.x = 14;
+    o.y;
+  `);
 });
 

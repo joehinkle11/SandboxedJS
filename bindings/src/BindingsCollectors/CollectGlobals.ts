@@ -6,6 +6,7 @@ import { ifIsIdenticalReferenceReturnMainRef } from "../IdenticalValueReferences
 import { BuiltInBindingStore, ImplementationModal } from "../Models/BuiltInBinding";
 
 
+const alreadyVisited: Record<string, boolean> = {};
 
 export function collectGlobals(
   filesToDoWorkOn: SourceFile[],
@@ -13,6 +14,10 @@ export function collectGlobals(
 ) {
   for (const file of filesToDoWorkOn) {
     function processGlobal(globalVariableName: string, declType: Type<ts.Type>) {
+      if (alreadyVisited[globalVariableName]) {
+        return;
+      }
+      alreadyVisited[globalVariableName] = true;
       if (blackListTypes.includes(globalVariableName) || blackListVars.includes(globalVariableName)) {
         console.log(`Skipping ${globalVariableName} as it is on the blacklist.`);
         return;
@@ -40,9 +45,12 @@ export function collectGlobals(
     for (const decl of funcDecls) {
       processGlobal(decl.getName()!, decl.getType());
     }
+    const classDecls = file.getModules();
+    for (const decl of classDecls) {
+      processGlobal(decl.getName()!, decl.getType());
+    }
   }
 }
-
 // static means that the value will never change during the course of the program execution
 export function createStaticBindingCodeForGlobalVar(
   globalVariableName: string,

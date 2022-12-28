@@ -6,9 +6,10 @@ import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
 import { SValues } from "../AllSValues";
 import type { SNormalObject } from "../SObjects/SNormalObject";
+import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-string" { return "s-string" };
@@ -22,6 +23,9 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     this.nativeJsValue = nativeJsValue;
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sToBooleanNative(): boolean {
+    return Boolean(this.nativeJsValue);
   }
   sToPropertyKey: () => string = () => {
     return this.nativeJsValue;
@@ -62,7 +66,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
   sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
     return SValues.SNormalObject.exposeNativeBuiltIn<String, M>(new String(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     if (typeof p === "string") {
       const num = parseInt(p);
       if (num >= 0) {

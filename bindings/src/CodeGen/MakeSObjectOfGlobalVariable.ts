@@ -40,6 +40,10 @@ export function makeSObjectOfGlobalVariable(
       let safeTypeStr = (type.getTargetType() ?? type).getText(undefined, TypeFormatFlags.UseFullyQualifiedType).replaceAll("T[]","any[]").replaceAll("<K, V>", "<any, any>").replaceAll("<T>", "<any>");
       if (safeTypeStr === "T") {
         return "any";
+      } else if (safeTypeStr.includes("extends")) {
+        return "any";
+      } else if (safeTypeStr === "R") {
+        return "any";
       } else if (safeTypeStr === "this") {
         return makeSafeTypeText(nativeType);
       }
@@ -122,8 +126,13 @@ return sResult;
     }
   }
   const typeProperties = nativeType.getProperties();
+  const alreadyImplemented: Map<string, boolean> = new Map();
   for (const typeProperty of typeProperties) {
     const propertyName = typeProperty.getName();
+    if (alreadyImplemented.get(propertyName) === true) {
+      console.log(`Skipping property '${propertyName}' on ${globalVariableName} as it was already implemented. ${Object.keys(alreadyImplemented).toString()}`);
+      continue;
+    }
     const globalRefToProperty = globalVariableName + "." + propertyName;
     if (propertyName.includes("_@")) {
       // todo: probably a property with a symbol as a key
@@ -138,6 +147,7 @@ return sResult;
           code_body: `rootSTable.sGet("${overrideInfo.swizzled_lookup_global_var_on_root}", "todo" as any, rootSTable)`,
           property: propertyName
         });
+        alreadyImplemented.set(propertyName, true);
         continue;
       }
       if (overrideInfo.swizzled_dynamic_property) {
@@ -146,6 +156,7 @@ return sResult;
           code_body: evenlyRemovingLeadingSpaces(overrideInfo.swizzled_dynamic_property).trim(),
           property: propertyName
         });
+        alreadyImplemented.set(propertyName, true);
         continue;
       }
     }
@@ -178,6 +189,7 @@ return sResult;
         kind: "whitelist",
         property: propertyName
       });
+      alreadyImplemented.set(propertyName, true);
       continue;
     } else {
       if (propertyType.getText() === nativeTypeStr) {
@@ -218,6 +230,7 @@ return sResult;
         property: propertyName,
         code_body: singletonProperty.privateName
       });
+      alreadyImplemented.set(propertyName, true);
       continue;
     }
   }

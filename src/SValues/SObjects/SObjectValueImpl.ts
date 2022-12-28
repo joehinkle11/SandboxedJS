@@ -6,42 +6,58 @@ import type { SNumberValue } from "../SPrimitiveValues/SNumberValue";
 import type { SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValue";
 import type { SValue } from "../SValue";
 import type { SObjectValue } from "./SObjectValue";
-import type { SDynamicSwizzleEntry, SObjectProperties, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
+import type { SDynamicSwizzleEntry, SObjectProperties, SObjectPropertyAccessThis, SObjectSwizzleAndWhiteList } from "./SObjectValueDef";
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import SUserError from "../../Models/SUserError";
 import type { WeakRefToSValue } from "../WeakRefToSValue";
+import type { SReceiver, SReceiverOrTarget } from "../SValueDef";
 
-export function sGet<M extends MaybeSValueMetadata>(
+export function sGetOwn<M extends MaybeSValueMetadata>(
   this: SObjectValue<M, any, any>,
   p: string | symbol,
-  receiver: SValue<M>,
+  receiver: SReceiverOrTarget<M>,
   sTable: SLocalSymbolTable<M>
-  ): SValue<M> {
+): SValue<M> {
+  const actualReceiver: SReceiver<M> = receiver === "target" ? this : receiver;
+  const sObjectPropertyAccessThis: SObjectPropertyAccessThis = {
+    sReceiver: actualReceiver,
+    sTable: sTable
+  };
+  const result: unknown = Reflect.get(this.sStorage, p, sObjectPropertyAccessThis);
+  if (result instanceof SValues.SValue) {
+    return result;
+  } else {
+    // todo: make sure this is a whitelisted property
+    // must be a primitive or we fail
+    const sPrimitive = SValues.SPrimitiveValue.newPrimitiveFromJSValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
+    if (sPrimitive === null) {
+      throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
+    }
+    return sPrimitive;
+  }
+}
+
+export function sGet(
+  this: SObjectValue<any, any, any>,
+  p: string | symbol,
+  receiver: SReceiverOrTarget<any>,
+  sTable: SLocalSymbolTable<any>
+): SValue<any> {
+  const actualReceiver: SReceiver<any> = receiver === "target" ? this : receiver;
   if (Reflect.has(this.sStorage, p)) {
     // we have this property
-    const result: unknown = Reflect.get(this.sStorage, p, receiver);
-    if (result instanceof SValues.SValue) {
-      return result;
-    } else {
-      // todo: make sure this is a whitelisted property
-      // must be a primitive or we fail
-      const sPrimitive = SValues.SPrimitiveValue.newPrimitiveFromJSValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
-      if (sPrimitive === null) {
-        throw new Error(`Unexpected non s-wrapped property value '${p.toString()}' in s-object (value was ${result}).`);
-      }
-      return sPrimitive;
-    }
+    return sGetOwn.call(this, p, actualReceiver, sTable);
   } else {
     // check prototype
     if (this.sPrototype instanceof SValues.SObjectValue) {
-      return this.sPrototype.sGet(p, receiver, sTable)
+      return this.sPrototype.sGet(p, actualReceiver, sTable)
     } else {
       // get prototype if needed
       if (typeof this.sPrototype === "function") {
         this.sPrototype = this.sPrototype();
         if (this.sPrototype instanceof SValues.SObjectValue) {
-          return this.sPrototype.sGet(p, receiver, sTable);
+          return this.sPrototype.sGet(p, actualReceiver, sTable);
         }
       }
       return new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());

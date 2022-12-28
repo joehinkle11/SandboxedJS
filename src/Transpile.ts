@@ -44,17 +44,17 @@ function resolveLiteral(node: LiteralNode, transpileContext: TranspileContext<an
   }
   throw new Error(`Unsupported literal "${typeof value}"`);
 };
-function resolveLookup(lookupCode: string): string {
-  return "sContext.sGet(" + lookupCode + ",'todo-receiver',sContext)";
+function resolveLookup(lookupCode: string, receiverCode: string): string {
+  return `sContext.sGet(${lookupCode},${receiverCode},sContext)`;
 };
-function resolveLookupIdentifierByName(identifierName: string, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string) => string): string {
+function resolveLookupIdentifierByName(identifierName: string, receiverCode: string, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string, receiverCode: string) => string): string {
   var regEx = /^[0-9a-zA-Z_]+$/;
   if(identifierName.match(regEx) === null) {
     throw Error("Identifier names must be only alphanumeric characters or underscores.")
   }
-  return resolveLookupWork("'" + identifierName + "'");
+  return resolveLookupWork("'" + identifierName + "'", receiverCode);
 };
-function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileContext<any>): string {
+function resolveIdentifier(node: IdentifierNode, receiverCode: string, transpileContext: TranspileContext<any>): string {
   // Check if it is a restricted identifier first
   const name = node.name;
   // switch (name) {
@@ -65,7 +65,7 @@ function resolveIdentifier(node: IdentifierNode, transpileContext: TranspileCont
   // // case "Infinity":
   // //   return `new SValues.SNumberValue(Infinity${transpileContext.newMetadataJsCodeForCompileTimeLiteral()})`;
   // default:
-    return resolveLookupIdentifierByName(name, transpileContext, resolveLookup);
+    return resolveLookupIdentifierByName(name, receiverCode, transpileContext, resolveLookup);
   // }
 };
 function resolveStringLiteral(unsafeString: string, transpileContext: TranspileContext<any>): string {
@@ -166,12 +166,12 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
   let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
   return `SValues.SNormalObject.create(${sObjectValueInitArgsCode},sContext.sGlobalProtocols.ObjectProtocol,sContext)`;
 };
-function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string) => string): {objectCode: string, propertyCode: string} {
+function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string, receiverCode: string) => string): {objectCode: string, propertyCode: string} {
   let propertyCode: string;
   if (node.property.type === "Identifier") {
-    propertyCode = resolveLookupIdentifierByName((node.property as IdentifierNode).name, transpileContext, resolveLookupWork);
+    propertyCode = resolveLookupIdentifierByName((node.property as IdentifierNode).name, "'target'", transpileContext, resolveLookupWork);
   } else {
-    propertyCode = resolveLookupWork(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey(sContext)`)
+    propertyCode = resolveLookupWork(`${resolveAnyNode(node.property, transpileContext)}.sToPropertyKey(sContext)`, "'target'")
   }
   const objectCode: string = resolveAnyNode(node.object, transpileContext);
   return {objectCode, propertyCode};
@@ -373,10 +373,10 @@ function resolveAssignmentExpression(node: AssignmentExpressionNode, transpileCo
   if (compoundAssignmentOperatorsWork === null) {
     rightCode = baseRightCode;
   } else {
-    let getterCode = `${contextLookup}.sGet(${keyToLookup},'todo-receiver',sContext)`
+    let getterCode = `${contextLookup}.sGet(${keyToLookup},'todo-receiver2',sContext)`
     rightCode = `${getterCode}.${compoundAssignmentOperatorsWork}(${baseRightCode},sContext)`
   }
-  return `${contextLookup}.sSet(${keyToLookup},${rightCode}, "todo-receiver")`;
+  return `${contextLookup}.sSet(${keyToLookup},${rightCode}, "todo-receiver3")`;
 }
 function resolveFunctionExpression(node: FunctionExpressionNode, willBeSetToVariableIdentifier: string | undefined, transpileContext: TranspileContext<any>): string {
   let functionName: string;
@@ -453,7 +453,7 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
   } else if (node.type === "ObjectExpression") {
     return resolveObjectExpression(node as ObjectExpressionNode, transpileContext);
   } else if (node.type === "Identifier") {
-    return resolveIdentifier(node as IdentifierNode, transpileContext);
+    return resolveIdentifier(node as IdentifierNode, "'target'", transpileContext);
   } else if (node.type === "ExpressionStatement") {
     return resolveExpressionStatement(node as ExpressionStatementNode, transpileContext);
   // } else if (node.type === "ArrowFunctionExpression") {

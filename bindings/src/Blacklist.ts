@@ -37,6 +37,7 @@ export const blackListTypes = [
   "BigUint64Array",
   "WeakRef",
   "FinalizationRegistry",
+  "Intl",
 ];
 export const blackListProperties = [
   "buffer",
@@ -49,4 +50,5 @@ export const blackListProperties = [
 export const blackListVars = [
   "Object.bind",
   "Function.prototype.prototype",
+  "Intl.DisplayNames.of",
 ];

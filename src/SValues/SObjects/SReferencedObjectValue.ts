@@ -4,14 +4,16 @@
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SValueMetadata } from "../../SValueMetadata";
 import { SValue } from "../SValue";
-import type { SValueKind } from "../SValueDef";
+import type { SReceiverOrTarget, SValueKind } from "../SValueDef";
 import type { SBooleanValue } from "../SPrimitiveValues/SBooleanValue";
 import type { SObjectValue } from "./SObjectValue";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage } from "./SObjectValueDef";
 import { sUnaryNegate, sUnaryMakePositive, sUnaryLogicalNot } from "./SReferencedObjectValueImpl";
+import type { ECMA_PropertyDescriptor } from "../../ECMAModels/ECMA_PropertyDescriptor";
 
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
+
   wrappedObject: SObjectValue<M, K, S>
 
   addedMetadata: M;
@@ -20,6 +22,15 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   }
   get metadata(): M {
     return this.wrappedObject.metadata.mixWithReferencedMetadata(this.addedMetadata) as M;
+  }
+  // sDefineOwnPropertyNative(p: string | symbol, desc: ECMA_PropertyDescriptor, sTable: SLocalSymbolTable<any>): boolean {
+  //   return this.wrappedObject.sDefineOwnPropertyNative(p, desc, sTable);
+  // }
+  sHasNative(p: string | symbol): boolean {
+    return this.wrappedObject.sHasNative(p);
+  }
+  sToBooleanNative(): boolean {
+    return this.wrappedObject.sToBooleanNative();
   }
   sConvertToObject(sTable: SLocalSymbolTable<M>): SObjectValue<M, any, any> {
     return this.wrappedObject.sConvertToObject();
@@ -62,11 +73,11 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
     // todo: add proper metadata
     return this.wrappedObject.sChainExpression(p, sTable);
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // todo: add proper metadata
     return this.wrappedObject.sGet(p, receiver, sTable);
   }
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     // todo: add proper metadata
     return this.wrappedObject.sSet(p, newValue, receiver);
   }

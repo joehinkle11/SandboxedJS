@@ -24,8 +24,14 @@ export default class SUserError extends Error {
   static get corruptObjectPropertyFail(): SUserError {
     return new SUserError(new Error("Detected corrupt object property."));
   }
+  static get failedToSetPropertyOnObject(): SUserError {
+    return new SUserError(new Error("Failed to set property on object."));
+  }
   static get invalidMixBigInt(): SUserError {
     return new SUserError(new Error("TypeError: Invalid mix of BigInt and other type in addition."));
+  }
+  static get missingRequiredArgument(): SUserError {
+    return new SUserError(new Error("Missing required argument."));
   }
   static get cannotConvertBigIntToNumber(): SUserError {
     return new SUserError(new Error("Conversion from 'BigInt' to 'number' is not allowed."));
@@ -36,14 +42,23 @@ export default class SUserError extends Error {
   static get cannotConvertObjectToPrimitive(): SUserError {
     return new SUserError(new Error(`Cannot convert object to primitive value.`));
   }
+  static get invalidPropertyDescriptor(): SUserError {
+    return new SUserError(new Error(`Invalid property descriptor. Cannot both specify accessors and a value or writable attribute`));
+  }
+  static unexpectedType(requiredTypeName: string): SUserError {
+    return new SUserError(new Error(`Unexpected non-${requiredTypeName} type found.`));
+  }
   static requiredThisType(requiredTypeName: string): SUserError {
-    return new SUserError(new Error(`Requires that 'this' be a ${requiredTypeName}`));
+    return new SUserError(new Error(`Requires that 'this' be a ${requiredTypeName}.`));
   }
   static symbolNotDefined(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: ${symbolName} is not defined.`));
   }
   static cannotCall(valueDescription: string): SUserError {
     return new SUserError(new Error(`Cannot call '${valueDescription}'.`));
+  }
+  static expectedCallable(valueDescription: string): SUserError {
+    return new SUserError(new Error(`Expected '${valueDescription}' to be callable.`));
   }
   static requiresNew(valueDescription: string): SUserError {
     return new SUserError(new Error(`TypeError: Constructor ${valueDescription} requires 'new'.`));

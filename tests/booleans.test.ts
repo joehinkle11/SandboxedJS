@@ -20,3 +20,8 @@ describe('boolean ops', () => {
   testSafeEvalAgainstNative('false-true');
   testSafeEvalAgainstNative('false-false');
 });
+
+describe('boolean other', () => {
+  testSafeEvalAgainstNative('true.toString()');
+  testSafeEvalAgainstNative('false.toString()');
+});

@@ -1,3 +1,4 @@
+import SUserError from "../../Models/SUserError";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValue } from "../SValue";
 import type { SValuePrimitiveKind } from "../SValueDef";
@@ -15,10 +16,21 @@ export abstract class SPrimitiveValue<
     return this.nativeJsValue;
   }
   abstract readonly metadata: M;
+  // sDefineOwnPropertyNative(): boolean {
+  //   return false;
+  // }
+  // sIsCallableNative(): boolean {
+  //   return false;
+  // }
+  sHasNative(p: string | symbol): never {
+    throw SUserError.cannotConvertToObject;
+  }
   sOwnKeysNative(): (string | symbol)[] {
     throw Error("todo sOwnKeysNative on primitive")
   }
   sApply(): never {
+    console.log("sApply(): never {");
+    console.trace();
     throw Error(`todo sApply on primitive type ${this.sValueKind}`)
   }
   sConstruct(): never {

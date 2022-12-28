@@ -6,10 +6,10 @@ import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import { SUndefinedValue } from "./SUndefinedValue";
 import SUserError from "../../Models/SUserError";
-
+import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, null> {
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-null" { return "s-null" };
@@ -19,6 +19,9 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
     super();
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sToBooleanNative(): boolean {
+    return Boolean(this.nativeJsValue);
   }
   sConvertToObject(): never {
     throw SUserError.cannotConvertToObject;

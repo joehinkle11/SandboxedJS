@@ -5,9 +5,10 @@ import { SNumberValue } from "./SNumberValue";
 import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import SUserError from "../../Models/SUserError";
+import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M, undefined> {
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-undefined" { return "s-undefined" };
@@ -17,6 +18,9 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     super();
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sToBooleanNative(): boolean {
+    return Boolean(this.nativeJsValue);
   }
   sConvertToObject(): never {
     throw SUserError.cannotConvertToObject;
@@ -42,7 +46,7 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
   sChainExpression(): SUndefinedValue<M> {
     return this;
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SUndefinedValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {

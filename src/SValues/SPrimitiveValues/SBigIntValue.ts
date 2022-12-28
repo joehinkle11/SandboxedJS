@@ -7,10 +7,10 @@ import { SPrimitiveValue } from "./SPrimitiveValue";
 import type { SUndefinedValue } from "./SUndefinedValue";
 import type { SNormalObject } from "../SObjects/SNormalObject";
 import { SValues } from "../AllSValues";
-
+import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> extends SPrimitiveValue<M, V> {
-  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SValue<M>): T {
+  sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
   get sValueKind(): "s-bigint" { return "s-bigint" };
@@ -24,6 +24,9 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     this.nativeJsValue = nativeJsValue;
     this.metadata = metadata;
     Object.freeze(this);
+  }
+  sToBooleanNative(): boolean {
+    return Boolean(this.nativeJsValue);
   }
   sConvertToObject(sTable: SLocalSymbolTable<M>): SNormalObject<M> {
     return SValues.SNormalObject.exposeNativeBuiltIn<BigInt, M>(Object(this.nativeJsValue), sTable.sGlobalProtocols.NumberProtocol, sTable.newMetadataForRuntimeTimeEmergingValue())
@@ -60,7 +63,7 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
       return this;
     }
   }
-  sGet(p: string | symbol, receiver: SValue<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
+  sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     throw Error("Todo: sGet on SBigIntValue prototype");
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
