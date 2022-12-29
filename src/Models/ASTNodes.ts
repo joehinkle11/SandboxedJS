@@ -37,6 +37,11 @@ export interface IdentifierNode extends acorn.Node {
   type: 'Identifier'
   name: string
 }
+export interface ArrayPatternNode extends acorn.Node {
+  type: 'ArrayPattern'
+  
+}
+
 export interface RestElementNode extends acorn.Node {
   type: 'RestElement'
   name: string
@@ -107,6 +112,27 @@ export interface MemberExpressionNode extends acorn.Node {
   property: acorn.Node
   computed: unknown
   optional?: acorn.Node
+}
+export interface ThrowStatementNode extends acorn.Node {
+  type: "ThrowStatement"
+  argument: acorn.Node
+}
+export interface ConditionalExpressionNode extends acorn.Node {
+  type: "ConditionalExpression"
+  test: acorn.Node
+  consequent: acorn.Node
+  alternate: acorn.Node
+}
+export interface TryStatementNode extends acorn.Node {
+  type: "TryStatement"
+  block: BlockStatementNode
+  handler: CatchClauseNode
+  finalizer: BlockStatementNode | null
+}
+export interface CatchClauseNode extends acorn.Node {
+  type: "CatchClause"
+  param: IdentifierNode | null
+  body: BlockStatementNode
 }
 export interface NewExpressionNode extends acorn.Node {
   type: "NewExpression"

@@ -30,6 +30,9 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   // sDefineOwnPropertyNative(p: string | symbol, desc: ECMA_PropertyDescriptor, sTable: SLocalSymbolTable<any>): boolean {
   //   return this.wrappedObject.sDefineOwnPropertyNative(p, desc, sTable);
   // }
+  sIsTruthyNative(): boolean {
+    return this.wrappedObject.sIsTruthyNative();
+  }
   sHasNative(p: string | symbol): boolean {
     return this.wrappedObject.sHasNative(p);
   }

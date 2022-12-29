@@ -48,8 +48,9 @@ Under active development. Looking for others to help out! 🙋‍♂️
 | function param names | ✅ |
 | rest parameter | ✅ |
 | spread operator | ❌ |
-| throw | ⚠️ |
-| try catch | ❌ |
+| throw | ✅ |
+| try catch | ✅ |
+| finally | ✅ |
 | async | ❌ |
 | await | ❌ |
 | class | ❌ |
@@ -65,7 +66,7 @@ Under active development. Looking for others to help out! 🙋‍♂️
 | frozen / extensible object states | ⚠️ |
 | enumerable / configurable object property states | ⚠️ |
 | `delete` | ❌ |
-| ternary operators | ❌ |
+| ternary operators | ✅ |
 | destructuring | ❌ |
 | imports | ❌ |
 

@@ -33,6 +33,9 @@ export abstract class SObjectValue<M extends MaybeSValueMetadata, K extends SBui
   sToBooleanNative(): boolean {
     return true;
   }
+  sIsTruthyNative(): boolean {
+    return true;
+  }
 
   abstract sUnaryNegateInternal: (() => SValue<M> | undefined) | undefined;
   abstract sUnaryMakePositiveInternal: (() => SValue<M> | undefined) | undefined;

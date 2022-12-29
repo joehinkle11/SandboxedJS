@@ -22,6 +22,13 @@ export abstract class SPrimitiveValue<
   // sIsCallableNative(): boolean {
   //   return false;
   // }
+  sIsTruthyNative(): boolean {
+    if (this.nativeJsValue) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   sHasNative(p: string | symbol): never {
     throw SUserError.cannotConvertToObject;
   }
@@ -29,7 +36,7 @@ export abstract class SPrimitiveValue<
     throw Error("todo sOwnKeysNative on primitive")
   }
   sApply(): never {
-    throw Error(`todo sApply on primitive type ${this.sValueKind}`)
+    throw SUserError.cannotCallDueToType(this.sUnaryTypeOfAsNative());
   }
   sConstruct(): never {
     throw Error("todo sConstruct on primitive")

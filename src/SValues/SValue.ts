@@ -56,6 +56,10 @@ export abstract class SValue<M extends MaybeSValueMetadata> {
   sToBoolean(): SBooleanValue<M, boolean> {
     return new SValues.SBooleanValue(this.sToBooleanNative(), this.metadata);
   }
+  abstract sIsTruthyNative(): boolean;
+  sIsTruthy(): SBooleanValue<M, boolean> {
+    return new SValues.SBooleanValue(this.sIsTruthyNative(), this.metadata);
+  }
   
   abstract sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M>;
   abstract sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): T;

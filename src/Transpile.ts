@@ -1,6 +1,6 @@
 import { parse } from "acorn";
 import { encodeUnsafeStringAsJSLiteralString } from "./EncodeString";
-import { ArrayExpressionNode, AssignmentExpressionNode, BinaryExpressionNode, BlockStatementNode, CallExpressionNode, ChainExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, RestElementNode, ReturnStatementNode, SpreadElementNode, TemplateLiteralNode, ThisExpressionNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
+import { ArrayExpressionNode, ArrayPatternNode, AssignmentExpressionNode, BinaryExpressionNode, BlockStatementNode, CallExpressionNode, ChainExpressionNode, ConditionalExpressionNode, ExpressionStatementNode, FunctionExpressionNode, IdentifierNode, LiteralNode, LogicalExpressionNode, MemberExpressionNode, NewExpressionNode, ObjectExpressionNode, ProgramNode, PropertyNode, RestElementNode, ReturnStatementNode, SpreadElementNode, TemplateLiteralNode, ThisExpressionNode, ThrowStatementNode, TryStatementNode, UnaryExpressionNode, VariableDeclarationNode, VariableDeclaratorNode } from "./Models/ASTNodes";
 import { TranspileContext } from "./TranspileContext";
 
 
@@ -206,6 +206,10 @@ function resolveVariableDeclarator(node: VariableDeclaratorNode, kind: 'const' |
   if (idType === "Identifier") {
     const idNode = node.id as IdentifierNode;
     variableName = idNode.name;
+  } else if (idType === "ArrayPattern") {
+    const arrayPatternNode = node.id as ArrayPatternNode;
+    // variableName = idNode.name;
+    throw new Error(Object.getOwnPropertyNames(arrayPatternNode).toString())
   } else {
     throw new Error(`Unsupported id AST node type in VariableDeclarator ${idType}`);
   }
@@ -444,6 +448,33 @@ function resolveNewExpression(node: NewExpressionNode, transpileContext: Transpi
   const lookupCode: string = resolveAnyNode(node.callee, transpileContext);
   return `${lookupCode}.sConstruct([${argumentsCode.join(",")}], "newTarget-todo", sContext)`
 }
+function resolveTryStatement(node: TryStatementNode, transpileContext: TranspileContext<any>): string {
+  let finalizerCode = "";
+  if (node.finalizer !== null) {
+    finalizerCode = "finally{" + resolveCodeBody(node.finalizer.body, false, transpileContext) + "}";
+  }
+  const blockCode = resolveCodeBody(node.block.body, false, transpileContext);
+  const handleCode = resolveCodeBody(node.handler.body.body, false, transpileContext);
+  const firstPartCode = `try{${blockCode}}catch(caughtError){if (caughtError instanceof SValues.SUserError === false){throw caughtError};`;
+  const lastPartCode = `${handleCode}}`;
+  if (node.handler.param === null) {
+    return firstPartCode + lastPartCode + finalizerCode;
+  } else {
+    const caughtErrorName = encodeUnsafeStringAsJSLiteralString(node.handler.param.name);
+    const middlePartCode = `const parentSContext=sContext;{const sContext=parentSContext.spawnChild(parentSContext.sThis,[caughtError.getSValue(parentSContext)],[${caughtErrorName}]);`
+    return firstPartCode + middlePartCode + lastPartCode + "}" + finalizerCode;
+  }
+}
+function resolveConditionalExpression(node: ConditionalExpressionNode, transpileContext: TranspileContext<any>): string {
+  const testCode = resolveAnyNode(node.test, transpileContext);
+  const consequentCode = resolveAnyNode(node.consequent, transpileContext);
+  const alternateCode = resolveAnyNode(node.alternate, transpileContext);
+  return `${testCode}.sIsTruthyNative()?${consequentCode}:${alternateCode}`;
+}
+function resolveThrowStatement(node: ThrowStatementNode, transpileContext: TranspileContext<any>): string {
+  const argumentCode = resolveAnyNode(node.argument, transpileContext);
+  return `throw SValues.SUserError.userError(${argumentCode})`;
+}
 function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any>): string {
   if (node.type === "Literal") {
     return resolveLiteral(node as LiteralNode, transpileContext);
@@ -487,6 +518,12 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveChainExpression(node as ChainExpressionNode, transpileContext);
   } else if (node.type === "NewExpression") {
     return resolveNewExpression(node as NewExpressionNode, transpileContext);
+  } else if (node.type === "TryStatement") {
+    return resolveTryStatement(node as TryStatementNode, transpileContext);
+  } else if (node.type === "ThrowStatement") {
+    return resolveThrowStatement(node as ThrowStatementNode, transpileContext);
+  } else if (node.type === "ConditionalExpression") {
+    return resolveConditionalExpression(node as ConditionalExpressionNode, transpileContext);
   } else if (node.type === "BlockStatement") {
     return resolveCodeBody((node as BlockStatementNode).body, false, transpileContext);
   } else {
