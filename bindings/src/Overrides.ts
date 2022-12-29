@@ -181,6 +181,11 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
         return new SValues.SStringValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
       }
       `
+  },
+  "eval": {
+    swizzled_apply_raw: `
+      return new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
+      `
   }
 };
 
