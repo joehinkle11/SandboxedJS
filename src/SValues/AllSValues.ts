@@ -14,7 +14,8 @@ export const SValues = {
   SNormalObject: undefined as any as typeof SNormalObject,
   SArrayObject: undefined as any as typeof SArrayObject,
   SFunction: undefined as any as typeof SFunction,
-  WeakRefToSValue: undefined as any as typeof WeakRefToSValue,
+  SProxyObject: undefined as any as typeof SProxyObject,
+  // WeakRefToSValue: undefined as any as typeof WeakRefToSValue,
 }
 
 // Base
@@ -36,7 +37,8 @@ import { SObjectValue } from "./SObjects/SObjectValue";
 import { SNormalObject } from "./SObjects/SNormalObject";
 import { SArrayObject } from "./SObjects/SArrayObject";
 import { SFunction } from "./SObjects/SFunction";
-import { WeakRefToSValue } from "./WeakRefToSValue";
+import { SProxyObject } from "./SObjects/SProxyObject";
+// import { WeakRefToSValue } from "./WeakRefToSValue";
 // import { SMergedObjects } from "./SObjects/SMergedObjects";
 
 SValues.SValue = SValue;
@@ -53,6 +55,7 @@ SValues.SObjectValue = SObjectValue;
 SValues.SNormalObject = SNormalObject;
 SValues.SArrayObject = SArrayObject;
 SValues.SFunction = SFunction;
-SValues.WeakRefToSValue = WeakRefToSValue;
+SValues.SProxyObject = SProxyObject;
+// SValues.WeakRefToSValue = WeakRefToSValue;
 // SValues.SMergedObjects = SMergedObjects;
 Object.freeze(SValue);

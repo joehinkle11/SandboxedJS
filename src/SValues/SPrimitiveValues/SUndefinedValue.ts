@@ -55,6 +55,13 @@ export class SUndefinedValue<M extends MaybeSValueMetadata> extends SPrimitiveVa
     }
     return new SUndefinedValue(this.combineMetadata(anotherValue, sTable)) as this;
   }
+  
+  // Conversions to primitives
+  sConvertToBooleanPrimitive(): never { throw SUserError.cannotConvertToPrimitive("boolean") }
+  sConvertToBigIntPrimitive(): never { throw SUserError.cannotConvertToPrimitive("bigint") }
+  sConvertToStringPrimitive(): never { throw SUserError.cannotConvertToPrimitive("string") }
+  sConvertToNumberPrimitive(): never { throw SUserError.cannotConvertToPrimitive("number") }
+  sConvertToSymbolPrimitive(): never { throw SUserError.cannotConvertToPrimitive("symbol") }
 }
 
 

@@ -56,4 +56,11 @@ export class SNullValue<M extends MaybeSValueMetadata> extends SPrimitiveValue<M
     }
     return new SNullValue(this.combineMetadata(anotherValue, sTable)) as this;
   }
+
+  // Conversions to primitives
+  sConvertToBooleanPrimitive(): never { throw SUserError.cannotConvertToPrimitive("boolean") }
+  sConvertToBigIntPrimitive(): never { throw SUserError.cannotConvertToPrimitive("bigint") }
+  sConvertToStringPrimitive(): never { throw SUserError.cannotConvertToPrimitive("string") }
+  sConvertToNumberPrimitive(): never { throw SUserError.cannotConvertToPrimitive("number") }
+  sConvertToSymbolPrimitive(): never { throw SUserError.cannotConvertToPrimitive("symbol") }
 }

@@ -2,6 +2,7 @@ import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTabl
 import type { SMetadataProvider } from "../../SMetadataProvider";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import { SValues } from "../AllSValues";
+import type { SValue } from "../SValue";
 import { SNonFunctionObjectValue } from "./SNonFunctionObjectValue";
 import type { BaseSObjectStorage, SObjectProperties, SObjectSwizzleAndWhiteList, SPrototypeDeterminedType, SPrototypeType } from "./SObjectValueDef";
 import { applySwizzleToObj } from "./SObjectValueImpl";
@@ -25,22 +26,29 @@ export class SNormalObject<M extends MaybeSValueMetadata> extends SNonFunctionOb
 
   static create<M extends MaybeSValueMetadata>(
     anySObject: BaseSObjectStorage,
-    sPrototype: SPrototypeDeterminedType,
+    sPrototype: SValue<M> | undefined,
     sTable: SLocalSymbolTable<M>
   ): SNormalObject<M> {
-    return new SNormalObject<M>(anySObject, sPrototype, sTable.newMetadataForObjectValue(), false);
+    let fixedSPrototype: SPrototypeDeterminedType;
+    if (sPrototype !== undefined && (sPrototype instanceof SValues.SObjectValue || sPrototype instanceof SValues.SNullValue)) {
+      fixedSPrototype = sPrototype;
+    } else {
+      fixedSPrototype = sTable.sGlobalProtocols.ObjectProtocol;
+    }
+    return new SNormalObject<M>(anySObject, fixedSPrototype, sTable.newMetadataForObjectValue(), false);
   }
   static createFromNative<O extends object, M extends MaybeSValueMetadata>(
     nativeJsObject: O,
     sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
     sPrototype: SPrototypeType,
-    metadata: M
+    metadata: M,
+    sTable: SLocalSymbolTable<M>
   ): SNormalObject<M> {
     let safeObject: any = {}; 
-    const weakRefToSValue = new SValues.WeakRefToSValue();
-    applySwizzleToObj(safeObject, nativeJsObject, sSwizzleAndWhiteList, weakRefToSValue);
+    // const weakRefToSValue = new SValues.WeakRefToSValue();
+    applySwizzleToObj(safeObject, nativeJsObject, sSwizzleAndWhiteList, sTable);
     const newObj = new SNormalObject<M>(safeObject, sPrototype, metadata, false);
-    weakRefToSValue.setSValue(newObj);
+    // weakRefToSValue.setSValue(newObj);
     return newObj;
   }
   // not properties are allowed, mainly for build-in objects like [object Number]

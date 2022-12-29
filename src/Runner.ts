@@ -38,6 +38,13 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
       }
     );
   }
+
+  exposeGlobals(globalsToExpose: Partial<Record<PropertyKey, ExposedGlobal>>) {
+    const globalNames = Object.getOwnPropertyNames(globalsToExpose);
+    for (const globalName of globalNames) {
+      this.sTable.assignGlobalExposed(globalName, globalsToExpose[globalName]!);
+    }
+  }
   
   evalJs<AsNativeJs extends boolean>(jsCode: string, options: {returnNativeJSValue: AsNativeJs}): AsNativeJs extends true ? any : SValue<M> {
     const transpiledJsCode: string = this.transpile(jsCode);
@@ -69,4 +76,11 @@ export class SandboxedJSRunner<M extends MaybeSValueMetadata> {
       return sResult;
     }
   }
+}
+export type ExposedGlobal = ExposedGlobalGetter & (ExposedGlobalGetter | ExposedGlobalSetter);
+export interface ExposedGlobalGetter {
+  getter: () => any
+}
+export interface ExposedGlobalSetter {
+  setter: (newValue: any) => void
 }

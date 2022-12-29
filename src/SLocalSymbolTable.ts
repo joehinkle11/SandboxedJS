@@ -1,4 +1,5 @@
 import SUserError from "./Models/SUserError";
+import type { ExposedGlobal } from "./Runner";
 import type { SMetadataProvider } from "./SMetadataProvider";
 import type { MaybeSValueMetadata, SValueMetadata } from "./SValueMetadata";
 import { SValues } from "./SValues/AllSValues";
@@ -10,10 +11,18 @@ import type { SUndefinedValue } from "./SValues/SPrimitiveValues/SUndefinedValue
 import type { SValue } from "./SValues/SValue";
 import type { TranspileContext, ValueMetadataSystem } from "./TranspileContext";
 
-type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, {
-  kind: 'const' | 'let' | "var",
-  value: SValue<M>
-} | undefined>;
+type SymbolsRecord<M extends MaybeSValueMetadata> = Record<string, SymbolsRecordEntry<M> | undefined>;
+type SymbolsRecordEntry<M extends MaybeSValueMetadata> = {
+  kind: 'exposed' | 'const' | 'let' | "var"
+} & (
+  {
+    kind: 'exposed'
+    exposedGetterSetter: ExposedGlobal
+  } | {
+    kind: 'const' | 'let' | "var",
+    value: SValue<M>
+  }
+)
 
 interface SGlobalProtocols<M extends MaybeSValueMetadata> {
   // ObjectProtocol: SMergedObjects<M>;
@@ -21,6 +30,7 @@ interface SGlobalProtocols<M extends MaybeSValueMetadata> {
   FunctionProtocol: SNormalObject<M>;
   NumberProtocol: SNormalObject<M>;
   BooleanProtocol: SNormalObject<M>;
+  BigIntProtocol: SNormalObject<M>;
   StringProtocol: SNormalObject<M>;
   SymbolProtocol: SNormalObject<M>;
   ArrayProtocol: SNormalObject<M>;
@@ -62,6 +72,13 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
 
   readonly sThis: SValue<M>;
 
+  assignGlobalExposed(key: string, exposedGetterSetter: ExposedGlobal) {
+    this.symbols[key] = {
+      kind: "exposed",
+      exposedGetterSetter: exposedGetterSetter
+    };
+  }
+
   assign<V extends SValue<M>>(key: string, newValue: V, kind: 'const' | 'let' | "var" | "update"): V | SUndefinedValue<M> {
     const entry = this.symbols[key];
     switch (entry?.kind) {
@@ -101,6 +118,20 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
         };
         return newValue;
       }
+    case "exposed":
+      switch (kind) {
+      case "const":
+      case "let":
+      case "var":
+        throw SUserError.symbolConflictsWithGloballyExposedSymbol(key);
+      case "update":
+        if (newValue instanceof SValues.SPrimitiveValue) {
+          if ("setter" in entry.exposedGetterSetter) {
+            entry.exposedGetterSetter.setter(newValue.nativeJsValue);
+          }
+        }
+        return newValue;
+      }
     }
   }
   sSet<T extends SValue<M>>(p: string, newValue: T, receiver: undefined): T {
@@ -122,7 +153,17 @@ export class SLocalSymbolTable<M extends MaybeSValueMetadata> implements SMetada
   sGet(p: string, receiver: undefined, sTable: SLocalSymbolTable<M>): SValue<M> {
     const entry = this.symbols[p];
     if (entry !== undefined) {
-      return entry.value;
+      if ("value" in entry) {
+        return entry.value;
+      } else {
+        const nativeJsValue = entry.exposedGetterSetter.getter();
+        const sValue = SValues.SPrimitiveValue.newPrimitiveFromJSValue(nativeJsValue, sTable.newMetadataForRuntimeTimeEmergingValue());
+        if (sValue === null) {
+          throw SUserError.globallyExposedSymbolNotAPrimitive(p);
+        } else {
+          return sValue;
+        }
+      }
     } else if (this.parent !== null) {
       return this.parent.sGet(p, undefined, sTable);
     } else {

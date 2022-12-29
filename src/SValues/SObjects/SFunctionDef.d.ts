@@ -5,6 +5,7 @@ import type { SFunction } from "./SFunction";
 
 export type AnySFunction = SandboxedFunctionCall & SObjectProperties & UnknownFunction;
 export type SandboxedFunctionCall = (sThisArg: SValue<any> | undefined, sArgArray: SValue<any>[], newTarget: undefined, sTable: SLocalSymbolTable<any>) => SValue<any>;
+export type SandboxedFunctionGetterCall = (sThisArg: SValue<any>, sArgArray: [], newTarget: undefined, sTable: SLocalSymbolTable<any>) => SValue<any>;
 export type SandboxedConstructorFunctionCall = (sThisArg: SValue<any>, sArgArray: SValue<any>[], newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) => SValue<any>;
 export type SandboxedConstructorFunctionCallAsNormalCall = (sThisArg: undefined, sArgArray: SValue<any>[], newTarget: SFunction<any>, sTable: SLocalSymbolTable<any>) => SValue<any>;
 export type UnknownFunction = (...args: (any | unknown)[]) => unknown;

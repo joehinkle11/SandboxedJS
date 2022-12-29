@@ -10,7 +10,7 @@ import { SwizzleOrWhiteListEntry } from "../Models/Misc";
 import { overrides } from "../Overrides";
 import { evenlyRemovingLeadingSpaces } from "../Utils";
 
-const builtInBoxedPrimitiveTypes = ["Number", "Function", "Boolean", "String", "Object", "Symbol", "Array"];
+const builtInBoxedPrimitiveTypes = ["Number", "Function", "Boolean", "String", "Object", "Symbol", "Array", "BigInt"];
 
 export function makeSObjectOfGlobalVariable(
   globalVariableName: string,

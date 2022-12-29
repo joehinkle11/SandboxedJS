@@ -110,13 +110,75 @@ export const overrides: Partial<Record<string, OverrideEntry>> = {
       throw new Error("Expected 'this' to be a function.");
       `
   },
+  "Symbol": {
+    swizzled_apply_raw: `
+      const argsLength = sArgArray.length;
+      const nativeArgs: any[] = [];
+      if (argsLength > 0) {
+        // add param "description" to call
+        nativeArgs.push(SValues.SSymbolValue.sandboxedSymbolPrefix + sArgArray[0].getNativeJsValue(rootSTable));
+      }
+      const result: symbol = Reflect.apply(Symbol, sThisArg?.getNativeJsValue(rootSTable), nativeArgs);
+      const sResult: SSymbolValue<any, symbol> = new SValues.SSymbolValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
+      return sResult;
+      `
+  },
+  "Symbol.for": {
+    swizzled_apply_raw: `
+      if (sArgArray.length < 1) {
+        throw SUserError.missingRequiredArgument;
+      }
+      const sString = sArgArray[0].sConvertToStringPrimitive();
+      const string = SValues.SSymbolValue.sandboxedSymbolPrefix + sString.nativeJsValue;
+      const result: symbol = Symbol.for(string);
+      return new SValues.SSymbolValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
+      `
+  },
+  "Symbol.keyFor": {
+    swizzled_apply_raw: `
+      if (sArgArray.length < 1) {
+        throw SUserError.missingRequiredThis;
+      }
+      const sSymbol = sArgArray[0].sConvertToSymbolPrimitive();
+      const symbol = sSymbol.nativeJsValue;
+      const result: string | undefined = Symbol.keyFor(symbol);
+      if (result === undefined) {
+        return new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
+      }
+      if (result.startsWith(SValues.SSymbolValue.sandboxedSymbolPrefix)) {
+        const fixedResult = result.slice(SValues.SSymbolValue.sandboxedSymbolPrefix.length);
+        return new SValues.SStringValue(fixedResult, sTable.newMetadataForRuntimeTimeEmergingValue());
+      }
+      return new SValues.SStringValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
+      `
+  },
+  "Symbol.prototype.toString": {
+    swizzled_apply_raw: `
+      if (sThisArg === undefined) {
+        throw SUserError.missingRequiredArgument;
+      }
+      const sThisArgSymbol: SSymbolValue<any, symbol> = sThisArg.sConvertToSymbolPrimitive();
+      const result: string | undefined = Reflect.get(Symbol.prototype, "description", sThisArgSymbol.nativeJsValue);
+      let fixedResult: string = result ?? "";
+      if (fixedResult.startsWith(SValues.SSymbolValue.sandboxedSymbolPrefix)) {
+        fixedResult = fixedResult.slice(SValues.SSymbolValue.sandboxedSymbolPrefix.length);
+      }
+      return new SValues.SStringValue("Symbol(" + fixedResult + ")", sTable.newMetadataForRuntimeTimeEmergingValue());
+      `
+  },
   "Symbol.prototype.description": {
     swizzled_dynamic_property: `
       {
-        if (sValueWhichHoldsProperty instanceof SValues.SSymbolValue) {
-          throw SUserError.requiredThisType("Symbol2");  
+        const sThisArgSymbol: SSymbolValue<any, symbol> = sThisArg.sConvertToSymbolPrimitive();
+        const result: string | undefined = Reflect.get(Symbol.prototype, "description", sThisArgSymbol.nativeJsValue);
+        if (result === undefined) {
+          return new SValues.SUndefinedValue(sTable.newMetadataForRuntimeTimeEmergingValue());
         }
-        throw SUserError.requiredThisType("Symbol" + sValueWhichHoldsProperty.sValueKind);
+        if (result.startsWith(SValues.SSymbolValue.sandboxedSymbolPrefix)) {
+          const fixedResult = result.slice(SValues.SSymbolValue.sandboxedSymbolPrefix.length);
+          return new SValues.SStringValue(fixedResult, sTable.newMetadataForRuntimeTimeEmergingValue());
+        }
+        return new SValues.SStringValue(result, sTable.newMetadataForRuntimeTimeEmergingValue());
       }
       `
   }

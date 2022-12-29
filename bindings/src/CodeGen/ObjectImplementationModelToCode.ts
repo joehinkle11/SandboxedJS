@@ -43,7 +43,7 @@ ${makeSwizzleOrWhitelistProperty(`swizzle_static_${swizzleOrWhiteListEntry.prope
       continue;
     case "swizzled_dynamic_property":
       appendToSwizzleOrWhiteListModelStr(`
-${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.property}`)}: (sValueWhichHoldsProperty: SValue<any>) => ${swizzleOrWhiteListEntry.code_body},
+${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.property}`)}: (sThisArg: SValue<any>, sArgArray: [], newTarget: undefined, sTable: SLocalSymbolTable<any>) => ${swizzleOrWhiteListEntry.code_body},
 `);
       continue;
     default:
@@ -66,7 +66,8 @@ ${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.prop
     ${swizzleOrWhiteListModelStr.trim()}
   },
   () => ${sPrototype},
-  rootSTable.newMetadataForCompileTimeLiteral()
+  rootSTable.newMetadataForCompileTimeLiteral(),
+  rootSTable
 )`;
   case "plain":
     return `SValues.SNormalObject.createFromNative(
@@ -75,7 +76,8 @@ ${makeSwizzleOrWhitelistProperty(`swizzle_dynamic_${swizzleOrWhiteListEntry.prop
     ${swizzleOrWhiteListModelStr.trim()}
   },
   () => ${sPrototype},
-  rootSTable.newMetadataForCompileTimeLiteral()
+  rootSTable.newMetadataForCompileTimeLiteral(),
+  rootSTable
 )`;
   }
 }

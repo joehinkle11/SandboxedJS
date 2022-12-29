@@ -7,12 +7,13 @@ import type { SValue } from "../SValue";
 import type { SReceiverOrTarget } from "../SValueDef";
 import type { AnySFunction, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall, SandboxedFunctionCall, UnknownConstructorFunction, UnknownFunction } from "./SFunctionDef";
 import { sApply, sConstruct } from "./SFunctionImpl";
-import { SObjectValue } from "./SObjectValue";
+import { SNonProxyObject } from "./SNonProxyObject";
+import type { SObjectValue } from "./SObjectValue";
 import type { SObjectSwizzleAndWhiteList, SBuiltInFunctionObjectKind, SPrototypeType, SPrototypeDeterminedType } from "./SObjectValueDef";
 import { applySwizzleToObj, convertAllPropertiesToSValues } from "./SObjectValueImpl";
 
 // todo: remove this class and just represent constructors, functions and arrow functions the same way...?
-export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SObjectValue<M, K, AnySFunction> {
+export abstract class SFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInFunctionObjectKind> extends SNonProxyObject<M, K, AnySFunction> {
   abstract readonly sStorage: AnySFunction;
   sUnaryTypeOfAsNative(): "function" { return "function" }
   sApply: (thisArg: SValue<M>, args: SValue<M>[], sTable: SLocalSymbolTable<M>) => SValue<M> = sApply;
@@ -67,6 +68,7 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     const sPrototype = sTable.sGlobalProtocols.FunctionProtocol;
     return new SFunction<M>(fixedAnySFunction, sPrototype, sFunctionNameNative, functionAsString, sTable.newMetadataForObjectValue());
   }
+  
   static createBinding<M extends MaybeSValueMetadata>(
     sFunctionToBind: SFunction<M>,
     thingToBind: SValue<M>,
@@ -88,11 +90,13 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
     }
     return new SFunction<M>(actualFunction, sPrototype, boundSFunctionNameNative, "function () { [native code] }", sTable.newMetadataForObjectValue());
   }
+
   static createFromNative<O extends UnknownConstructorFunction | UnknownFunction, M extends MaybeSValueMetadata>(
     nativeJsFunction: O,
     sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O & UnknownConstructorFunction & UnknownFunction>,
     sPrototype: SPrototypeType,
-    metadata: M
+    metadata: M,
+    sTable: SLocalSymbolTable<M>
   ): SFunction<M> {
     const sFunctionNameNative = nativeJsFunction.name;
     const functionAsString = Function.bind(nativeJsFunction).toString();
@@ -118,10 +122,13 @@ export class SFunction<M extends MaybeSValueMetadata> extends SFunctionObjectVal
         }}[sFunctionNameNative] as AnySFunction 
       }
     }
-    const weakRefToSValue = new SValues.WeakRefToSValue();
-    applySwizzleToObj(safeFunction, nativeJsFunction, sSwizzleAndWhiteList, weakRefToSValue);
+    const safeFunctionPrototype = safeFunction.prototype;
+    if ((safeFunctionPrototype instanceof SValues.SValue === false) && ((safeFunctionPrototype !== null && typeof safeFunctionPrototype === "object" && "binding_pointing_to" in safeFunctionPrototype) === false)) {
+      // there is no s function prototype, make a default
+      safeFunction.prototype = SValues.SNormalObject.create({}, sTable.sGlobalProtocols.ObjectProtocol, sTable);
+    }
+    applySwizzleToObj(safeFunction, nativeJsFunction, sSwizzleAndWhiteList, sTable);
     const newFunc = new SFunction<M>(safeFunction, sPrototype, sFunctionNameNative, functionAsString, metadata);
-    weakRefToSValue.setSValue(newFunc);
     return newFunc;
   }
 }

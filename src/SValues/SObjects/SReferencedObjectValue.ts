@@ -10,6 +10,10 @@ import type { SObjectValue } from "./SObjectValue";
 import type { SBuiltInObjectKind, MapSBuiltInObjectKindToSObjectStorage } from "./SObjectValueDef";
 import { sUnaryNegate, sUnaryMakePositive, sUnaryLogicalNot } from "./SReferencedObjectValueImpl";
 import type { ECMA_PropertyDescriptor } from "../../ECMAModels/ECMA_PropertyDescriptor";
+import { SBigIntValue } from "../SPrimitiveValues/SBigIntValue";
+import { SNumberValue } from "../SPrimitiveValues/SNumberValue";
+import { SStringValue } from "../SPrimitiveValues/SStringValue";
+import { SSymbolValue } from "../SPrimitiveValues/SSymbolValue";
 
 // the same object.
 export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltInObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SValue<M> {
@@ -83,5 +87,21 @@ export class SReferencedObjectValue<M extends SValueMetadata, K extends SBuiltIn
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     throw new Error("Method not implemented.");
+  }
+
+  sConvertToBooleanPrimitive(): SBooleanValue<M, boolean> {
+    return this.wrappedObject.sConvertToBooleanPrimitive();
+  }
+  sConvertToBigIntPrimitive(): SBigIntValue<M, bigint> {
+    return this.wrappedObject.sConvertToBigIntPrimitive();
+  }
+  sConvertToStringPrimitive(): SStringValue<M, string> {
+    return this.wrappedObject.sConvertToStringPrimitive();
+  }
+  sConvertToNumberPrimitive(): SNumberValue<M, number> {
+    return this.wrappedObject.sConvertToNumberPrimitive();
+  }
+  sConvertToSymbolPrimitive(): SSymbolValue<M, symbol> {
+    return this.wrappedObject.sConvertToSymbolPrimitive();
   }
 }

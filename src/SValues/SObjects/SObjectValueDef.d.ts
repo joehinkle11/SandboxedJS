@@ -1,9 +1,10 @@
 // import { hiddenSObjectStorageSymbol } from "../../HiddenSymbols";
 import type { MapNativeValueTypeToSType, SReceiver } from "../SValueDef";
-import type { UnknownFunction, UnknownConstructorFunction, AnySFunction, SandboxedFunctionCall, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall } from "./SFunctionDef";
+import type { UnknownFunction, UnknownConstructorFunction, AnySFunction, SandboxedFunctionCall, SandboxedFunctionGetterCall, SandboxedConstructorFunctionCall, SandboxedConstructorFunctionCallAsNormalCall } from "./SFunctionDef";
 import type { SPrimitiveValueType, MapSPrimitiveValueTypeToSType, SPrimitiveValue } from "../SPrimitiveValues/SPrimitiveValueDef";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import type { SObjectValue } from "./SObjectValue";
+import type { SFunction } from "./SFunction";
 import type { SValue } from "../SValue";
 import { SLocalSymbolTable } from "../../SLocalSymbolTable";
 
@@ -23,7 +24,7 @@ export type MapSBuiltInObjectKindToSObjectStorage<K extends SBuiltInObjectKind> 
 
 export type SWhiteListEntry = true;
 export type SSwizzleEntry<V> = MapNativeValueTypeToSType<V>;
-export type SDynamicSwizzleEntry<V> = (sValueWhichHoldsProperty: SValue<any>) => MapNativeValueTypeToSType<V>;
+export type SDynamicSwizzleEntry<V> = SandboxedFunctionGetterCall;
 export type SSwizzleOrWhiteListEntry<V> = V extends SPrimitiveValueType ? SWhiteListEntry | SSwizzleEntry<V> : SSwizzleEntry<V>;
 export type SObjectSwizzleAndWhiteList<O extends object> = {
   [P in keyof O as O[P] extends SPrimitiveValueType ? `whitelist_${string & P}` : never]?: SWhiteListEntry;

@@ -30,6 +30,9 @@ export default class SUserError extends Error {
   static get invalidMixBigInt(): SUserError {
     return new SUserError(new Error("TypeError: Invalid mix of BigInt and other type in addition."));
   }
+  static get missingRequiredThis(): SUserError {
+    return new SUserError(new Error("Missing required 'this'."));
+  }
   static get missingRequiredArgument(): SUserError {
     return new SUserError(new Error("Missing required argument."));
   }
@@ -45,6 +48,9 @@ export default class SUserError extends Error {
   static get invalidPropertyDescriptor(): SUserError {
     return new SUserError(new Error(`Invalid property descriptor. Cannot both specify accessors and a value or writable attribute`));
   }
+  static cannotConvertToPrimitive(primitiveTypeName: string): SUserError {
+    return new SUserError(new Error(`Cannot convert value to primitive ${primitiveTypeName}.`));
+  }
   static failedToSetProperty(propertyName: string): SUserError {
     return new SUserError(new Error(`Could not set property '${propertyName}'.`));
   }
@@ -56,6 +62,12 @@ export default class SUserError extends Error {
   }
   static symbolNotDefined(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: ${symbolName} is not defined.`));
+  }
+  static globallyExposedSymbolNotAPrimitive(symbolName: string): SUserError {
+    return new SUserError(new Error(`Unexpectedly found globally exposed host symbol '${symbolName}' was not a primitive.`));
+  }
+  static symbolConflictsWithGloballyExposedSymbol(symbolName: string): SUserError {
+    return new SUserError(new Error(`Symbol ${symbolName} cannot be declared. It conflicts with an exposed host symbol.`));
   }
   static cannotUpdateUndefinedSymbol(symbolName: string): SUserError {
     return new SUserError(new Error(`ReferenceError: Cannot update undefined symbol '${symbolName}'.`));

@@ -1,10 +1,22 @@
-import { SandboxedJSRunner } from "./Runner";
+import { ExposedGlobal, SandboxedJSRunner } from "./Runner";
+import type { SPrimitiveValueType } from "./SValues/SPrimitiveValues/SPrimitiveValueDef";
 
 
 export function safeEval(
-  unsafeJs: string
+  unsafeJs: string,
+  options: SafeEvalOptions = {}
 ): any {
   const sandboxedJSRunner = SandboxedJSRunner.newRunnerWithoutMetadata();
-  const result = sandboxedJSRunner.evalJs(unsafeJs, {returnNativeJSValue: true});
+  if (options.exposing) {
+    sandboxedJSRunner.exposeGlobals(options.exposing);
+  }
+  const result = sandboxedJSRunner.evalJs(unsafeJs, {
+    returnNativeJSValue: options.returnNativeJSValue ?? true
+  });
   return result;
+}
+
+export interface SafeEvalOptions {
+  returnNativeJSValue?: boolean
+  exposing?: Partial<Record<PropertyKey, ExposedGlobal>>
 }

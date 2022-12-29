@@ -64,7 +64,8 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     }
   }
   sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
-    throw Error("Todo: sGet on SBigIntValue prototype");
+    // auto-boxing
+    return sTable.sGlobalProtocols.BigIntProtocol.sGet(p, receiver === "target" ? this : receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     if (sTable.valueMetadataSystem === null) {
@@ -72,4 +73,11 @@ export class SBigIntValue<M extends MaybeSValueMetadata, V extends bigint> exten
     }
     return new SBigIntValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
+  
+  // Conversions to primitives
+  sConvertToBooleanPrimitive(): never { throw SUserError.cannotConvertToPrimitive("boolean") }
+  sConvertToBigIntPrimitive(): this { return this }
+  sConvertToStringPrimitive(): never { throw SUserError.cannotConvertToPrimitive("string") }
+  sConvertToNumberPrimitive(): never { throw SUserError.cannotConvertToPrimitive("number") }
+  sConvertToSymbolPrimitive(): never { throw SUserError.cannotConvertToPrimitive("symbol") }
 }

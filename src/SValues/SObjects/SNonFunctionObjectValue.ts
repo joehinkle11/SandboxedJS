@@ -2,10 +2,10 @@ import SUserError from "../../Models/SUserError";
 import type { SLocalSymbolTable } from "../../SLocalSymbolTable";
 import type { MaybeSValueMetadata } from "../../SValueMetadata";
 import type { SValue } from "../SValue";
-import { SObjectValue } from "./SObjectValue";
+import { SNonProxyObject } from "./SNonProxyObject";
 import type { SBuiltInNonFunctionObjectKind, MapSBuiltInObjectKindToSObjectStorage } from "./SObjectValueDef";
 
-export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInNonFunctionObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SObjectValue<M, K, S> {
+export abstract class SNonFunctionObjectValue<M extends MaybeSValueMetadata, K extends SBuiltInNonFunctionObjectKind, S = MapSBuiltInObjectKindToSObjectStorage<K>> extends SNonProxyObject<M, K, S> {
   sUnaryTypeOfAsNative(): "object" {
     return "object";
   }

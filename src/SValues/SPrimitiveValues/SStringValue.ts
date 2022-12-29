@@ -7,6 +7,7 @@ import type { SUndefinedValue } from "./SUndefinedValue";
 import { SValues } from "../AllSValues";
 import type { SNormalObject } from "../SObjects/SNormalObject";
 import type { SReceiverOrTarget } from "../SValueDef";
+import SUserError from "../../Models/SUserError";
 
 export class SStringValue<M extends MaybeSValueMetadata, V extends string> extends SPrimitiveValue<M, V> {
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
@@ -75,7 +76,7 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
       }
     }
     // auto-boxing
-    return sTable.sGlobalProtocols.StringProtocol.sGet(p, receiver, sTable);
+    return sTable.sGlobalProtocols.StringProtocol.sGet(p, receiver === "target" ? this : receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     if (sTable.valueMetadataSystem === null) {
@@ -83,5 +84,12 @@ export class SStringValue<M extends MaybeSValueMetadata, V extends string> exten
     }
     return new SStringValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
+  
+  // Conversions to primitives
+  sConvertToBooleanPrimitive(): never { throw SUserError.cannotConvertToPrimitive("boolean") }
+  sConvertToBigIntPrimitive(): never { throw SUserError.cannotConvertToPrimitive("bigint") }
+  sConvertToStringPrimitive(): this { return this }
+  sConvertToNumberPrimitive(): never { throw SUserError.cannotConvertToPrimitive("number") }
+  sConvertToSymbolPrimitive(): never { throw SUserError.cannotConvertToPrimitive("symbol") }
 }
 

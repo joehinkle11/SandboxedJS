@@ -4,15 +4,15 @@ Sandbox untrusted/arbitrary JavaScript code and safely execute it in isolation.
 
 ## Performance
 
-Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~20x** slower than native JS. However, if you don't count the time required to transpile the code, execution time can be between **~1.3x to ~20x** slower than native JS, depending on the kind of work being performed. The goal for the MVP is to just get this thing working in a secure manner (breaking out of sandbox should be impossible), and optimizations can come later.
+Run `npm run benchmark` to benchmark SandboxedJS's `saveEval` against a native js `eval`. Currently most benchmarks comparisons show SandboxedJS is **~20x** slower than native JS. However, if you don't count the time required to transpile the code, execution time can be as low as **~1.3x** the speed of native JS, depending on the kind of work being performed. The goal for the MVP is to just get this thing working in a secure manner (breaking out of sandbox should be impossible), and optimizations can come later.
 
 ## Bindings to native and host JS APIs
 
-One of the main focuses of this project is to support as many APIs as possible, both native ECMAScript APIs and host APIs (i.e. browser's `window` version of `globalThis`, DOM and such). To accomplish this, there is a separate node project under [bindings](https://github.com/joehinkle11/SandboxedJS/tree/main/bindings) which is responsible for taking in typescript definitions (i.e. a `lib.d.ts`) and then generated binding code for the sandbox environment. Recently all the hardcoded bindings were replaced with this system and only about 2 of the old unit tests (of the more than 15,000 unit test) are not passing. The hope is to get this binding generation system working so well that it makes it trivial to expose a JS library to the sandbox environment provided you have a typescript definition file for it.
+One of the main focuses of this project is to support as many APIs as possible, both native ECMAScript APIs and host APIs (i.e. browser's `window` version of `globalThis`, DOM and such). To accomplish this, there is a separate node project under [bindings](https://github.com/joehinkle11/SandboxedJS/tree/main/bindings) which is responsible for taking in typescript definitions (i.e. a `lib.d.ts`) and then generating binding code for the sandbox environment. Recently all the hardcoded bindings were replaced with this system and all the old unit tests (15,000+) are passing. The hope is to get this binding generation system working so well that it's trivial to expose a JS library to the sandbox environment provided you have a typescript definition file for it.
 
 ## Status
 
-Under active development. Looking for others to help out!
+Under active development. Looking for others to help out! 🙋‍♂️
 
 ## JS Support 
 
@@ -25,22 +25,49 @@ Under active development. Looking for others to help out!
 | `null` | ✅ |
 | `undefined` | ✅ |
 | `bigint` | ✅ |
-| `symbol` | ⚠️ |
-| autoboxing primitives to objects | ⚠️ works for some types like `Number` |
-| binary operators (`+`, `-`, `%`, etc.) | ✅ |
-| unary operators  (`+`, `-`, `typeof`, etc.) | ✅ |
+| `symbol` | ✅ |
 | simple objects (i.e. `{a: true}`) | ✅ |
+| weird numbers like `Infinity` or `NaN` | ✅ |
+| autoboxing primitives to objects | ✅ |
+| binary operators (`+`, `-`, `%`, etc.) | ✅ |
+| unary operators  (`+`, `-`, `typeof`, etc.) | ✅ 
 | arrays | ✅ |
 | functions | ✅ |
-| `this` | ⚠️ |
+| function constructors | ✅ |
+| Function prototype for constructor call | ✅ |
+| return | ✅ |
+| `instanceof` | ✅ |
+| `eval(...)` | ❌ |
+| brainfuck-like code i.e. `+!![] / +![] // Infinity` | ✅ |
+| function `bind` | ✅ |
+| lambda/arrow functions | ⚠️ |
+| `this` | ✅ |
 | `arguments` | ✅ |
+| global functions like `parseFloat` `parseInt` `isNaN` `isFinite` | ✅  |
+| `unescape` `escape` | ✅ |
+| function param names | ✅ |
+| rest parameter | ✅ |
+| spread operator | ❌ |
+| throw | ⚠️ |
+| try catch | ❌ |
+| async | ❌ |
+| await | ❌ |
+| class | ❌ |
+| getters/setters | ⚠️ |
 | local variables | ✅ |
 | assignment | ✅ |
 | global variables | ⚠️ |
-| prototypes | ⚠️ |
-| `Object` global | ⚠️ |
+| prototypes | ✅ |
+| `__proto__` on plain object init sets prototype | ✅ |
+| `Object` global | ✅ |
+| `Reflect` global | ⚠️ |
+| `Proxy` global | ⚠️ |
+| frozen / extensible object states | ⚠️ |
+| enumerable / configurable object property states | ⚠️ |
+| `delete` | ❌ |
 | ternary operators | ❌ |
-| global variables | ❌ |
+| destructuring | ❌ |
+| imports | ❌ |
 
 
 | Legend |  |
@@ -85,11 +112,23 @@ To produce this code, SandboxedJS uses [acorn](https://github.com/acornjs/acorn)
 
 ## Running Locally
 
+First you need to build the bindings.
+
+Cd into bindings folder: `cd bindings`
+
 Install deps: `npm i`
 
-Run benchmarks: `npm run benchmark`
+Build bindings: `npm run start`
+
+You should now have src/gen/Bindings_Generated.ts present in your project.
+
+Cd back to main folder: `cd ..`
+
+Install deps: `npm i`
 
 Run tests: `npm test`
+
+Run benchmarks: `npm run benchmark`
 
 Build to `lib` folder: `npm run build`
 

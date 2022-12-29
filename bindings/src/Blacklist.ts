@@ -30,7 +30,6 @@ export const blackListTypes = [
   "Set",
   "WeakSet",
   "Promise",
-  "Proxy",
   "SharedArrayBuffer",
   "Atomics",
   "BigInt64Array",

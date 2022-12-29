@@ -10,11 +10,14 @@ import type { SDynamicSwizzleEntry, SObjectProperties, SObjectPropertyGetterAcce
 import type { SLocalSymbolTable, SRootSymbolTable } from "../../SLocalSymbolTable";
 import type { SNullValue } from "../SPrimitiveValues/SNullValue";
 import SUserError from "../../Models/SUserError";
-import type { WeakRefToSValue } from "../WeakRefToSValue";
+// import type { WeakRefToSValue } from "../WeakRefToSValue";
 import type { SReceiver, SReceiverOrTarget } from "../SValueDef";
+import { makeSGetter } from "../../GetterSetterSupport";
+import type { AnySFunction } from "./SFunctionDef";
+import { SNonProxyObject } from "./SNonProxyObject";
 
 export function sSet<M extends MaybeSValueMetadata, T extends SValue<M>>(
-  this: SObjectValue<M, any, any>,
+  this: SNonProxyObject<M, any, any>,
   p: string | symbol,
   newValue: T,
   receiver: SReceiverOrTarget<M>,
@@ -39,7 +42,7 @@ export function sSet<M extends MaybeSValueMetadata, T extends SValue<M>>(
 }
 
 export function sGetOwn<M extends MaybeSValueMetadata>(
-  this: SObjectValue<M, any, any>,
+  this: SNonProxyObject<M, any, any>,
   p: string | symbol,
   receiver: SReceiverOrTarget<M>,
   sTable: SLocalSymbolTable<M>
@@ -64,7 +67,7 @@ export function sGetOwn<M extends MaybeSValueMetadata>(
 }
 
 export function sGet(
-  this: SObjectValue<any, any, any>,
+  this: SNonProxyObject<any, any, any>,
   p: string | symbol,
   receiver: SReceiverOrTarget<any>,
   sTable: SLocalSymbolTable<any>
@@ -95,9 +98,9 @@ export function sUnaryNegate<M extends MaybeSValueMetadata>(
 ): SValue<M> {
   let p: SObjectValue<M, any, any> | SNullValue<M> = this;
   while (p instanceof SValues.SObjectValue) {
-    const sUnaryNegateInternal = p.sUnaryNegateInternal;
-    if (sUnaryNegateInternal !== undefined) {
-      return sUnaryNegateInternal(this);
+    const sUnaryNegateInternalRes = p.sUnaryNegateInternal?.();
+    if (sUnaryNegateInternalRes !== undefined) {
+      return sUnaryNegateInternalRes;
     }
     if (typeof p.sPrototype === "function") {
       p = p.sPrototype();
@@ -112,9 +115,9 @@ export function sUnaryMakePositive<M extends MaybeSValueMetadata>(
 ): SValue<M> {
   let p: SObjectValue<M, any, any> | SNullValue<M> = this;
   while (p instanceof SValues.SObjectValue) {
-    const sUnaryMakePositiveInternal = p.sUnaryMakePositiveInternal;
-    if (sUnaryMakePositiveInternal !== undefined) {
-      return sUnaryMakePositiveInternal(this);
+    const sUnaryMakePositiveInternalRes = p.sUnaryMakePositiveInternal?.();
+    if (sUnaryMakePositiveInternalRes !== undefined) {
+      return sUnaryMakePositiveInternalRes;
     }
     if (typeof p.sPrototype === "function") {
       p = p.sPrototype();
@@ -302,7 +305,7 @@ export function applySwizzleToObj<O extends object>(
   safeObject: O,
   nativeObject: any,
   sSwizzleAndWhiteList: SObjectSwizzleAndWhiteList<O>,
-  weakRefToSValue: WeakRefToSValue
+  sTable: SLocalSymbolTable<any>
 ) {
   const swizzleOrWhitelistKeys = Reflect.ownKeys(sSwizzleAndWhiteList);
   for (const swizzleOrWhitelistKey of swizzleOrWhitelistKeys) {
@@ -326,14 +329,9 @@ export function applySwizzleToObj<O extends object>(
       } else if (swizzleOrWhitelistKey.startsWith("swizzle_dynamic_")) {
         const swizzledKey = swizzleOrWhitelistKey.slice("swizzle_dynamic_".length)
         const staticSwizzledValue: SDynamicSwizzleEntry<any> = (sSwizzleAndWhiteList as any)[swizzleOrWhitelistKey];
+        const getterSFunc = SValues.SFunction.create(staticSwizzledValue as AnySFunction, "function () { [native code] }", sTable);
         Object.defineProperty(safeObject, swizzledKey, {
-          get() {
-            const sValue = weakRefToSValue.deref();
-            if (sValue === undefined) {
-              throw new Error("Object no longer exits...");
-            }
-            return staticSwizzledValue(sValue);
-          },
+          get: makeSGetter(getterSFunc)
         });
         continue;
       }

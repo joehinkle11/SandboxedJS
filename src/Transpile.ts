@@ -138,6 +138,7 @@ function resolveBinaryExpression(node: BinaryExpressionNode, transpileContext: T
 };
 function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: TranspileContext<any>): string {
   let propertiesCodes: string[] = [];
+  let sPrototypeCode: string = "undefined";
   for (const property of node.properties) {
     if (property.type === "Property") {
       const propertyNode = property as PropertyNode;
@@ -150,6 +151,10 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
           if (keyType === "Identifier") {
             const keyNode = propertyNode.key as IdentifierNode;
             keyCode = keyNode.name;
+            if (keyCode === "__proto__") {
+              sPrototypeCode = resolveAnyNode(propertyNode.value, transpileContext);
+              continue;
+            }
           } else {
             keyCode = `[${resolveAnyNode(propertyNode.key, transpileContext)}.sToPropertyKey(sContext)]`;
           }
@@ -164,7 +169,7 @@ function resolveObjectExpression(node: ObjectExpressionNode, transpileContext: T
     }
   }
   let sObjectValueInitArgsCode = "{" + propertiesCodes.join(",") + "}";
-  return `SValues.SNormalObject.create(${sObjectValueInitArgsCode},sContext.sGlobalProtocols.ObjectProtocol,sContext)`;
+  return `SValues.SNormalObject.create(${sObjectValueInitArgsCode},${sPrototypeCode},sContext)`;
 };
 function resolveMemberExpressionReturningPieces(node: MemberExpressionNode, transpileContext: TranspileContext<any>, resolveLookupWork: (key: string, receiverCode: string) => string): {objectCode: string, propertyCode: string} {
   let propertyCode: string;

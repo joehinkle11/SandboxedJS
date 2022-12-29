@@ -10,6 +10,10 @@ import { SNormalObject } from "../SObjects/SNormalObject";
 import type { SReceiverOrTarget } from "../SValueDef";
 
 export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> extends SPrimitiveValue<M, V> {
+
+  // Since the sandbox uses actual JS symbols, we add a prefix to help us distinguish user created symbols and host created symbols.
+  static sandboxedSymbolPrefix = "Sandboxed-";
+
   sSet<T extends SValue<M>>(p: string | symbol, newValue: T, receiver: SReceiverOrTarget<M>): T {
     throw new Error("Method not implemented.");
   }
@@ -57,7 +61,7 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
   }
   sGet(p: string | symbol, receiver: SReceiverOrTarget<M>, sTable: SLocalSymbolTable<M>): SValue<M> {
     // auto-boxing
-    return sTable.sGlobalProtocols.SymbolProtocol.sGet(p, receiver, sTable);
+    return sTable.sGlobalProtocols.SymbolProtocol.sGet(p, receiver === "target" ? this : receiver, sTable);
   }
   addingMetadata(anotherValue: SValue<M>, sTable: SLocalSymbolTable<M>): this {
     if (sTable.valueMetadataSystem === null) {
@@ -65,4 +69,11 @@ export class SSymbolValue<M extends MaybeSValueMetadata, V extends symbol> exten
     }
     return new SSymbolValue(this.nativeJsValue, this.combineMetadata(anotherValue, sTable)) as this;
   }
+  
+  // Conversions to primitives
+  sConvertToBooleanPrimitive(): never { throw SUserError.cannotConvertToPrimitive("boolean") }
+  sConvertToBigIntPrimitive(): never { throw SUserError.cannotConvertToPrimitive("bigint") }
+  sConvertToStringPrimitive(): never { throw SUserError.cannotConvertToPrimitive("string") }
+  sConvertToNumberPrimitive(): never { throw SUserError.cannotConvertToPrimitive("number") }
+  sConvertToSymbolPrimitive(): this { return this }
 }
