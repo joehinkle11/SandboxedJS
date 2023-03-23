@@ -4,4 +4,5 @@ export default {
   optimizeDeps: {
     include: [],
   },
+  publicDir: 'public',
 }

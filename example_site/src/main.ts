@@ -1,7 +1,8 @@
 
 if (window.location.href.endsWith("/native")) {
   // return the native response
-  import('./app');
+  const scriptUrl = new URL('../public/site/app.js', import.meta.url).href
+  import(scriptUrl);
 } else if (window.location.href.endsWith("/next")) {
   // if the path is "/next"
   import('./next');

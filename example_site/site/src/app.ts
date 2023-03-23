@@ -1,9 +1,16 @@
 import "./nspolyfill.js";
 
+// function x(value: number) {
+//   return value * 100;
+// }
+const x = function(value: number) {
+  return value * 100;
+}
+
 const a = 1;
 const b = 2;
 const c = a + b;
-c;
+c - x(c);
 
 // document.body.innerText = "<p>dfdoo</p>"
 

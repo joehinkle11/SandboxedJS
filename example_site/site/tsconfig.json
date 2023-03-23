@@ -6,7 +6,7 @@
     "typeRoots": [],
     "strictNullChecks": true,
     "noLib": true,
-    "outDir": "dist"
+    "outDir": "../public/site"
   },
   "include": ["src","nsd"]
 }

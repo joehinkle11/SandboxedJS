@@ -11,12 +11,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^4.8.4",
+    "typescript": "^4.9.5",
     "vite": "^3.2.3"
   },
   "dependencies": {
-    "sandboxedjs": "file:..",
-    "is-odd": "^3.0.1",
-    "vite-raw-plugin": "^1.0.1"
+    "sandboxedjs": "file:.."
   }
 }
