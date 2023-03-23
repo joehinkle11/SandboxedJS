@@ -526,6 +526,8 @@ function resolveAnyNode(node: acorn.Node, transpileContext: TranspileContext<any
     return resolveConditionalExpression(node as ConditionalExpressionNode, transpileContext);
   } else if (node.type === "BlockStatement") {
     return resolveCodeBody((node as BlockStatementNode).body, false, transpileContext);
+  } else if (node.type === "ImportDeclaration") {
+    console.error("todo ImportDeclaration");
   } else {
     throw new Error(`Unsupported any AST node type ${node.type}`);
   }

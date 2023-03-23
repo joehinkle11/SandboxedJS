@@ -1,0 +1,22 @@
+{
+  "name": "demosite",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.8.4",
+    "vite": "^3.2.3"
+  },
+  "dependencies": {
+    "sandboxedjs": "file:..",
+    "is-odd": "^3.0.1",
+    "vite-raw-plugin": "^1.0.1"
+  }
+}

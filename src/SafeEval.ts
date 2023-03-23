@@ -1,5 +1,4 @@
 import { ExposedGlobal, SandboxedJSRunner } from "./Runner";
-import type { SPrimitiveValueType } from "./SValues/SPrimitiveValues/SPrimitiveValueDef";
 
 
 export function safeEval(

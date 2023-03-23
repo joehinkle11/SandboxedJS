@@ -1,5 +1,5 @@
 {
-  "name": "@joehinkle11/sandboxedjs",
+  "name": "sandboxedjs",
   "version": "0.0.1",
   "description": "Sandbox and execute untrusted JavaScript.",
   "main": "lib/index.js",
