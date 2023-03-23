@@ -1,5 +1,7 @@
 import "./nspolyfill.js";
-
+import helperValueObj from "./helper.js";
+import {h} from "./helper.js";
+ 
 // function x(value: number) {
 //   return value * 100;
 // }
@@ -10,7 +12,12 @@ const x = function(value: number) {
 const a = 1;
 const b = 2;
 const c = a + b;
-c - x(c);
+// alert(c - x(c));
+console.log(helperValueObj);
+const {helperValue} = helperValueObj;
+alert(helperValue)
+alert(h)
+
 
 // document.body.innerText = "<p>dfdoo</p>"
 
